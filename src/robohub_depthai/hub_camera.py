@@ -1,0 +1,124 @@
+import logging as log
+import time
+from pathlib import Path
+from typing import Union, Optional, Callable, List
+
+import depthai as dai
+import robothub
+from depthai_sdk import OakCamera, CameraComponent, StereoComponent, NNComponent
+from robothub import DeviceState
+
+from robohub_depthai.callbacks import get_default_color_callback
+
+
+class HubCamera:
+    def __init__(self,
+                 app: robothub.RobotHubApplication,
+                 device_mxid: str,
+                 usb_speed: Union[None, str, dai.UsbSpeed] = None,
+                 rotation: int = 0):
+        self.app = app
+        self.state = DeviceState.UNKNOWN
+        self.available_sensors = self._get_sensor_names()
+        self.mxid = device_mxid
+        self.usb_speed = usb_speed
+        self.rotation = rotation
+
+    def create_camera(self,
+                      source: str,
+                      resolution: Union[
+                          None, str, dai.ColorCameraProperties.SensorResolution, dai.MonoCameraProperties.SensorResolution
+                      ] = None,
+                      fps: Optional[float] = None,
+                      encode: Union[None, str, bool, dai.VideoEncoderProperties.Profile] = None
+                      ) -> CameraComponent:
+        comp = self.oak_camera.create_camera(source=source, resolution=resolution, fps=fps, encode=encode)
+        return comp
+
+    def create_nn(self,
+                  model: Union[str, Path],
+                  input: Union[CameraComponent, NNComponent],
+                  nn_type: Optional[str] = None,
+                  tracker: bool = False,
+                  spatial: Union[None, bool, StereoComponent] = None,
+                  decode_fn: Optional[Callable] = None
+                  ) -> NNComponent:
+        comp = self.oak_camera.create_nn(model=model, input=input, nn_type=nn_type,
+                                         tracker=tracker, spatial=spatial, decode_fn=decode_fn)
+        return comp
+
+    def create_stereo(self,
+                      resolution: Union[None, str, dai.MonoCameraProperties.SensorResolution] = None,
+                      fps: Optional[float] = None,
+                      left: Union[None, dai.Node.Output, CameraComponent] = None,
+                      right: Union[None, dai.Node.Output, CameraComponent] = None,
+                      ) -> StereoComponent:
+        comp = self.oak_camera.create_stereo(resolution=resolution, fps=fps, left=left, right=right)
+        return comp
+
+    def create_stream(self,
+                      component: Union[CameraComponent, NNComponent, StereoComponent],
+                      name: str,
+                      description: str,
+                      callback: Callable = None) -> None:
+        log.debug(f'Creating stream {name} for component {component}')
+
+        stream_handle = self.app.streams.create_video(camera_serial=self.oak_camera.device.getMxId(),
+                                                      unique_key=name,
+                                                      description=description)
+
+        if isinstance(component, CameraComponent):
+            self.oak_camera.callback(component, callback=callback or get_default_color_callback(stream_handle))
+        else:
+            pass  # TODO other components
+
+    def poll(self) -> None:
+        self.oak_camera.poll()
+
+    def start(self) -> None:
+        self.oak_camera.start()
+
+    def stop(self) -> None:
+        self.oak_camera.device.close()
+
+    def _connect(self, reattempt_time: int = 1) -> None:
+        """
+        Attempts to establish a connection with the device.
+        Keeps attempting to connect forever, updates self.state accordingly
+        """
+        log.debug(f'Connecting to device {self.mxid}...')
+
+        self.state = DeviceState.CONNECTING
+        self.oak_camera = OakCamera(self.mxid, usbSpeed=self.usb_speed, rotation=self.rotation)
+        while self.app.running:
+            try:
+                self.oak_camera._init_device()
+                self.state = DeviceState.CONNECTED
+                log.debug(f'Successfully connected to device {self.mxid}')
+                return
+            except BaseException as err:
+                log.error(f'Cannot connect to device {self.mxid}: {err}'
+                          f' - Retrying in {reattempt_time} seconds')
+
+            time.sleep(reattempt_time)
+
+    def _disconnect(self) -> None:
+        """Intended to be used for a temporary disconnect to allow changing DAI pipeline etc."""
+        log.debug(f'Disconnecting from device {self.mxid}...')
+        self.state = DeviceState.DISCONNECTED
+        self.oak_camera.__exit__(Exception, 'Disconnecting from device', 'placeholder')
+        self.oak_camera = OakCamera(self.mxid)
+
+    def _get_sensor_names(self) -> List[str]:
+        """
+        Returns a list of available sensors on the device.
+        :return: List of available sensors.
+        """
+        self._connect()
+        sensors = self.oak_camera.device.getCameraSensorNames()
+        self._disconnect()
+        return sensors
+
+    @property
+    def device(self) -> dai.Device:
+        return self.oak_camera.device
