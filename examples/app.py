@@ -21,9 +21,6 @@ class ExampleApplication(RobotHubApplication):
             # It will automatically create a stream and assign matching callback based on Component type
             camera.create_stream(component=color, name='color', description='Color stream')
 
-    def start_execution(self):
-        self.camera_manager.start()
-
     def on_stop(self):
         self.camera_manager.stop()
 
