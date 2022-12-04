@@ -6,7 +6,7 @@ from typing import List
 import robothub
 from robothub import RobotHubApplication
 
-from robohub_depthai.hub_camera import HubCamera
+from robothub_depthai.hub_camera import HubCamera
 
 
 class HubCameraManager:
@@ -14,7 +14,7 @@ class HubCameraManager:
     POLL_FREQUENCY = 0.05
 
     def __init__(self, app: RobotHubApplication, devices: List[dict]):
-        self.hub_cameras = [HubCamera(app, device['serialNumber']) for device in devices]
+        self.hub_cameras = [HubCamera(app, device_mxid=device.oak['serialNumber']) for device in devices]
         self.app = app
 
         self.reporting_thread = Thread(target=self._report, name='ReportingThread', daemon=False)
@@ -68,7 +68,7 @@ class HubCameraManager:
 
         for camera in self.hub_cameras:
             try:
-                if camera.device.state != robothub.DeviceState.DISCONNECTED:
+                if camera.state != robothub.DeviceState.DISCONNECTED:
                     camera.oak_camera.__exit__(Exception, 'Device disconnected - app shutting down', None)
             except BaseException as e:
                 raise Exception(f'Could not exit device with error: {e}')

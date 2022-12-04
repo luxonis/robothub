@@ -8,7 +8,7 @@ import robothub
 from depthai_sdk import OakCamera, CameraComponent, StereoComponent, NNComponent
 from robothub import DeviceState
 
-from robohub_depthai.callbacks import get_default_color_callback
+from robothub_depthai.callbacks import get_default_color_callback
 
 
 class HubCamera:
@@ -19,11 +19,13 @@ class HubCamera:
                  rotation: int = 0):
         self.app = app
         self.state = DeviceState.UNKNOWN
-        self.available_sensors = self._get_sensor_names()
-        self.mxid = device_mxid
+        self.device_mxid = device_mxid
         self.usb_speed = usb_speed
         self.rotation = rotation
 
+        self.oak_camera = OakCamera(self.device_mxid, usbSpeed=self.usb_speed, rotation=self.rotation)
+        self.available_sensors = self._get_sensor_names()  
+        
     def create_camera(self,
                       source: str,
                       resolution: Union[
@@ -63,7 +65,7 @@ class HubCamera:
                       callback: Callable = None) -> None:
         log.debug(f'Creating stream {name} for component {component}')
 
-        stream_handle = self.app.streams.create_video(camera_serial=self.oak_camera.device.getMxId(),
+        stream_handle = robothub.STREAMS.create_video(camera_serial=self.device_mxid,
                                                       unique_key=name,
                                                       description=description)
 
@@ -86,28 +88,29 @@ class HubCamera:
         Attempts to establish a connection with the device.
         Keeps attempting to connect forever, updates self.state accordingly
         """
-        log.debug(f'Connecting to device {self.mxid}...')
+        log.debug(f'Connecting to device {self.device_mxid}...')
 
         self.state = DeviceState.CONNECTING
-        self.oak_camera = OakCamera(self.mxid, usbSpeed=self.usb_speed, rotation=self.rotation)
-        while self.app.running:
+        self.oak_camera = OakCamera(self.device_mxid, usbSpeed=self.usb_speed, rotation=self.rotation)
+        while not self.app.stop_event.is_set():
             try:
                 self.oak_camera._init_device()
                 self.state = DeviceState.CONNECTED
-                log.debug(f'Successfully connected to device {self.mxid}')
+                log.debug(f'Successfully connected to device {self.device_mxid}')
                 return
             except BaseException as err:
-                log.error(f'Cannot connect to device {self.mxid}: {err}'
+                log.error(f'Cannot connect to device {self.device_mxid}: {err}'
                           f' - Retrying in {reattempt_time} seconds')
 
-            time.sleep(reattempt_time)
+            self.app.stop_event.wait(timeout=reattempt_time)
 
     def _disconnect(self) -> None:
         """Intended to be used for a temporary disconnect to allow changing DAI pipeline etc."""
-        log.debug(f'Disconnecting from device {self.mxid}...')
+        log.debug(f'Disconnecting from device {self.device_mxid}...')
         self.state = DeviceState.DISCONNECTED
         self.oak_camera.__exit__(Exception, 'Disconnecting from device', 'placeholder')
-        self.oak_camera = OakCamera(self.mxid)
+
+        self.oak_camera = OakCamera(self.device_mxid, usbSpeed=self.usb_speed, rotation=self.rotation)
 
     def _get_sensor_names(self) -> List[str]:
         """
@@ -115,7 +118,7 @@ class HubCamera:
         :return: List of available sensors.
         """
         self._connect()
-        sensors = self.oak_camera.device.getCameraSensorNames()
+        sensors = self.oak_camera._oak.device.getCameraSensorNames()
         self._disconnect()
         return sensors
 

@@ -2,7 +2,7 @@ import logging as log
 
 import robothub
 
-from robohub_depthai.manager import HubCameraManager
+from robothub_depthai.manager import HubCameraManager
 
 log.basicConfig(format='%(levelname)s | %(funcName)s:%(lineno)s => %(message)s', level=log.INFO)
 
@@ -10,7 +10,7 @@ log.basicConfig(format='%(levelname)s | %(funcName)s:%(lineno)s => %(message)s',
 class ExampleApplication(robothub.RobotHubApplication):
     def __init__(self):
         super().__init__()
-        self.camera_manager = HubCameraManager(self.app, robothub.DEVICES)
+        self.camera_manager = HubCameraManager(self, robothub.DEVICES)
 
     def on_start(self):
         for camera in self.hub_cameras:
