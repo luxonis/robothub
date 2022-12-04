@@ -80,10 +80,11 @@ class HubCameraManager:
         while not self.app.stop_event.is_set():
             for camera in self.hub_cameras:
                 device_info = camera.oak_camera.get_info_report()
+                device_info |= {'state': camera.state.value}  # DAI SDK holds no state
                 device_stats = camera.oak_camera.get_stats_report()
 
-                self.app.agent.publish_device_info(device_info)
-                self.app.agent.publish_device_stats(device_stats)
+                robothub.AGENT.publish_device_info(device_info)
+                robothub.AGENT.publish_device_stats(device_stats)
 
             time.sleep(self.REPORT_FREQUENCY)
 
