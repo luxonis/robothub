@@ -32,7 +32,7 @@ class HubCamera:
                           None, str, dai.ColorCameraProperties.SensorResolution, dai.MonoCameraProperties.SensorResolution
                       ] = None,
                       fps: Optional[float] = None,
-                      encode: Union[None, str, bool, dai.VideoEncoderProperties.Profile] = None
+                      encode: Union[None, str, bool, dai.VideoEncoderProperties.Profile] = 'h264'
                       ) -> CameraComponent:
         comp = self.oak_camera.create_camera(source=source, resolution=resolution, fps=fps, encode=encode)
         return comp
