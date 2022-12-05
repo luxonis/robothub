@@ -4,7 +4,7 @@ from threading import Thread
 from typing import List
 
 import robothub
-from robothub import RobotHubApplication
+from robothub import RobotHubApplication, DeviceState
 
 from robothub_depthai.hub_camera import HubCamera
 
@@ -24,22 +24,22 @@ class HubCameraManager:
         self.stop()
 
     def start(self):
-        log.debug('Starting cameras...')
+        print('Starting cameras...')
         for camera in self.hub_cameras:
             camera.start()
 
-        log.debug('Starting reporting thread...')
+        print('Starting reporting thread...')
         self.reporting_thread.start()
-        log.debug('Reporting thread started successfully')
+        print('Reporting thread started successfully')
 
-        log.debug('Starting polling thread...')
+        print('Starting polling thread...')
         self.polling_thread.start()
-        log.debug('Polling thread started successfully')
+        print('Polling thread started successfully')
 
-        log.debug('Cameras started successfully')
+        print('Cameras started successfully')
 
     def stop(self):
-        log.debug('Gracefully stopping threads...')
+        print('Gracefully stopping threads...')
         self.app.stop_event.set()
 
         try:

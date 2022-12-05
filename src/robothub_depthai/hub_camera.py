@@ -70,7 +70,7 @@ class HubCamera:
                                                       description=description)
 
         if isinstance(component, CameraComponent):
-            self.oak_camera.callback(component, callback=callback or get_default_color_callback(stream_handle))
+            self.oak_camera.callback(component.out.encoded, callback=callback or get_default_color_callback(stream_handle))
         else:
             pass  # TODO other components
 
@@ -78,7 +78,15 @@ class HubCamera:
         self.oak_camera.poll()
 
     def start(self) -> None:
-        self.oak_camera.start()
+        while not self.app.stop_event.set():
+            try:
+                self.oak_camera.start()
+                self.state = DeviceState.CONNECTED
+                return
+            except Exception as e:
+                print(f'Could not start camera with exception {e}')
+            
+            time.sleep(1)
 
     def stop(self) -> None:
         self.oak_camera.device.close()
