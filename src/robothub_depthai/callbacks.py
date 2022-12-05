@@ -1,6 +1,8 @@
 import time
 from functools import partial
 
+import depthai as dai
+from depthai_sdk import TrackerPacket
 from depthai_sdk.callback_context import CallbackContext
 from robothub import StreamHandle
 
@@ -38,7 +40,7 @@ mock_metadata = {
 
 def default_color_callback(stream_handle: StreamHandle, ctx: CallbackContext):
     packet = ctx.packet
-    
+
     timestamp = int(time.time() * 1_000)
     frame_bytes = bytes(packet.imgFrame.getData())
     stream_handle.publish_video_data(frame_bytes, timestamp, mock_metadata)  # TODO change metadata
@@ -48,11 +50,27 @@ def default_color_callback(stream_handle: StreamHandle, ctx: CallbackContext):
 
 def default_nn_callback(stream_handle: StreamHandle, ctx: CallbackContext):
     packet = ctx.packet
+    visualizer = ctx.visualizer
 
+    if isinstance(packet, TrackerPacket):
+        pass  # TrackerPacket draws detection boxes itself
+    elif isinstance(packet.img_detections, dai.ImgDetections):
+        visualizer.add_detections(
+            packet.img_detections.detections,
+            is_spatial=packet._is_spatial_detection()
+        )
+
+    metadata = visualizer.serialize()
+    visualizer.reset()
+
+    timestamp = int(time.time() * 1_000)
+    frame_bytes = bytes(packet.imgFrame.getData())
+    stream_handle.publish_video_data(frame_bytes, timestamp, metadata)
 
 
 def get_default_color_callback(stream_handle: StreamHandle):
     return partial(default_color_callback, stream_handle)
+
 
 def get_default_nn_callback(stream_handle: StreamHandle):
     return partial(default_nn_callback, stream_handle)
