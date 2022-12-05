@@ -22,7 +22,7 @@ class ExampleApplication(RobotHubApplication):
             camera.create_stream(component=color, name='color', description='Color stream')
 
     def on_stop(self):
-        self.camera_manager.stop()
+        self.stop()
 
     def on_detection_uploaded(self, detection: robothub.UploadedDetection):
         log.debug(f'Detection with id "{detection.detection_id}" has been uploaded')
