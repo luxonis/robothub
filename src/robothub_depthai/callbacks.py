@@ -35,6 +35,7 @@ mock_metadata = {
     'objects': []
 }
 
+
 def default_color_callback(stream_handle: StreamHandle, ctx: CallbackContext):
     packet = ctx.packet
     
@@ -43,7 +44,15 @@ def default_color_callback(stream_handle: StreamHandle, ctx: CallbackContext):
     stream_handle.publish_video_data(frame_bytes, timestamp, mock_metadata)  # TODO change metadata
 
 
+# TODO callbacks for NN, stereo, etc
+
+def default_nn_callback(stream_handle: StreamHandle, ctx: CallbackContext):
+    packet = ctx.packet
+
+
+
 def get_default_color_callback(stream_handle: StreamHandle):
     return partial(default_color_callback, stream_handle)
 
-# TODO callbacks for NN, stereo, etc
+def get_default_nn_callback(stream_handle: StreamHandle):
+    return partial(default_nn_callback, stream_handle)
