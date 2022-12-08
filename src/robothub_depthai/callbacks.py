@@ -1,9 +1,7 @@
+import json
 import time
 from functools import partial
-import json 
 
-import depthai as dai
-from depthai_sdk import TrackerPacket
 from depthai_sdk.callback_context import CallbackContext
 from robothub import StreamHandle
 
@@ -39,15 +37,13 @@ mock_metadata = {
 }
 
 
-def default_color_callback(stream_handle: StreamHandle, ctx: CallbackContext):
+def default_encoded_callback(stream_handle: StreamHandle, ctx: CallbackContext):
     packet = ctx.packet
 
     timestamp = int(time.time() * 1_000)
     frame_bytes = bytes(packet.imgFrame.getData())
     stream_handle.publish_video_data(frame_bytes, timestamp, mock_metadata)  # TODO change metadata
 
-
-# TODO callbacks for NN, stereo, etc
 
 def default_nn_callback(stream_handle: StreamHandle, ctx: CallbackContext):
     packet = ctx.packet
@@ -58,7 +54,7 @@ def default_nn_callback(stream_handle: StreamHandle, ctx: CallbackContext):
 
     # temp fix to replace None value that causes errors on frontend
     if not metadata['config']['detection']['color']:
-        metadata['config']['detection']['color'] = [255, 0, 0]  
+        metadata['config']['detection']['color'] = [255, 0, 0]
 
     timestamp = int(time.time() * 1_000)
     frame_bytes = bytes(packet.imgFrame.getData())
@@ -66,8 +62,12 @@ def default_nn_callback(stream_handle: StreamHandle, ctx: CallbackContext):
 
 
 def get_default_color_callback(stream_handle: StreamHandle):
-    return partial(default_color_callback, stream_handle)
+    return partial(default_encoded_callback, stream_handle)
 
 
 def get_default_nn_callback(stream_handle: StreamHandle):
     return partial(default_nn_callback, stream_handle)
+
+
+def get_default_depth_callback(stream_handle: StreamHandle):
+    return partial(default_encoded_callback, stream_handle)

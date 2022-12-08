@@ -8,7 +8,7 @@ import robothub
 from depthai_sdk import OakCamera, CameraComponent, StereoComponent, NNComponent
 from robothub import DeviceState
 
-from robothub_depthai.callbacks import get_default_color_callback, get_default_nn_callback
+from robothub_depthai.callbacks import get_default_color_callback, get_default_nn_callback, get_default_depth_callback
 
 
 class HubCamera:
