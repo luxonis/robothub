@@ -74,8 +74,8 @@ class HubCamera:
         elif isinstance(component, NNComponent):
             self.oak_camera.callback(component.out.encoded, callback=callback or get_default_nn_callback(stream_handle))
             # self.oak_camera.sync([component, component.out.input], callback=callback or get_default_nn_callback(stream_handle))
-        else:
-            pass  # TODO other components
+        elif isinstance(component, StereoComponent):
+            self.oak_camera.callback(component.out.encoded, callback=callback or get_default_depth_callback(stream_handle))
 
     def poll(self) -> None:
         self.oak_camera.poll()
