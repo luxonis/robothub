@@ -72,8 +72,7 @@ class HubCamera:
         if isinstance(component, CameraComponent):
             self.oak_camera.callback(component.out.encoded, callback=callback or get_default_color_callback(stream_handle))
         elif isinstance(component, NNComponent):
-            pass
-            self.oak_camera.callback(component, callback=callback or get_default_nn_callback(stream_handle))
+            self.oak_camera.callback(component.out.encoded, callback=callback or get_default_nn_callback(stream_handle))
             # self.oak_camera.sync([component, component.out.input], callback=callback or get_default_nn_callback(stream_handle))
         else:
             pass  # TODO other components

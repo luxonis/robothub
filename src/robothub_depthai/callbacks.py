@@ -1,5 +1,6 @@
 import time
 from functools import partial
+import json 
 
 import depthai as dai
 from depthai_sdk import TrackerPacket
@@ -52,16 +53,12 @@ def default_nn_callback(stream_handle: StreamHandle, ctx: CallbackContext):
     packet = ctx.packet
     visualizer = ctx.visualizer
 
-    if isinstance(packet, TrackerPacket):
-        pass  # TrackerPacket draws detection boxes itself
-    elif isinstance(packet.img_detections, dai.ImgDetections):
-        visualizer.add_detections(
-            packet.img_detections.detections,
-            is_spatial=packet._is_spatial_detection()
-        )
-
-    metadata = visualizer.serialize()
+    metadata = json.loads(visualizer.serialize())
     visualizer.reset()
+
+    # temp fix to replace None value that causes errors on frontend
+    if not metadata['config']['detection']['color']:
+        metadata['config']['detection']['color'] = [255, 0, 0]  
 
     timestamp = int(time.time() * 1_000)
     frame_bytes = bytes(packet.imgFrame.getData())
