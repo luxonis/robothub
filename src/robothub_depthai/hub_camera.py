@@ -55,7 +55,7 @@ class HubCamera:
                       left: Union[None, dai.Node.Output, CameraComponent] = None,
                       right: Union[None, dai.Node.Output, CameraComponent] = None,
                       ) -> StereoComponent:
-        comp = self.oak_camera.create_stereo(resolution=resolution, fps=fps, left=left, right=right)
+        comp = self.oak_camera.create_stereo(resolution=resolution, fps=fps, left=left, right=right, encode='h264')
         return comp
 
     def create_stream(self,
@@ -70,12 +70,14 @@ class HubCamera:
                                                       description=description)
 
         if isinstance(component, CameraComponent):
-            self.oak_camera.callback(component.out.encoded, callback=callback or get_default_color_callback(stream_handle))
+            self.oak_camera.callback(component.out.encoded,
+                                     callback=callback or get_default_color_callback(stream_handle))
         elif isinstance(component, NNComponent):
-            self.oak_camera.callback(component.out.encoded, callback=callback or get_default_nn_callback(stream_handle))
-            # self.oak_camera.sync([component, component.out.input], callback=callback or get_default_nn_callback(stream_handle))
+            self.oak_camera.callback(component.out.encoded,
+                                     callback=callback or get_default_nn_callback(stream_handle))
         elif isinstance(component, StereoComponent):
-            self.oak_camera.callback(component.out.encoded, callback=callback or get_default_depth_callback(stream_handle))
+            self.oak_camera.callback(component.out.encoded,
+                                     callback=callback or get_default_depth_callback(stream_handle))
 
     def poll(self) -> None:
         self.oak_camera.poll()
