@@ -1,51 +1,66 @@
 import json
 import time
 from functools import partial
+from typing import Callable
 
 from depthai_sdk.callback_context import CallbackContext
 from robothub import StreamHandle
 
-mock_metadata = {
-    'platform': 'robothub',
-    'frame_shape': [1080, 1920, 3],
-    'config': {
-        'img_scale': 1.0,
-        'show_fps': True,
-        'detection': {
-            'thickness': 1,
-            'fill_transparency': 0.15,
-            'box_roundness': 0,
-            'color': [255, 255, 255],
-            'bbox_style': 0,
-            'line_width': 0.5,
-            'line_height': 0.5,
-            'hide_label': False,
-            'label_position': 0,
-            'label_padding': 10,
-        },
-        'text': {
-            'font_color': [255, 255, 0],
-            'font_transparency': 0.5,
-            'font_scale': 1.0,
-            'font_thickness': 2,
-            'font_position': 0,
-            'bg_transparency': 0.5,
-            'bg_color': [0, 0, 0],
-        },
-    },
-    'objects': []
-}
+__all__ = [
+    'get_default_color_callback',
+    'get_default_nn_callback',
+    'get_default_depth_callback',
+]
 
 
-def default_encoded_callback(stream_handle: StreamHandle, ctx: CallbackContext):
+def get_default_color_callback(stream_handle: StreamHandle) -> Callable[[CallbackContext], None]:
+    """
+    Returns a default callback for color streams.
+
+    :param stream_handle: StreamHandle instance to publish the data to.
+    """
+    return partial(_default_encoded_callback, stream_handle)
+
+
+def get_default_nn_callback(stream_handle: StreamHandle) -> Callable[[CallbackContext], None]:
+    """
+    Returns a default callback for NN streams.
+
+    :param stream_handle: StreamHandle instance to publish the data to.
+    """
+    return partial(_default_nn_callback, stream_handle)
+
+
+def get_default_depth_callback(stream_handle: StreamHandle) -> Callable[[CallbackContext], None]:
+    """
+    Returns a default callback for depth streams.
+
+    :param stream_handle: StreamHandle instance to publish the data to.
+    """
+    return partial(_default_encoded_callback, stream_handle)
+
+
+def _default_encoded_callback(stream_handle: StreamHandle, ctx: CallbackContext):
+    """
+    Default callback for encoded streams.
+
+    :param stream_handle: StreamHandle instance to publish the data to.
+    :param ctx: CallbackContext instance containing e.g. the packet and visualizer.
+    """
     packet = ctx.packet
 
     timestamp = int(time.time() * 1_000)
     frame_bytes = bytes(packet.imgFrame.getData())
-    stream_handle.publish_video_data(frame_bytes, timestamp, mock_metadata)  # TODO change metadata
+    stream_handle.publish_video_data(frame_bytes, timestamp, None)
 
 
-def default_nn_callback(stream_handle: StreamHandle, ctx: CallbackContext):
+def _default_nn_callback(stream_handle: StreamHandle, ctx: CallbackContext):
+    """
+    Default callback for NN streams.
+
+    :param stream_handle: StreamHandle instance to publish the data to.
+    :param ctx: CallbackContext instance containing e.g. the packet and visualizer.
+    """
     packet = ctx.packet
     visualizer = ctx.visualizer
 
@@ -59,15 +74,3 @@ def default_nn_callback(stream_handle: StreamHandle, ctx: CallbackContext):
     timestamp = int(time.time() * 1_000)
     frame_bytes = bytes(packet.imgFrame.getData())
     stream_handle.publish_video_data(frame_bytes, timestamp, metadata)
-
-
-def get_default_color_callback(stream_handle: StreamHandle):
-    return partial(default_encoded_callback, stream_handle)
-
-
-def get_default_nn_callback(stream_handle: StreamHandle):
-    return partial(default_nn_callback, stream_handle)
-
-
-def get_default_depth_callback(stream_handle: StreamHandle):
-    return partial(default_encoded_callback, stream_handle)

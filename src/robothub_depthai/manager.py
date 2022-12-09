@@ -4,16 +4,25 @@ from threading import Thread
 from typing import List
 
 import robothub
-from robothub import RobotHubApplication, DeviceState
+from robothub import RobotHubApplication
 
 from robothub_depthai.hub_camera import HubCamera
 
+__all__ = ['HubCameraManager']
+
 
 class HubCameraManager:
+    """
+    A manager class to handle multiple HubCamera instances.
+    """
     REPORT_FREQUENCY = 10  # seconds
     POLL_FREQUENCY = 0.05
 
     def __init__(self, app: RobotHubApplication, devices: List[dict]):
+        """
+        :param app: The RobotHubApplication instance.
+        :param devices: A list of devices to be managed.
+        """
         self.hub_cameras = [HubCamera(app, device_mxid=device.oak['serialNumber']) for device in devices]
         self.app = app
 
@@ -23,7 +32,10 @@ class HubCameraManager:
     def __exit__(self):
         self.stop()
 
-    def start(self):
+    def start(self) -> None:
+        """
+        Start the cameras, start reporting and polling threads.
+        """
         print('Starting cameras...')
         for camera in self.hub_cameras:
             camera.start()
@@ -38,7 +50,11 @@ class HubCameraManager:
 
         print('Cameras started successfully')
 
-    def stop(self):
+    def stop(self) -> None:
+        """
+        Stop the cameras, stop reporting and polling threads.
+        If threads cannot be gracefully stopped, they will be joined.
+        """
         print('Gracefully stopping threads...')
         self.app.stop_event.set()
 
@@ -76,7 +92,11 @@ class HubCameraManager:
 
         log.debug('App stopped successfully')
 
-    def _report(self):
+    def _report(self) -> None:
+        """
+        Reports the state of the cameras to the agent. Active when app is running, inactive when app is stopped.
+        Reporting frequency is defined by REPORT_FREQUENCY.
+        """
         while not self.app.stop_event.is_set():
             for camera in self.hub_cameras:
                 device_info = camera.oak_camera.get_info_report()
@@ -88,7 +108,10 @@ class HubCameraManager:
 
             time.sleep(self.REPORT_FREQUENCY)
 
-    def _poll(self):
+    def _poll(self) -> None:
+        """
+        Polls the cameras for new detections. Polling frequency is defined by POLL_FREQUENCY.
+        """
         while self.app.stop_event.is_set():
             for camera in self.hub_cameras:
                 camera.poll()
