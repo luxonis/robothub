@@ -23,7 +23,8 @@ class HubCameraManager:
         :param app: The RobotHubApplication instance.
         :param devices: A list of devices to be managed.
         """
-        self.hub_cameras = [HubCamera(app, device_mxid=device.oak['serialNumber']) for device in devices]
+        self.hub_cameras = [HubCamera(app, device_mxid=device.oak['serialNumber'], id=i)
+                            for i, device in enumerate(devices)]
         self.app = app
 
         self.reporting_thread = Thread(target=self._report, name='ReportingThread', daemon=False)

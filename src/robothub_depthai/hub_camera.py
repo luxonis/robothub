@@ -21,6 +21,7 @@ class HubCamera:
     def __init__(self,
                  app: robothub.RobotHubApplication,
                  device_mxid: str,
+                 id: int,
                  usb_speed: Union[None, str, dai.UsbSpeed] = None,
                  rotation: int = 0):
         """
@@ -34,6 +35,7 @@ class HubCamera:
         self.device_mxid = device_mxid
         self.usb_speed = usb_speed
         self.rotation = rotation
+        self.id = id
 
         self.oak_camera = OakCamera(self.device_mxid, usbSpeed=self.usb_speed, rotation=self.rotation)
         self.available_sensors = self._get_sensor_names()
@@ -86,22 +88,22 @@ class HubCamera:
 
     def create_stream(self,
                       component: Union[CameraComponent, NNComponent, StereoComponent],
+                      unique_key: str,
                       name: str,
-                      description: str,
                       callback: Callable = None) -> None:
         """
         Creates a stream for the given component.
 
         :param component: Component to create a stream for.
+        :param unique_key: Unique key for the stream.
         :param name: Name of the stream that will be used in Live View.
-        :param description: Description of the stream that will be used in Live View.
         :param callback: Callback function to be called when a new frame is received.
         """
         log.debug(f'Creating stream {name} for component {component}')
 
         stream_handle = robothub.STREAMS.create_video(camera_serial=self.device_mxid,
-                                                      unique_key=name,
-                                                      description=description)
+                                                      unique_key=unique_key,
+                                                      description=name)
 
         if isinstance(component, CameraComponent):
             self.oak_camera.callback(component.out.encoded,
