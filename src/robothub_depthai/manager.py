@@ -16,7 +16,7 @@ class HubCameraManager:
     A manager class to handle multiple HubCamera instances.
     """
     REPORT_FREQUENCY = 10  # seconds
-    POLL_FREQUENCY = 0.05
+    POLL_FREQUENCY = 0.002
 
     def __init__(self, app: RobotHubApplication, devices: List[dict]):
         """
