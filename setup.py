@@ -32,7 +32,8 @@ setup(
         'Programming Language :: Python :: 3.10',
         "License :: OSI Approved :: MIT License",
         'Operating System :: Unix',
-        'Topic :: Software Development :: Libraries :: Python Modules'
+        'Topic :: Software Development',
+        'Topic :: Libraries',
         "Topic :: Scientific/Engineering",
     ],
 )
