@@ -54,7 +54,7 @@ class HubCamera:
         :param resolution: Resolution of the camera.
         :param fps: FPS of the output stream.
         """
-        comp = self.oak_camera.create_camera(source=source, resolution=resolution, fps=fps)
+        comp = self.oak_camera.create_camera(source=source, resolution=resolution, fps=fps, encode='h264')
         return comp
 
     def create_nn(self,
