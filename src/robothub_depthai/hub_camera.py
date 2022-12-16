@@ -1,7 +1,7 @@
 import logging as log
 import time
 from pathlib import Path
-from typing import Union, Optional, Callable, List
+from typing import Union, Optional, Callable, List, Dict, Any
 
 import depthai as dai
 import robothub
@@ -9,6 +9,7 @@ from depthai_sdk import OakCamera, CameraComponent, StereoComponent, NNComponent
 from robothub import DeviceState
 
 from robothub_depthai.callbacks import get_default_color_callback, get_default_nn_callback, get_default_depth_callback
+from robothub_depthai.utils import try_or_default
 
 __all__ = ['HubCamera']
 
@@ -140,6 +141,57 @@ class HubCamera:
         Stops the device and sets the state to disconnected.
         """
         self.oak_camera.device.close()
+
+    def stats_report(self) -> Dict[str, Any]:
+        stats = {'mxid': self.device.getMxId()}
+
+        css_cpu_usage = self.device.getLeonCssCpuUsage().average
+        mss_cpu_usage = self.device.getLeonMssCpuUsage().average
+        cmx_mem_usage = self.device.getCmxMemoryUsage()
+        ddr_mem_usage = self.device.getDdrMemoryUsage()
+        chip_temp = self.device.getChipTemperature()
+
+        stats['css_usage'] = int(100 * css_cpu_usage)
+        stats['mss_usage'] = int(100 * mss_cpu_usage)
+        stats['ddr_mem_free'] = int(ddr_mem_usage.total - ddr_mem_usage.used)
+        stats['ddr_mem_total'] = int(ddr_mem_usage.total)
+        stats['cmx_mem_free'] = int(cmx_mem_usage.total - cmx_mem_usage.used)
+        stats['cmx_mem_total'] = int(cmx_mem_usage.total)
+        stats['css_temp'] = int(100 * chip_temp.css)
+        stats['mss_temp'] = int(100 * chip_temp.mss)
+        stats['upa_temp'] = int(100 * chip_temp.upa)
+        stats['dss_temp'] = int(100 * chip_temp.dss)
+        stats['temp'] = int(100 * chip_temp.average)
+
+        return stats
+
+    def info_report(self) -> Dict[str, Any]:
+        """Returns device info"""
+        info = {
+            'mxid': self.device.getMxId(),
+            'protocol': 'unknown',
+            'platform': 'unknown',
+            'product_name': 'unknown',
+            'board_name': 'unknown',
+            'board_rev': 'unknown',
+            'bootloader_version': 'unknown',
+        }
+
+        device_info = try_or_default(self.device.getDeviceInfo)
+        calibration = try_or_default(self.device.readFactoryCalibration) or try_or_default(self.device.readCalibration2)
+        eeprom_data = try_or_default(calibration.getEepromData)
+
+        if eeprom_data:
+            info['product_name'] = eeprom_data.productName
+            info['board_name'] = eeprom_data.boardName
+            info['board_rev'] = eeprom_data.boardRev
+            info['bootloader_version'] = str(eeprom_data.version)
+
+        if device_info:
+            info['protocol'] = device_info.protocol.name
+            info['platform'] = device_info.platform.name
+
+        return info
 
     def _connect(self, reattempt_time: int = 1) -> None:
         """
