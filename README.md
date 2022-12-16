@@ -22,7 +22,7 @@ $ python3 -m pip install robothub-depthai
 There are several examples in the [examples](examples) folder. To run them, you can use the following command:
 
 ```
-$ python3 -m robothub_depthai.examples.<example_name>
+$ python3 -m robothub_depthai.examples.<example_name>.app
 ```
 
 ## License
