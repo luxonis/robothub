@@ -1,0 +1,11 @@
+config_version: 2 # identifies v2 configuration / app
+
+info:
+  name: QR recognition # required
+  description: QR recognition
+
+runtime:
+  application: app.py#ExampleApplication
+  workdir: /
+
+configuration: []
