@@ -3,7 +3,6 @@ import time
 from functools import partial
 from typing import Callable
 
-from depthai_sdk.callback_context import CallbackContext
 from robothub import StreamHandle
 
 __all__ = [
@@ -40,7 +39,7 @@ def get_default_depth_callback(stream_handle: StreamHandle) -> Callable[[Callbac
     return partial(_default_encoded_callback, stream_handle)
 
 
-def _default_encoded_callback(stream_handle: StreamHandle, ctx: CallbackContext):
+def _default_encoded_callback(stream_handle: StreamHandle, packet, visualizer):
     """
     Default callback for encoded streams.
 
@@ -54,15 +53,14 @@ def _default_encoded_callback(stream_handle: StreamHandle, ctx: CallbackContext)
     stream_handle.publish_video_data(frame_bytes, timestamp, None)
 
 
-def _default_nn_callback(stream_handle: StreamHandle, ctx: CallbackContext):
+def _default_nn_callback(stream_handle: StreamHandle, packet, visualizer):
     """
     Default callback for NN streams.
 
     :param stream_handle: StreamHandle instance to publish the data to.
-    :param ctx: CallbackContext instance containing e.g. the packet and visualizer.
+    :param packet:
+    :param visualizer:
     """
-    packet = ctx.packet
-    visualizer = ctx.visualizer
 
     metadata = json.loads(visualizer.serialize())
     visualizer.reset()
