@@ -116,6 +116,9 @@ class HubCamera:
             self.oak_camera.callback(component.out.encoded,
                                      callback=callback or get_default_depth_callback(stream_handle))
 
+    def callback(self, output: Any, callback: Callable):
+        self.oak_camera.callback(output, callback=callback)
+
     def poll(self) -> None:
         """
         Polls the device for new data.
