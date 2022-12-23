@@ -12,7 +12,7 @@ __all__ = [
 ]
 
 
-def get_default_color_callback(stream_handle: StreamHandle) -> Callable[[CallbackContext], None]:
+def get_default_color_callback(stream_handle: StreamHandle) -> Callable:
     """
     Returns a default callback for color streams.
 
@@ -21,7 +21,7 @@ def get_default_color_callback(stream_handle: StreamHandle) -> Callable[[Callbac
     return partial(_default_encoded_callback, stream_handle)
 
 
-def get_default_nn_callback(stream_handle: StreamHandle) -> Callable[[CallbackContext], None]:
+def get_default_nn_callback(stream_handle: StreamHandle) -> Callable:
     """
     Returns a default callback for NN streams.
 
@@ -30,7 +30,7 @@ def get_default_nn_callback(stream_handle: StreamHandle) -> Callable[[CallbackCo
     return partial(_default_nn_callback, stream_handle)
 
 
-def get_default_depth_callback(stream_handle: StreamHandle) -> Callable[[CallbackContext], None]:
+def get_default_depth_callback(stream_handle: StreamHandle) -> Callable:
     """
     Returns a default callback for depth streams.
 
