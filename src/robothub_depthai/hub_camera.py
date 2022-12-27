@@ -231,9 +231,13 @@ class HubCamera:
         :return: List of available sensors.
         """
         self._connect()
-        sensors = self.oak_camera._oak.device.getCameraSensorNames()
-        self._disconnect()
-        return sensors
+        if self.state == DeviceState.CONNECTED:
+            # If device connected, get sensor names
+            sensors = self.oak_camera._oak.device.getCameraSensorNames()
+            self._disconnect()
+            return sensors
+        else:
+            return []
 
     @property
     def device(self) -> dai.Device:
