@@ -1,4 +1,6 @@
+import contextlib
 import logging as log
+import os
 import time
 from pathlib import Path
 from typing import Union, Optional, Callable, List, Dict, Any
@@ -223,7 +225,9 @@ class HubCamera:
         """
         log.debug(f'Disconnecting from device {self.device_mxid}...')
         self.state = DeviceState.DISCONNECTED
-        self.oak_camera.__exit__(Exception, 'Disconnecting from device', 'placeholder')
+        with open(os.devnull, 'w') as devnull:
+            with contextlib.redirect_stdout(devnull):
+                self.oak_camera.__exit__(Exception, 'Disconnecting device', 'placeholder')
 
         self.oak_camera = OakCamera(self.device_mxid, usbSpeed=self.usb_speed, rotation=self.rotation)
 
