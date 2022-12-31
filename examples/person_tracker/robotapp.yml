@@ -1,0 +1,11 @@
+config_version: 2 # identifies v2 configuration / app
+
+info:
+  name: Person tracking # required
+  description: This app tracks people and reports their direction
+
+runtime:
+  application: app.py#ExampleApplication
+  workdir: /
+
+configuration: []

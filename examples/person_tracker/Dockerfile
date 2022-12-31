@@ -1,0 +1,1 @@
+FROM ghcr.io/luxonis/robothub-app-v2:2022.364.1530-ubuntu22.04
