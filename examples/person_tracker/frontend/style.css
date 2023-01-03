@@ -7,8 +7,9 @@
 html,
 body {
   height: 100%;
+  background: black;
 }
 
 .numbers {
-  background: #cacaca;
+  background: rgb(217, 217, 217);
 }
