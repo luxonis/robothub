@@ -42,14 +42,18 @@ def callback(packet, visualizer):
         elif (t.status == Tracklet.TrackingStatus.REMOVED) and 'lost' not in tracked_objects[str(t.id)]:
             tracklet_removed(tracked_objects[str(t.id)], get_centroid(t.roi))
 
-    robothub.COMMUNICATOR.notify(
-        key='rhSchema/number',
-        payload={'id': 'left', 'value': counter['left']}
-    )
-    robothub.COMMUNICATOR.notify(
-        key='rhSchema/number',
-        payload={'id': 'right', 'value': counter['right']}
-    )
+            robothub.COMMUNICATOR.notify(
+                key='rhSchema/number',
+                payload={'id': 'left', 'value': counter['left']}
+            )
+            robothub.COMMUNICATOR.notify(
+                key='rhSchema/number',
+                payload={'id': 'right', 'value': counter['right']}
+            )
+            robothub.COMMUNICATOR.notify(
+                key='rhSchema/number',
+                payload={'id': 'right', 'value': counter['left'] + counter['right']}
+            )
 
 
 class ExampleApplication(robothub_depthai.RobotHubApplication):
