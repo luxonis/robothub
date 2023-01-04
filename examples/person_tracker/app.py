@@ -52,7 +52,7 @@ def callback(packet, visualizer):
             )
             robothub.COMMUNICATOR.notify(
                 key='rhSchema/number',
-                payload={'id': 'right', 'value': counter['left'] + counter['right']}
+                payload={'id': 'total', 'value': counter['left'] + counter['right']}
             )
 
 
