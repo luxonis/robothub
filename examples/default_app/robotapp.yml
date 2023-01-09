@@ -10,12 +10,12 @@ runtime:
 
 configuration:
   - visual: section
-    title: 'Select resolution for color sensors'
+    title: 'Color sensors'
 
   - field: choice
     key: color_resolution_choice
     style: dropdown
-    label: 'Options'
+    label: 'Resolution'
     description: 'Default resolution is 1080p'
     options:
       - key: 720p
@@ -27,12 +27,12 @@ configuration:
         label: '4k'
 
   - visual: section
-    title: 'Select resolution for mono sensors'
+    title: 'Mono sensors'
 
   - field: choice
     key: mono_resolution_choice
     style: dropdown
-    label: 'Options'
+    label: 'Resolution'
     description: 'Default resolution is 400p'
     options:
       - key: 400p
