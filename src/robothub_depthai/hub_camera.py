@@ -178,6 +178,7 @@ class HubCamera:
             'board_name': 'unknown',
             'board_rev': 'unknown',
             'bootloader_version': 'unknown',
+            'state': self.state.value,
         }
 
         device_info = try_or_default(self.device.getDeviceInfo)

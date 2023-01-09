@@ -101,7 +101,6 @@ class HubCameraManager:
         while not self.app.stop_event.is_set():
             for camera in self.hub_cameras:
                 device_info = camera.info_report()
-                device_info |= {'state': camera.state.value}  # DAI SDK holds no state
                 device_stats = camera.stats_report()
 
                 robothub.AGENT.publish_device_info(device_info)
