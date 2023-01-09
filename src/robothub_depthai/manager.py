@@ -11,6 +11,10 @@ from robothub_depthai.hub_camera import HubCamera
 __all__ = ['HubCameraManager']
 
 
+class NoDevicesException(Exception):
+    pass
+
+
 class HubCameraManager:
     """
     A manager class to handle multiple HubCamera instances.
@@ -37,6 +41,9 @@ class HubCameraManager:
         """
         Start the cameras, start reporting and polling threads.
         """
+        if not self.hub_cameras:
+            raise NoDevicesException('No devices found. Please check your connection and try again.')
+
         print('Starting cameras...')
         for camera in self.hub_cameras:
             camera.start()
