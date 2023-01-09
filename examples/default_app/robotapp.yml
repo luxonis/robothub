@@ -1,0 +1,42 @@
+config_version: 2 # identifies v2 configuration / app
+
+info:
+  name: Default application # required
+  description: This application enables streams that your device supports
+
+runtime:
+  application: app.py#DefaultApplication
+  workdir: /app
+
+configuration:
+  - visual: section
+    title: 'Select resolution for color sensors'
+
+  - field: choice
+    key: color_resolution_choice
+    style: dropdown
+    label: 'Options'
+    description: 'Default resolution is 1080p'
+    options:
+      - key: 720p
+        label: '720p'
+      - key: 1080p
+        label: '1080p'
+        default: true
+      - key: 4k
+        label: '4k'
+
+  - visual: section
+    title: 'Select resolution for mono sensors'
+
+  - field: choice
+    key: mono_resolution_choice
+    style: dropdown
+    label: 'Options'
+    description: 'Default resolution is 400p'
+    options:
+      - key: 400p
+        label: '400p'
+        default: true
+      - key: 800p
+        label: '800p'
