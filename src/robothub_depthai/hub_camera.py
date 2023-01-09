@@ -3,6 +3,7 @@ import time
 from pathlib import Path
 from typing import Union, Optional, Callable, List, Dict, Any
 
+import depthai
 import depthai as dai
 import robothub
 from depthai_sdk import OakCamera, CameraComponent, StereoComponent, NNComponent
@@ -245,3 +246,31 @@ class HubCamera:
         Returns the device object.
         """
         return self.oak_camera.device
+
+    @property
+    def has_color(self) -> bool:
+        """
+        Returns whether the device has a color camera.
+        """
+        return depthai.CameraBoardSocket.RGB in self.available_sensors
+
+    @property
+    def has_left(self) -> bool:
+        """
+        Returns whether the device has a left camera.
+        """
+        return depthai.CameraBoardSocket.LEFT in self.available_sensors
+
+    @property
+    def has_right(self) -> bool:
+        """
+        Returns whether the device has a right camera.
+        """
+        return depthai.CameraBoardSocket.RIGHT in self.available_sensors
+
+    @property
+    def has_stereo(self) -> bool:
+        """
+        Returns whether the device has a depth camera.
+        """
+        return self.has_left and self.has_right
