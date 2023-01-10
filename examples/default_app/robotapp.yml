@@ -7,6 +7,9 @@ info:
 runtime:
   application: app.py#DefaultApplication
   workdir: /app
+  image:
+    type: depthai
+    version: 2.19.0
 
 configuration:
   - visual: section
