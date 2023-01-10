@@ -130,5 +130,5 @@ class HubCameraManager:
                 if not camera.is_connected:
                     print(f'Camera {camera.id} disconnected.'
                           f'Please check if the device is connected and restart the application.')
-
+                    break
             time.sleep(self.POLL_FREQUENCY)
