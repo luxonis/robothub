@@ -42,7 +42,12 @@ class HubCameraManager:
         Start the cameras, start reporting and polling threads.
         """
         if not self.hub_cameras:
-            raise NoDevicesException('No devices found. Please check your connection and try again.')
+            # Endless loop to prevent app from exiting if no devices are found
+            while True:
+                try:
+                    time.sleep(1)
+                except KeyboardInterrupt:
+                    break
 
         print('Starting cameras...')
         for camera in self.hub_cameras:
