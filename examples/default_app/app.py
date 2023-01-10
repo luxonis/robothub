@@ -14,5 +14,5 @@ class DefaultApplication(robothub_depthai.RobotHubApplication):
 
             if camera.has_stereo:
                 print(f'Initialized depth stream with resolution: {mono_resolution}')
-                stereo = camera.create_stereo('color', resolution=mono_resolution, fps=30)
+                stereo = camera.create_stereo(resolution=mono_resolution, fps=30)
                 camera.create_stream(component=stereo, unique_key=f'depth_{camera.id}', name=f'Depth stream {camera.id}')
