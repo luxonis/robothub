@@ -147,6 +147,9 @@ class HubCamera:
         self.oak_camera.device.close()
 
     def stats_report(self) -> Dict[str, Any]:
+        """
+        Returns a dictionary with statistics about the device.
+        """
         stats = {'mxid': self.device.getMxId()}
 
         css_cpu_usage = self.device.getLeonCssCpuUsage().average
@@ -170,7 +173,9 @@ class HubCamera:
         return stats
 
     def info_report(self) -> Dict[str, Any]:
-        """Returns device info"""
+        """
+        Returns a dictionary with information about the device.
+        """
         info = {
             'mxid': self.device.getMxId(),
             'protocol': 'unknown',
@@ -232,7 +237,6 @@ class HubCamera:
     def _get_sensor_names(self) -> List[str]:
         """
         Returns a list of available sensors on the device.
-
         :return: List of available sensors.
         """
         self._connect()
@@ -248,9 +252,18 @@ class HubCamera:
         return self.oak_camera.device
 
     @property
+    def is_connected(self) -> bool:
+        """
+        Returns whether the device is connected or not.
+        :return: True if connected, False otherwise.
+        """
+        return not self.device.isClosed()
+
+    @property
     def has_color(self) -> bool:
         """
         Returns whether the device has a color camera.
+        :return: True if the device has a color camera, False otherwise.
         """
         return depthai.CameraBoardSocket.RGB in self.available_sensors
 
@@ -258,6 +271,7 @@ class HubCamera:
     def has_left(self) -> bool:
         """
         Returns whether the device has a left camera.
+        :return: True if the device has a left camera, False otherwise.
         """
         return depthai.CameraBoardSocket.LEFT in self.available_sensors
 
@@ -265,6 +279,7 @@ class HubCamera:
     def has_right(self) -> bool:
         """
         Returns whether the device has a right camera.
+        :return: True if the device has a right camera, False otherwise.
         """
         return depthai.CameraBoardSocket.RIGHT in self.available_sensors
 
@@ -272,5 +287,6 @@ class HubCamera:
     def has_stereo(self) -> bool:
         """
         Returns whether the device has a depth camera.
+        :return: True if the device has a stereo camera, False otherwise.
         """
         return self.has_left and self.has_right
