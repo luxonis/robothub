@@ -66,24 +66,21 @@ class HubCameraManager:
     def stop(self) -> None:
         """
         Stop the cameras, stop reporting and polling threads.
-        If threads cannot be gracefully stopped, they will be joined.
         """
         print('Gracefully stopping threads...')
         self.app.stop_event.set()
 
         try:
             while self.reporting_thread.is_alive():
-                time.sleep(1)
+                time.sleep(0.2)
         except BaseException as e:
-            log.error(f'Error while stopping reporting thread: {e}. Joining thread...')
-            self.reporting_thread.join()
+            log.error(f'self.reporting_thread.is_alive() excepted with: {e}')
 
         try:
             while self.polling_thread.is_alive():
-                time.sleep(1)
+                time.sleep(0.2)
         except BaseException as e:
-            log.error(f'Error while stopping polling thread: {e}. Joining thread...')
-            self.polling_thread.join()
+            log.error(f'self.polling_thread.is_alive() excepted with: {e}')
 
         try:
             robothub.AGENT.shutdown()
@@ -101,7 +98,6 @@ class HubCameraManager:
                     camera.oak_camera.__exit__(Exception, 'Device disconnected - app shutting down', None)
             except BaseException as e:
                 raise Exception(f'Could not exit device with error: {e}')
-            robothub.STREAMS.destroy_all_streams()
 
         log.debug('App stopped successfully')
 
