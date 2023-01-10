@@ -1,0 +1,18 @@
+import robothub_depthai
+
+
+class DefaultApplication(robothub_depthai.RobotHubApplication):
+    def on_start(self):
+        for camera in self.hub_cameras:
+            color_resolution = robothub.CONFIGURATION.get('color_resolution', '1080p')
+            mono_resolution = robothub.CONFIGURATION.get('mono_resolution', '400p')
+
+            if camera.has_color:
+                print(f'Initialized color stream with resolution: {color_resolution}')
+                color = camera.create_camera('color', resolution=color_resolution, fps=30)
+                camera.create_stream(component=color, unique_key=f'color_{camera.id}', name='Color stream')
+
+            if camera.has_stereo:
+                print(f'Initialized depth stream with resolution: {mono_resolution}')
+                stereo = camera.create_stereo('color', resolution=mono_resolution, fps=30)
+                camera.create_stream(component=stereo, unique_key=f'depth_{camera.id}', name='Depth stream')

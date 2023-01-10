@@ -11,6 +11,10 @@ from robothub_depthai.hub_camera import HubCamera
 __all__ = ['HubCameraManager']
 
 
+class NoDevicesException(Exception):
+    pass
+
+
 class HubCameraManager:
     """
     A manager class to handle multiple HubCamera instances.
@@ -37,6 +41,14 @@ class HubCameraManager:
         """
         Start the cameras, start reporting and polling threads.
         """
+        if not self.hub_cameras:
+            # Endless loop to prevent app from exiting if no devices are found
+            while True:
+                try:
+                    time.sleep(1)
+                except KeyboardInterrupt:
+                    break
+
         print('Starting cameras...')
         for camera in self.hub_cameras:
             camera.start()
@@ -97,7 +109,6 @@ class HubCameraManager:
         while not self.app.stop_event.is_set():
             for camera in self.hub_cameras:
                 device_info = camera.info_report()
-                device_info |= {'state': camera.state.value}  # DAI SDK holds no state
                 device_stats = camera.stats_report()
 
                 robothub.AGENT.publish_device_info(device_info)
@@ -109,8 +120,13 @@ class HubCameraManager:
         """
         Polls the cameras for new detections. Polling frequency is defined by POLL_FREQUENCY.
         """
-        while self.app.stop_event.is_set():
+        is_connected = True
+        while self.app.stop_event.is_set() and is_connected:
             for camera in self.hub_cameras:
                 camera.poll()
+                if not camera.is_connected:
+                    print(f'Camera {camera.id} disconnected. '
+                          f'Please check if the device is connected and restart the application.')
+                    is_connected = False
 
             time.sleep(self.POLL_FREQUENCY)
