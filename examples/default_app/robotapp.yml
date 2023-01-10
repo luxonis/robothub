@@ -13,7 +13,7 @@ configuration:
     title: 'Color sensors'
 
   - field: choice
-    key: color_resolution_choice
+    key: color_resolution
     style: dropdown
     label: 'Resolution'
     description: 'Default resolution is 1080p'
@@ -30,7 +30,7 @@ configuration:
     title: 'Mono sensors'
 
   - field: choice
-    key: mono_resolution_choice
+    key: mono_resolution
     style: dropdown
     label: 'Resolution'
     description: 'Default resolution is 400p'
