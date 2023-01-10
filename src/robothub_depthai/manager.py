@@ -124,11 +124,13 @@ class HubCameraManager:
         """
         Polls the cameras for new detections. Polling frequency is defined by POLL_FREQUENCY.
         """
-        while self.app.stop_event.is_set():
+        is_connected = True
+        while self.app.stop_event.is_set() and is_connected:
             for camera in self.hub_cameras:
                 camera.poll()
                 if not camera.is_connected:
-                    print(f'Camera {camera.id} disconnected.'
+                    print(f'Camera {camera.id} disconnected. '
                           f'Please check if the device is connected and restart the application.')
-                    break
+                    is_connected = False
+
             time.sleep(self.POLL_FREQUENCY)
