@@ -132,7 +132,7 @@ class HubCamera:
         """
         Starts the device and sets the state to connected.
         """
-        while not self.app.stop_event.set():
+        while not self.app.stop_event.is_set():
             try:
                 self.oak_camera.start()
                 self.state = DeviceState.CONNECTED
