@@ -1,1 +1,1 @@
-FROM ghcr.io/luxonis/robothub-app-v2:2022.357.0902-ubuntu22.04
+FROM ghcr.io/luxonis/robothub-app-v2:2023.011.2256-ubuntu22.04
