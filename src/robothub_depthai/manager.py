@@ -44,10 +44,8 @@ class HubCameraManager:
         if not self.hub_cameras:
             # Endless loop to prevent app from exiting if no devices are found
             while True:
-                try:
-                    time.sleep(1)
-                except KeyboardInterrupt:
-                    break
+                self.app.wait(1)
+
 
         print('Starting cameras...')
         for camera in self.hub_cameras:
