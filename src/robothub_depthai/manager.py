@@ -1,6 +1,7 @@
 import logging as log
+import os
+import contextlib
 import time
-from threading import Thread
 from typing import List
 
 import robothub
@@ -31,8 +32,8 @@ class HubCameraManager:
                             for i, device in enumerate(devices)]
         self.app = app
 
-        self.reporting_thread = Thread(target=self._report, name='ReportingThread', daemon=False)
-        self.polling_thread = Thread(target=self._poll, name='PollingThread', daemon=False)
+        self.reporting_thread = robothub.threading.Thread(target=self._report, name='ReportingThread', daemon=False)
+        self.polling_thread = robothub.threading.Thread(target=self._poll, name='PollingThread', daemon=False)
 
     def __exit__(self):
         self.stop()
@@ -67,25 +68,18 @@ class HubCameraManager:
         """
         Stop the cameras, stop reporting and polling threads.
         """
-        print('Gracefully stopping threads...')
+        log.debug('Gracefully stopping threads...')
         self.app.stop_event.set()
 
         try:
-            while self.reporting_thread.is_alive():
-                time.sleep(0.2)
+            self.reporting_thread.join():
         except BaseException as e:
-            log.error(f'self.reporting_thread.is_alive() excepted with: {e}')
-
+            log.error(f'self.reporting_thread join excepted with: {e}')
+            
         try:
-            while self.polling_thread.is_alive():
-                time.sleep(0.2)
+            self.polling_thread.join():
         except BaseException as e:
-            log.error(f'self.polling_thread.is_alive() excepted with: {e}')
-
-        try:
-            robothub.AGENT.shutdown()
-        except BaseException as e:
-            log.debug(f'Agent shutdown excepted with {e}')
+            log.error(f'self.polling_thread join excepted with: {e}')
 
         try:
             robothub.STREAMS.destroy_all_streams()
@@ -95,18 +89,20 @@ class HubCameraManager:
         for camera in self.hub_cameras:
             try:
                 if camera.state != robothub.DeviceState.DISCONNECTED:
-                    camera.oak_camera.__exit__(Exception, 'Device disconnected - app shutting down', None)
+                    with open(os.devnull, 'w') as devnull:
+                        with contextlib.redirect_stdout(devnull):
+                            camera.oak_camera.__exit__(Exception, 'Device disconnected - app shutting down', None)
             except BaseException as e:
                 raise Exception(f'Could not exit device with error: {e}')
 
-        log.debug('App stopped successfully')
+        print('App stopped successfully')
 
     def _report(self) -> None:
         """
         Reports the state of the cameras to the agent. Active when app is running, inactive when app is stopped.
         Reporting frequency is defined by REPORT_FREQUENCY.
         """
-        while not self.app.stop_event.is_set():
+        while self.app.running:
             for camera in self.hub_cameras:
                 device_info = camera.info_report()
                 device_stats = camera.stats_report()
@@ -121,7 +117,7 @@ class HubCameraManager:
         Polls the cameras for new detections. Polling frequency is defined by POLL_FREQUENCY.
         """
         is_connected = True
-        while not self.app.stop_event.is_set() and is_connected:
+        while self.app.running and is_connected:
             for camera in self.hub_cameras:
                 camera.poll()
                 if not camera.is_connected:
