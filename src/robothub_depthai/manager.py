@@ -70,12 +70,12 @@ class HubCameraManager:
         self.app.stop_event.set()
 
         try:
-            self.reporting_thread.join():
+            self.reporting_thread.join()
         except BaseException as e:
             log.error(f'self.reporting_thread join excepted with: {e}')
             
         try:
-            self.polling_thread.join():
+            self.polling_thread.join()
         except BaseException as e:
             log.error(f'self.polling_thread join excepted with: {e}')
 
