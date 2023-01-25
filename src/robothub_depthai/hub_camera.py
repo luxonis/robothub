@@ -41,7 +41,7 @@ class HubCamera:
         self.rotation = rotation
         self.id = id
 
-        self.oak_camera = OakCamera(self.device_mxid, usbSpeed=self.usb_speed, rotation=self.rotation)
+        self.oak_camera = OakCamera(self.device_mxid, usb_speed=self.usb_speed, rotation=self.rotation)
         self.available_sensors = self._get_sensor_names()
 
     def create_camera(self,
@@ -208,12 +208,12 @@ class HubCamera:
     def _connect(self, reattempt_time: int = 1) -> None:
         """
         Attempts to establish a connection with the device.
-        Keeps attempting to connect forever, updates self.state accordingly
+        Keeps attempting to connect forever, updates self.state accordingly.
         """
         log.debug(f'Connecting to device {self.device_mxid}...')
 
         self.state = DeviceState.CONNECTING
-        self.oak_camera = OakCamera(self.device_mxid, usbSpeed=self.usb_speed, rotation=self.rotation)
+        self.oak_camera = OakCamera(self.device_mxid, usb_speed=self.usb_speed, rotation=self.rotation)
         while not self.app.stop_event.is_set():
             try:
                 self.oak_camera._init_device()
@@ -236,7 +236,7 @@ class HubCamera:
             with contextlib.redirect_stdout(devnull):
                 self.oak_camera.__exit__(Exception, 'Disconnecting device', 'placeholder')
 
-        self.oak_camera = OakCamera(self.device_mxid, usbSpeed=self.usb_speed, rotation=self.rotation)
+        self.oak_camera = OakCamera(self.device_mxid, usb_speed=self.usb_speed, rotation=self.rotation)
 
     def _get_sensor_names(self) -> List[str]:
         """
