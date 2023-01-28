@@ -113,7 +113,8 @@ class HubCamera:
                                      callback=callback or get_default_color_callback(stream_handle))
         elif isinstance(component, NNComponent):
             self.oak_camera.callback(component.out.encoded,
-                                     callback=callback or get_default_nn_callback(stream_handle))
+                                     callback=callback or get_default_nn_callback(stream_handle),
+                                     enable_visualizer=True)
         elif isinstance(component, StereoComponent):
             self.oak_camera.callback(component.out.encoded,
                                      callback=callback or get_default_depth_callback(stream_handle))

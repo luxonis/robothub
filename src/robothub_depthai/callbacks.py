@@ -39,12 +39,12 @@ def get_default_depth_callback(stream_handle: StreamHandle) -> Callable:
     return partial(_default_encoded_callback, stream_handle)
 
 
-def _default_encoded_callback(stream_handle: StreamHandle, packet, visualizer):
+def _default_encoded_callback(stream_handle: StreamHandle, packet):
     """
     Default callback for encoded streams.
 
     :param stream_handle: StreamHandle instance to publish the data to.
-    :param ctx: CallbackContext instance containing e.g. the packet and visualizer.
+    :param packet: Packet instance containing the data.
     """
 
     timestamp = int(time.time() * 1_000)
@@ -52,15 +52,14 @@ def _default_encoded_callback(stream_handle: StreamHandle, packet, visualizer):
     stream_handle.publish_video_data(frame_bytes, timestamp, None)
 
 
-def _default_nn_callback(stream_handle: StreamHandle, packet, visualizer):
+def _default_nn_callback(stream_handle: StreamHandle, packet):
     """
     Default callback for NN streams.
 
     :param stream_handle: StreamHandle instance to publish the data to.
-    :param packet:
-    :param visualizer:
+    :param packet: Packet instance containing the data.
     """
-
+    visualizer = packet.visualizer
     metadata = json.loads(visualizer.serialize())
     visualizer.reset()
 
