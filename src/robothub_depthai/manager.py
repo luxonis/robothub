@@ -31,6 +31,7 @@ class HubCameraManager:
                             for i, device in enumerate(devices)]
         self.app = app
 
+        self.lock = robothub.threading.Lock()
         self.reporting_thread = robothub.threading.Thread(target=self._report, name='ReportingThread', daemon=False)
         self.polling_thread = robothub.threading.Thread(target=self._poll, name='PollingThread', daemon=False)
 
@@ -112,13 +113,22 @@ class HubCameraManager:
         """
         Polls the cameras for new detections. Polling frequency is defined by POLL_FREQUENCY.
         """
-        is_connected = True
-        while self.app.running and is_connected:
+        while self.app.running:
             for camera in self.hub_cameras:
-                camera.poll()
-                if not camera.is_connected:
-                    print(f'Camera {camera.id} disconnected. '
-                          f'Please check if the device is connected and restart the application.')
-                    is_connected = False
+                if not camera.poll():
+                    print(f'Camera {camera.id} was disconnected.')
+                    self._remove_camera(camera)
+                    continue
 
             time.sleep(self.POLL_FREQUENCY)
+
+    def _remove_camera(self, camera: HubCamera) -> None:
+        """
+        Removes a camera from the list of cameras.
+        :param camera: The camera to remove.
+        """
+        with self.lock:
+            try:
+                self.hub_cameras.remove(camera)
+            except ValueError:
+                pass
