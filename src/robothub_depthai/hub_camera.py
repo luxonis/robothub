@@ -204,47 +204,6 @@ class HubCamera:
 
         return info
 
-    def _connect(self, reattempt_time: int = 1) -> None:
-        """
-        Attempts to establish a connection with the device.
-        Keeps attempting to connect forever, updates self.state accordingly.
-        """
-        log.debug(f'Connecting to device {self.device_mxid}...')
-
-        self.state = robothub.DeviceState.CONNECTING
-        self.oak_camera = OakCamera(self.device_mxid, usb_speed=self.usb_speed, rotation=self.rotation)
-        while not self.app.stop_event.is_set():
-            try:
-                self.oak_camera._init_device()
-                self.state = robothub.DeviceState.CONNECTED
-                log.debug(f'Successfully connected to device {self.device_mxid}')
-                return
-            except BaseException as err:
-                log.error(f'Cannot connect to device {self.device_mxid}: {err}'
-                          f' - Retrying in {reattempt_time} seconds')
-
-            self.app.stop_event.wait(timeout=reattempt_time)
-
-    def _disconnect(self) -> None:
-        """
-        Intended to be used for a temporary disconnect to allow changing DAI pipeline etc.
-        """
-        log.debug(f'Disconnecting from device {self.device_mxid}...')
-        self.state = robothub.DeviceState.DISCONNECTED
-        with open(os.devnull, 'w') as devnull:
-            with contextlib.redirect_stdout(devnull):
-                self.oak_camera.__exit__(Exception, 'Disconnecting device', 'placeholder')
-
-        self.oak_camera = OakCamera(self.device_mxid, usb_speed=self.usb_speed, rotation=self.rotation)
-
-    def _get_sensor_names(self) -> List[str]:
-        """
-        Returns a list of available sensors on the device.
-        :return: List of available sensors.
-        """
-        sensors = self.oak_camera.sensors
-        return sensors
-
     @property
     def device(self) -> dai.Device:
         """
