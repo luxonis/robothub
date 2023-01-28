@@ -5,7 +5,6 @@ import time
 from typing import List
 
 import robothub
-from robothub import RobotHubApplication
 
 from robothub_depthai.hub_camera import HubCamera
 
@@ -23,7 +22,7 @@ class HubCameraManager:
     REPORT_FREQUENCY = 10  # seconds
     POLL_FREQUENCY = 0.002
 
-    def __init__(self, app: RobotHubApplication, devices: List[dict]):
+    def __init__(self, app: robothub.RobotHubApplication, devices: List[dict]):
         """
         :param app: The RobotHubApplication instance.
         :param devices: A list of devices to be managed.
@@ -46,7 +45,6 @@ class HubCameraManager:
             # Endless loop to prevent app from exiting if no devices are found
             while True:
                 self.app.wait(1)
-
 
         print('Starting cameras...')
         for camera in self.hub_cameras:

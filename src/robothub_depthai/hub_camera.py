@@ -9,7 +9,6 @@ import depthai
 import depthai as dai
 import robothub
 from depthai_sdk import OakCamera, CameraComponent, StereoComponent, NNComponent
-from robothub import DeviceState
 
 from robothub_depthai.callbacks import get_default_color_callback, get_default_nn_callback, get_default_depth_callback
 from robothub_depthai.utils import try_or_default
@@ -35,14 +34,14 @@ class HubCamera:
         :param rotation: Rotation of the camera, defaults to 0.
         """
         self.app = app
-        self.state = DeviceState.UNKNOWN
+        self.state = robothub.DeviceState.UNKNOWN
         self.device_mxid = device_mxid
         self.usb_speed = usb_speed
         self.rotation = rotation
         self.id = id
 
         self.oak_camera = OakCamera(self.device_mxid, usb_speed=self.usb_speed, rotation=self.rotation)
-        self.available_sensors = self._get_sensor_names()
+        self.available_sensors = self.oak_camera.sensors
 
     def create_camera(self,
                       source: str,
@@ -122,11 +121,11 @@ class HubCamera:
     def callback(self, output: Any, callback: Callable):
         self.oak_camera.callback(output, callback=callback)
 
-    def poll(self) -> None:
+    def poll(self) -> Optional[int]:
         """
         Polls the device for new data.
         """
-        self.oak_camera.poll()
+        return self.oak_camera.poll()
 
     def start(self) -> None:
         """
@@ -135,7 +134,7 @@ class HubCamera:
         while not self.app.stop_event.is_set():
             try:
                 self.oak_camera.start()
-                self.state = DeviceState.CONNECTED
+                self.state = robothub.DeviceState.CONNECTED
                 return
             except Exception as e:
                 print(f'Could not start camera with exception {e}')
@@ -212,12 +211,12 @@ class HubCamera:
         """
         log.debug(f'Connecting to device {self.device_mxid}...')
 
-        self.state = DeviceState.CONNECTING
+        self.state = robothub.DeviceState.CONNECTING
         self.oak_camera = OakCamera(self.device_mxid, usb_speed=self.usb_speed, rotation=self.rotation)
         while not self.app.stop_event.is_set():
             try:
                 self.oak_camera._init_device()
-                self.state = DeviceState.CONNECTED
+                self.state = robothub.DeviceState.CONNECTED
                 log.debug(f'Successfully connected to device {self.device_mxid}')
                 return
             except BaseException as err:
@@ -231,7 +230,7 @@ class HubCamera:
         Intended to be used for a temporary disconnect to allow changing DAI pipeline etc.
         """
         log.debug(f'Disconnecting from device {self.device_mxid}...')
-        self.state = DeviceState.DISCONNECTED
+        self.state = robothub.DeviceState.DISCONNECTED
         with open(os.devnull, 'w') as devnull:
             with contextlib.redirect_stdout(devnull):
                 self.oak_camera.__exit__(Exception, 'Disconnecting device', 'placeholder')
@@ -243,14 +242,8 @@ class HubCamera:
         Returns a list of available sensors on the device.
         :return: List of available sensors.
         """
-        self._connect()
-        if self.state == DeviceState.CONNECTED:
-            # If device connected, get sensor names
-            sensors = self.oak_camera._oak.device.getCameraSensorNames()
-            self._disconnect()
-            return sensors
-        else:
-            return []
+        sensors = self.oak_camera.sensors
+        return sensors
 
     @property
     def device(self) -> dai.Device:
