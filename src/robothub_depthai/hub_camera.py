@@ -39,8 +39,24 @@ class HubCamera:
         self.rotation = rotation
         self.id = id
 
-        self.oak_camera = OakCamera(self.device_mxid, usb_speed=self.usb_speed, rotation=self.rotation)
-        self.available_sensors = self.oak_camera.sensors
+        self.oak_camera = self._init_oak_camera()
+        self.available_sensors = self.oak_camera.sensors if self.oak_camera else []
+
+    def _init_oak_camera(self) -> OakCamera:
+        # try to init for 5 seconds
+        start_time = time.time()
+        while True:
+            try:
+                camera = OakCamera(self.device_mxid, usb_speed=self.usb_speed, rotation=self.rotation)
+                return camera
+            except Exception as e:
+                if time.time() - start_time > 5:
+                    break
+
+                time.sleep(1)
+
+        log.warning(f'Failed to initialize camera {self.device_mxid}, skipping...')
+        return None
 
     def create_camera(self,
                       source: str,
