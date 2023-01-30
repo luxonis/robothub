@@ -18,7 +18,10 @@ class RobotHubApplication(robothub.RobotHubApplication):
         self.camera_manager.start()
 
     def on_stop(self) -> None:
-        self.camera_manager.stop()
+        try:
+            self.camera_manager.stop()
+        except AttributeError:
+            pass
 
     @property
     def hub_cameras(self) -> list:
