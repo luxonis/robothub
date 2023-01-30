@@ -1,14 +1,13 @@
-import contextlib
 import logging as log
-import os
 import time
 from pathlib import Path
-from typing import Union, Optional, Callable, List, Dict, Any
+from typing import Union, Optional, Callable, Dict, Any
 
 import depthai
 import depthai as dai
 import robothub
-from depthai_sdk import OakCamera, CameraComponent, StereoComponent, NNComponent
+from depthai_sdk import OakCamera
+from depthai_sdk.components import CameraComponent, NNComponent, StereoComponent
 
 from robothub_depthai.callbacks import get_default_color_callback, get_default_nn_callback, get_default_depth_callback
 from robothub_depthai.utils import try_or_default
