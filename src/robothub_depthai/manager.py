@@ -27,8 +27,12 @@ class HubCameraManager:
         :param app: The RobotHubApplication instance.
         :param devices: A list of devices to be managed.
         """
-        self.hub_cameras = [HubCamera(app, device_mxid=device.oak['serialNumber'], id=i)
-                            for i, device in enumerate(devices)]
+        self.hub_cameras = []
+        for i, device in enumerate(devices):
+            hub_camera = HubCamera(app, device_mxid=device.oak['serialNumber'], id=i)
+            if hub_camera.oak_camera is not None:
+                self.hub_cameras.append(hub_camera)
+
         self.app = app
 
         self.lock = robothub.threading.Lock()
