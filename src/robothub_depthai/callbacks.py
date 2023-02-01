@@ -65,9 +65,9 @@ def _default_nn_callback(stream_handle: StreamHandle, packet):
         metadata = json.loads(visualizer.serialize())
         visualizer.reset()
 
-    # temp fix to replace None value that causes errors on frontend
-    if not metadata['config']['detection']['color']:
-        metadata['config']['detection']['color'] = [255, 0, 0]
+        # temp fix to replace None value that causes errors on frontend
+        if not metadata['config']['detection']['color']:
+            metadata['config']['detection']['color'] = [255, 0, 0]
 
     timestamp = int(time.time() * 1_000)
     frame_bytes = bytes(packet.imgFrame.getData())
