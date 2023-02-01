@@ -60,8 +60,10 @@ def _default_nn_callback(stream_handle: StreamHandle, packet):
     :param packet: Packet instance containing the data.
     """
     visualizer = packet.visualizer
-    metadata = json.loads(visualizer.serialize())
-    visualizer.reset()
+    metadata = None
+    if visualizer:
+        metadata = json.loads(visualizer.serialize())
+        visualizer.reset()
 
     # temp fix to replace None value that causes errors on frontend
     if not metadata['config']['detection']['color']:
