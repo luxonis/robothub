@@ -51,11 +51,11 @@ class HubCamera:
                 return camera
             except Exception as e:
                 if time.time() - start_time > 5:
+                    log.warning(f'Failed to initialize camera {self.device_mxid} with exception: {e}.')
                     break
 
                 time.sleep(1)
 
-        log.warning(f'Failed to initialize camera {self.device_mxid}, skipping...')
         return None
 
     def create_camera(self,
