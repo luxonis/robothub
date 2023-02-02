@@ -150,9 +150,13 @@ class HubCamera:
         """
         log.debug(f'Creating stream {name} for component {component}')
 
-        stream_handle = robothub.STREAMS.create_video(camera_serial=self.device_mxid,
-                                                      unique_key=unique_key,
-                                                      description=name)
+        if unique_key in robothub.STREAMS.streams.keys():
+            stream_handle = robothub.STREAMS.streams[unique_key]
+        else:
+            stream_handle = robothub.STREAMS.create_video(camera_serial=self.device_mxid,
+                                                          unique_key=unique_key,
+                                                          description=name)
+
         self._stream_handles[component] = stream_handle
         self._add_stream_callback(stream_handle=stream_handle, component=component, callback=callback)
 
