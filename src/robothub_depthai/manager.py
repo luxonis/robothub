@@ -24,7 +24,7 @@ class HubCameraManager:
     REPORT_FREQUENCY = 10  # seconds
     POLL_FREQUENCY = 0.002
 
-    def __init__(self, app: robothub_depthai.RobotHubApplication, devices: List[dict]):
+    def __init__(self, app: 'robothub_depthai.RobotHubApplication', devices: List[dict]):
         """
         :param app: The RobotHubApplication instance.
         :param devices: A list of devices to be managed.

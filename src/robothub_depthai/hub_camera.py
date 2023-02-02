@@ -29,7 +29,7 @@ class HubCamera:
     """
 
     def __init__(self,
-                 app: robothub.RobotHubApplication,
+                 app: 'robothub_depthai.RobotHubApplication',
                  device_mxid: str,
                  id: int,
                  usb_speed: Union[None, str, dai.UsbSpeed] = None,
