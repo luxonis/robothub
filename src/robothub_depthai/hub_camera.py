@@ -166,7 +166,7 @@ class HubCamera:
                                                       unique_key=unique_key,
                                                       description=name)
         self._stream_handles[component] = stream_handle
-        self._add_stream_callback(component, stream_handle, callback)
+        self._add_stream_callback(stream_handle=stream_handle, component=component, callback=callback)
 
     def _add_stream_callback(self,
                              stream_handle: robothub.StreamHandle,
