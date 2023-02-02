@@ -28,8 +28,8 @@ class HubCameraManager:
         :param app: The RobotHubApplication instance.
         :param devices: A list of devices to be managed.
         """
-        self.hub_cameras = []
-        self.running = False
+        self.connected_cameras = []
+        self.running_cameras = []
         self.devices = devices
         self.app = app
         self._update_hub_cameras(devices)
@@ -48,26 +48,30 @@ class HubCameraManager:
         """
         for i, device in enumerate(devices):
             mxid = device.oak['serialNumber']
-            if mxid in [camera.device_mxid for camera in self.hub_cameras]:
+            if mxid in [camera.device_mxid for camera in self.connected_cameras]:
                 continue
 
             hub_camera = HubCamera(self.app, device_mxid=device.oak['serialNumber'], id=i)
             if hub_camera.oak_camera is not None:
-                self.hub_cameras.append(hub_camera)
+                self.connected_cameras.append(hub_camera)
 
     def start(self) -> None:
         """
         Start the cameras, start reporting and polling threads.
         """
-        if not self.hub_cameras:
-            # Endless loop to prevent app from exiting if no devices are found
-            while True:
-                self.app.wait(1)
+        # Endless loop to prevent app from exiting if no devices are found
+        while True:
+            if self.connected_cameras:
+                break
+
+            self.app.wait(1)
 
         log.info('Cameras: starting...')
-        for camera in self.hub_cameras:
+        connected_cameras = self.connected_cameras.copy()
+        for camera in connected_cameras:
             camera.start()
-            camera.running = True
+            self.running_cameras.append(camera)
+            self.connected_cameras.remove(camera)
 
         log.info('Reporting thread: starting...')
         self.reporting_thread.start()
@@ -84,12 +88,11 @@ class HubCameraManager:
         log.info('Cameras: started successfully')
 
     def manual_start(self) -> None:
-        for camera in self.hub_cameras:
-            if camera.running:
-                continue
-
+        connected_cameras = self.connected_cameras.copy()
+        for camera in connected_cameras:
             camera.start()
-            camera.running = True
+            self.running_cameras.append(camera)
+            self.connected_cameras.remove(camera)
             log.info(f'Camera {camera.device_mxid}: started successfully')
 
     def stop(self) -> None:
@@ -116,7 +119,7 @@ class HubCameraManager:
         except BaseException as e:
             raise Exception(f'Destroy all streams excepted with: {e}')
 
-        for camera in self.hub_cameras:
+        for camera in self.running_cameras:
             try:
                 if camera.state != robothub.DeviceState.DISCONNECTED:
                     with open(os.devnull, 'w') as devnull:
@@ -133,7 +136,7 @@ class HubCameraManager:
         Reporting frequency is defined by REPORT_FREQUENCY.
         """
         while self.app.running:
-            for camera in self.hub_cameras:
+            for camera in self.running_cameras:
                 try:
                     device_info = camera.info_report()
                     device_stats = camera.stats_report()
@@ -150,7 +153,7 @@ class HubCameraManager:
         Polls the cameras for new detections. Polling frequency is defined by POLL_FREQUENCY.
         """
         while self.app.running:
-            for camera in self.hub_cameras:
+            for camera in self.running_cameras:
                 if not camera.poll():
                     log.info(f'Camera {camera.device_mxid} was disconnected.')
                     self._remove_camera(camera)
@@ -165,7 +168,7 @@ class HubCameraManager:
         """
         with self.lock:
             try:
-                self.hub_cameras.remove(camera)
+                self.running_cameras.remove(camera)
             except ValueError:
                 pass
 
@@ -174,7 +177,7 @@ class HubCameraManager:
         Reconnects the cameras that were disconnected or reconnected.
         """
         while self.app.running:
-            if len(self.hub_cameras) < len(self.devices):
+            if len(self.running_cameras) < len(self.devices):
                 time.sleep(5)
                 continue
 
