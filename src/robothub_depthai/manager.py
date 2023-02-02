@@ -64,7 +64,7 @@ class HubCameraManager:
             if self.connected_cameras:
                 break
 
-            self.app.wait(1)
+            time.sleep(5)
 
         log.info('Cameras: starting...')
         connected_cameras = self.connected_cameras.copy()
@@ -177,7 +177,7 @@ class HubCameraManager:
         Reconnects the cameras that were disconnected or reconnected.
         """
         while self.app.running:
-            if len(self.running_cameras) < len(self.devices):
+            if len(self.running_cameras) == len(self.devices):
                 time.sleep(5)
                 continue
 
