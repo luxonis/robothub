@@ -7,6 +7,7 @@ from typing import List
 import robothub
 
 from robothub_depthai.hub_camera import HubCamera
+from depthai_sdk import OakCamera
 
 __all__ = ['HubCameraManager']
 
@@ -28,16 +29,20 @@ class HubCameraManager:
         :param devices: A list of devices to be managed.
         """
         self.hub_cameras = []
+        self.invalid_hub_cameras = []
         for i, device in enumerate(devices):
             hub_camera = HubCamera(app, device_mxid=device.oak['serialNumber'], id=i)
             if hub_camera.oak_camera is not None:
                 self.hub_cameras.append(hub_camera)
+            else:
+                self.invalid_hub_cameras.append(hub_camera)
 
         self.app = app
 
         self.lock = robothub.threading.Lock()
         self.reporting_thread = robothub.threading.Thread(target=self._report, name='ReportingThread', daemon=False)
         self.polling_thread = robothub.threading.Thread(target=self._poll, name='PollingThread', daemon=False)
+        self.connection_thread = robothub.threading.Thread(target=self._connect, name='ConnectionThread', daemon=False)
 
     def __exit__(self):
         self.stop()
@@ -138,3 +143,20 @@ class HubCameraManager:
                 self.hub_cameras.remove(camera)
             except ValueError:
                 pass
+
+    def _connect(self) -> None:
+        """
+        Reconnects the cameras that were disconnected or reconnected.
+        """
+        while True:
+            for hub_camera in self.invalid_hub_cameras:
+                camera = OakCamera(hub_camera.device_mxid, usb_speed=hub_camera.usb_speed, rotation=hub_camera.rotation)
+                if camera:
+                    hub_camera.oak_camera = camera
+                    hub_camera.recover()
+                    self.hub_cameras.append(hub_camera)
+                    self.invalid_hub_cameras.remove(hub_camera)
+                    print(f'Camera {hub_camera.id} was reconnected.')
+                    break
+
+            time.sleep(5)
