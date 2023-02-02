@@ -56,19 +56,23 @@ class HubCameraManager:
             while True:
                 self.app.wait(1)
 
-        print('Starting cameras...')
+        log.info('Starting cameras...')
         for camera in self.hub_cameras:
             camera.start()
 
-        print('Starting reporting thread...')
+        log.info('Starting reporting thread...')
         self.reporting_thread.start()
-        print('Reporting thread started successfully')
+        log.info('Reporting thread started successfully')
 
-        print('Starting polling thread...')
+        log.info('Starting polling thread...')
         self.polling_thread.start()
-        print('Polling thread started successfully')
+        log.info('Polling thread started successfully')
 
-        print('Cameras started successfully')
+        log.info('Starting device connection thread...')
+        self.connection_thread.start()
+        log.info('Device connection thread started successfully')
+
+        log.info('Cameras started successfully')
 
     def stop(self) -> None:
         """
@@ -103,7 +107,7 @@ class HubCameraManager:
             except BaseException as e:
                 raise Exception(f'Could not exit device with error: {e}')
 
-        print('App stopped successfully')
+        log.info('App stopped successfully')
 
     def _report(self) -> None:
         """
@@ -127,7 +131,7 @@ class HubCameraManager:
         while self.app.running:
             for camera in self.hub_cameras:
                 if not camera.poll():
-                    print(f'Camera {camera.id} was disconnected.')
+                    log.info(f'Camera {camera.device_mxid} was disconnected.')
                     self._remove_camera(camera)
                     continue
 
@@ -148,15 +152,15 @@ class HubCameraManager:
         """
         Reconnects the cameras that were disconnected or reconnected.
         """
-        while True:
+        while self.app.running:
             for hub_camera in self.invalid_hub_cameras:
-                camera = OakCamera(hub_camera.device_mxid, usb_speed=hub_camera.usb_speed, rotation=hub_camera.rotation)
-                if camera:
-                    hub_camera.oak_camera = camera
+                oak = OakCamera(hub_camera.device_mxid, usb_speed=hub_camera.usb_speed, rotation=hub_camera.rotation)
+                if oak:
+                    hub_camera.oak_camera = oak
                     hub_camera.recover()
                     self.hub_cameras.append(hub_camera)
                     self.invalid_hub_cameras.remove(hub_camera)
-                    print(f'Camera {hub_camera.id} was reconnected.')
+                    log.info(f'Camera {hub_camera.device_mxid} was reconnected.')
                     break
 
             time.sleep(5)
