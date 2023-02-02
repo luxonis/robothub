@@ -24,5 +24,9 @@ class RobotHubApplication(robothub.RobotHubApplication):
             pass
 
     @property
-    def hub_cameras(self) -> list:
-        return self.camera_manager.hub_cameras
+    def connected_cameras(self) -> list:
+        return self.camera_manager.connected_cameras
+
+    @property
+    def running_cameras(self) -> list:
+        return self.camera_manager.running_cameras
