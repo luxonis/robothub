@@ -8,19 +8,13 @@ import depthai as dai
 import depthai_sdk
 import robothub
 from depthai_sdk import OakCamera
+from depthai_sdk.components import CameraComponent, StereoComponent, NNComponent
 
 import robothub_depthai
 from robothub_depthai.callbacks import get_default_color_callback, get_default_nn_callback, get_default_depth_callback
-from robothub_depthai.components import CameraComponent, NNComponent, StereoComponent
 from robothub_depthai.utils import try_or_default
 
 __all__ = ['HubCamera']
-
-ROBOTHUB_DEPTHAI_COMPONENT = Union[
-    CameraComponent,
-    NNComponent,
-    StereoComponent
-]
 
 
 class HubCamera:
@@ -46,11 +40,6 @@ class HubCamera:
         self.usb_speed = usb_speed
         self.rotation = rotation
         self.id = id
-
-        self._history = []  # Used for device recovery after reconnect
-        self._components = []
-        self._streams = {}
-        self._stream_handles = {}
 
         self.oak_camera = self._init_oak_camera()
         self.available_sensors = self.oak_camera.sensors if self.oak_camera else []
@@ -86,31 +75,19 @@ class HubCamera:
         :param resolution: Resolution of the camera.
         :param fps: FPS of the output stream.
         """
-        args = {'source': source, 'resolution': resolution, 'fps': fps}
-
         comp = self.oak_camera.create_camera(source=source, resolution=resolution, fps=fps, encode='h264')
-        comp = robothub_depthai.CameraComponent(comp)
-        self._history.append((self.create_camera, args, comp))
         return comp
 
     def create_nn(self,
                   model: Union[str, Path],
-                  input: Union[depthai_sdk.components.CameraComponent, depthai_sdk.components.NNComponent],
+                  input: Union[CameraComponent, NNComponent],
                   nn_type: Optional[str] = None,
                   tracker: bool = False,
                   spatial: Union[None, bool, StereoComponent] = None,
                   decode_fn: Optional[Callable] = None
                   ) -> NNComponent:
-        args = {'model': model, 'input': input, 'nn_type': nn_type,
-                'tracker': tracker, 'spatial': spatial, 'decode_fn': decode_fn}
-
-        if isinstance(input, CameraComponent):
-            input = input.component
-
         comp = self.oak_camera.create_nn(model=model, input=input, nn_type=nn_type,
                                          tracker=tracker, spatial=spatial, decode_fn=decode_fn)
-        comp = NNComponent(comp)
-        self._history.append((self.create_nn, args, comp))
         return comp
 
     def create_stereo(self,
@@ -127,15 +104,11 @@ class HubCamera:
         :param left: Left camera component, optional.
         :param right: Right camera component, optional.
         """
-        args = {'resolution': resolution, 'fps': fps, 'left': left, 'right': right}
-
         comp = self.oak_camera.create_stereo(resolution=resolution, fps=fps, left=left, right=right, encode='h264')
-        comp = robothub_depthai.StereoComponent(comp)
-        self._history.append((self.create_stereo, args, comp))
         return comp
 
     def create_stream(self,
-                      component: ROBOTHUB_DEPTHAI_COMPONENT,
+                      component: Union[CameraComponent, NNComponent, StereoComponent],
                       unique_key: str,
                       name: str,
                       callback: Callable = None
@@ -157,29 +130,23 @@ class HubCamera:
                                                           unique_key=unique_key,
                                                           description=name)
 
-        self._stream_handles[component] = stream_handle
         self._add_stream_callback(stream_handle=stream_handle, component=component, callback=callback)
 
     def _add_stream_callback(self,
                              stream_handle: robothub.StreamHandle,
-                             component: ROBOTHUB_DEPTHAI_COMPONENT,
+                             component: Union[CameraComponent, NNComponent, StereoComponent],
                              callback: Callable
                              ) -> None:
+        fn = None
         if isinstance(component, CameraComponent):
             fn = callback or get_default_color_callback(stream_handle)
-            self.oak_camera.callback(component.out.encoded,
-                                     callback=fn)
-            self._streams[component] = fn
         elif isinstance(component, NNComponent):
             fn = callback or get_default_nn_callback(stream_handle)
-            self.oak_camera.callback(component.out.encoded,
-                                     callback=fn)
-            self._streams[component] = fn
         elif isinstance(component, StereoComponent):
             fn = callback or get_default_depth_callback(stream_handle)
-            self.oak_camera.callback(component.out.encoded,
-                                     callback=fn)
-            self._streams[component] = fn
+
+        if fn:
+            self.oak_camera.callback(component.out.encoded, callback=fn)
 
     def callback(self, output: Any, callback: Callable, enable_visualizer: bool = False) -> None:
         self.oak_camera.callback(output, callback=callback, enable_visualizer=enable_visualizer)
@@ -194,6 +161,9 @@ class HubCamera:
         """
         Starts the device and sets the state to connected.
         """
+        if self.state == robothub.DeviceState.CONNECTED:
+            return
+
         while not self.app.stop_event.is_set():
             try:
                 self.oak_camera.start()
