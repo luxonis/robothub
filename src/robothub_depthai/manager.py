@@ -116,11 +116,14 @@ class HubCameraManager:
         """
         while self.app.running:
             for camera in self.hub_cameras:
-                device_info = camera.info_report()
-                device_stats = camera.stats_report()
+                try:
+                    device_info = camera.info_report()
+                    device_stats = camera.stats_report()
 
-                robothub.AGENT.publish_device_info(device_info)
-                robothub.AGENT.publish_device_stats(device_stats)
+                    robothub.AGENT.publish_device_info(device_info)
+                    robothub.AGENT.publish_device_stats(device_stats)
+                except Exception as e:
+                    log.debug(f'Could not report device ({camera.device_mxid}) info/stats: {e}')
 
             time.sleep(self.REPORT_FREQUENCY)
 
@@ -158,10 +161,10 @@ class HubCameraManager:
                 try:
                     oak = OakCamera(hub_camera.device_mxid, usb_speed=hub_camera.usb_speed, rotation=hub_camera.rotation)
                     if oak:
+                        self.disconnected_hub_cameras.remove(hub_camera)
                         hub_camera.oak_camera = oak
                         hub_camera.recover()
                         self.hub_cameras.append(hub_camera)
-                        self.disconnected_hub_cameras.remove(hub_camera)
                         log.info(f'Camera {hub_camera.device_mxid} was reconnected.')
                         break
                 except Exception as e:
