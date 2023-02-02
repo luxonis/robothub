@@ -107,7 +107,8 @@ class HubCamera:
         """
         comp = self.oak_camera.create_camera(source=source, resolution=resolution, fps=fps, encode='h264')
         comp = robothub_depthai.CameraComponent(comp)
-        self._history.append((self.create_camera, locals(), comp))
+        args = {'source': source, 'resolution': resolution, 'fps': fps}
+        self._history.append((self.create_camera, args, comp))
         return comp
 
     def create_nn(self,
@@ -124,7 +125,9 @@ class HubCamera:
         comp = self.oak_camera.create_nn(model=model, input=input, nn_type=nn_type,
                                          tracker=tracker, spatial=spatial, decode_fn=decode_fn)
         comp = NNComponent(comp)
-        self._history.append((self.create_nn, locals(), comp))
+        args = {'model': model, 'input': input, 'nn_type': nn_type,
+                'tracker': tracker, 'spatial': spatial, 'decode_fn': decode_fn}
+        self._history.append((self.create_nn, args, comp))
         return comp
 
     def create_stereo(self,
@@ -143,7 +146,8 @@ class HubCamera:
         """
         comp = self.oak_camera.create_stereo(resolution=resolution, fps=fps, left=left, right=right, encode='h264')
         comp = robothub_depthai.StereoComponent(comp)
-        self._history.append((self.create_stereo, locals(), comp))
+        args = {'resolution': resolution, 'fps': fps, 'left': left, 'right': right}
+        self._history.append((self.create_stereo, args, comp))
         return comp
 
     def create_stream(self,
