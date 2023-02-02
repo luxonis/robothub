@@ -8,6 +8,9 @@ class CameraComponent:
     def __init__(self, component: depthai_sdk.components.CameraComponent):
         self.component = component
 
+        self.was_camera_configured = False
+        self.was_color_camera_configured = False
+
         self.fps = None
         self.resolution = None
         self.size = None
@@ -28,12 +31,14 @@ class CameraComponent:
         """
         Applies configuration from another CameraComponent instance. Used after reconnecting the device.
         """
-        self.config_camera(component.fps, component.resolution)
-        self.config_color_camera(
-            component.size, component.interleaved, component.color_order, component.manual_focus, component.af_mode,
-            component.awb_mode, component.scene_mode, component.anti_banding_mode, component.effect_mode,
-            component.isp_scale, component.sharpness, component.luma_denoise, component.chroma_denoise
-        )
+        if self.was_camera_configured:
+            self.config_camera(component.fps, component.resolution)
+        if self.was_color_camera_configured:
+            self.config_color_camera(
+                component.size, component.interleaved, component.color_order, component.manual_focus, component.af_mode,
+                component.awb_mode, component.scene_mode, component.anti_banding_mode, component.effect_mode,
+                component.isp_scale, component.sharpness, component.luma_denoise, component.chroma_denoise
+            )
 
     def config_camera(self,
                       fps: Optional[float] = None,
@@ -45,6 +50,7 @@ class CameraComponent:
 
         self.fps = fps
         self.resolution = resolution
+        self.was_camera_configured = True
 
     def config_color_camera(self,
                             size: Optional[Tuple[int, int]] = None,
@@ -80,6 +86,7 @@ class CameraComponent:
         self.sharpness = sharpness
         self.luma_denoise = luma_denoise
         self.chroma_denoise = chroma_denoise
+        self.was_color_camera_configured = True
 
     @property
     def out(self):

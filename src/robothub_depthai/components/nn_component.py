@@ -8,6 +8,11 @@ class NNComponent:
     def __init__(self, component: depthai_sdk.components.NNComponent):
         self.component = component
 
+        self.was_tracker_configured = False
+        self.was_nn_configured = False
+        self.was_spatial_configured = False
+        self.was_yolo_configured = False
+
         # Tracker
         self.tracker_type = None
         self.track_labels = None
@@ -34,13 +39,17 @@ class NNComponent:
         """
         Applies configuration from another CameraComponent instance. Used after reconnecting the device.
         """
-        self.config_tracker(component.tracker_type, component.track_labels, component.assignment_policy,
-                            component.max_obj, component.threshold)
-        self.config_nn(component.conf_threshold, component.resize_mode)
-        self.config_spatial(component.bb_scale_factor, component.lower_threshold,
-                            component.upper_threshold, component.calc_algo)
-        self.config_yolo(component.num_classes, component.coordinate_size, component.anchors,
-                         component.masks, component.iou_threshold, component.conf_threshold_yolo)
+        if self.was_tracker_configured:
+            self.config_tracker(component.tracker_type, component.track_labels, component.assignment_policy,
+                                component.max_obj, component.threshold)
+        if self.was_nn_configured:
+            self.config_nn(component.conf_threshold, component.resize_mode)
+        if self.was_spatial_configured:
+            self.config_spatial(component.bb_scale_factor, component.lower_threshold,
+                                component.upper_threshold, component.calc_algo)
+        if self.was_yolo_configured:
+            self.config_yolo(component.num_classes, component.coordinate_size, component.anchors,
+                             component.masks, component.iou_threshold, component.conf_threshold_yolo)
 
     def config_tracker(self,
                        tracker_type: Optional[dai.TrackerType] = None,
@@ -55,6 +64,7 @@ class NNComponent:
         self.assignment_policy = assignment_policy
         self.max_obj = max_obj
         self.threshold = threshold
+        self.was_tracker_configured = True
 
     def config_nn(self,
                   conf_threshold: Optional[float] = None,
@@ -63,6 +73,7 @@ class NNComponent:
 
         self.conf_threshold = conf_threshold
         self.resize_mode = resize_mode
+        self.was_nn_configured = True
 
     def config_spatial(self,
                        bb_scale_factor: Optional[float] = None,
@@ -75,6 +86,7 @@ class NNComponent:
         self.lower_threshold = lower_threshold
         self.upper_threshold = upper_threshold
         self.calc_algo = calc_algo
+        self.was_spatial_configured = True
 
     def config_yolo(self,
                     num_classes: int,
@@ -91,6 +103,7 @@ class NNComponent:
         self.masks = masks
         self.iou_threshold = iou_threshold
         self.conf_threshold_yolo = conf_threshold
+        self.was_yolo_configured = True
 
     @property
     def out(self):

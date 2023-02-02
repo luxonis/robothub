@@ -8,6 +8,8 @@ class StereoComponent:
     def __init__(self, component: depthai_sdk.components.StereoComponent):
         self.component = component
 
+        self.was_stereo_configured = False
+
         self.confidence = None
         self.align = None
         self.median = None
@@ -21,8 +23,9 @@ class StereoComponent:
         """
         Applies configuration from another CameraComponent instance. Used after reconnecting the device.
         """
-        self.config_stereo(component.confidence, component.align, component.median, component.extended,
-                           component.subpixel, component.lr_check, component.sigma, component.lr_check_threshold)
+        if self.was_stereo_configured:
+            self.config_stereo(component.confidence, component.align, component.median, component.extended,
+                               component.subpixel, component.lr_check, component.sigma, component.lr_check_threshold)
 
     def config_stereo(self,
                       confidence: Optional[int] = None,
@@ -47,6 +50,7 @@ class StereoComponent:
         self.lr_check = lr_check
         self.sigma = sigma
         self.lr_check_threshold = lr_check_threshold
+        self.was_stereo_configured = True
 
     @property
     def out(self):
