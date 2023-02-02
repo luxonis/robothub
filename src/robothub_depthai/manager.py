@@ -48,7 +48,7 @@ class HubCameraManager:
         """
         for i, device in enumerate(devices):
             mxid = device.oak['serialNumber']
-            if mxid in [camera.device_mxid for camera in self.connected_cameras]:
+            if mxid in [camera.device_mxid for camera in self.running_cameras]:
                 continue
 
             hub_camera = HubCamera(self.app, device_mxid=device.oak['serialNumber'], id=i)
