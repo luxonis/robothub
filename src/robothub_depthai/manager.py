@@ -29,13 +29,13 @@ class HubCameraManager:
         :param devices: A list of devices to be managed.
         """
         self.hub_cameras = []
-        self.invalid_hub_cameras = []
+        self.disconnected_hub_cameras = []
         for i, device in enumerate(devices):
             hub_camera = HubCamera(app, device_mxid=device.oak['serialNumber'], id=i)
             if hub_camera.oak_camera is not None:
                 self.hub_cameras.append(hub_camera)
             else:
-                self.invalid_hub_cameras.append(hub_camera)
+                self.disconnected_hub_cameras.append(hub_camera)
 
         self.app = app
 
@@ -133,6 +133,7 @@ class HubCameraManager:
                 if not camera.poll():
                     log.info(f'Camera {camera.device_mxid} was disconnected.')
                     self._remove_camera(camera)
+                    self.disconnected_hub_cameras.append(camera)
                     continue
 
             time.sleep(self.POLL_FREQUENCY)
@@ -153,14 +154,14 @@ class HubCameraManager:
         Reconnects the cameras that were disconnected or reconnected.
         """
         while self.app.running:
-            for hub_camera in self.invalid_hub_cameras:
+            for hub_camera in self.disconnected_hub_cameras:
                 try:
                     oak = OakCamera(hub_camera.device_mxid, usb_speed=hub_camera.usb_speed, rotation=hub_camera.rotation)
                     if oak:
                         hub_camera.oak_camera = oak
                         hub_camera.recover()
                         self.hub_cameras.append(hub_camera)
-                        self.invalid_hub_cameras.remove(hub_camera)
+                        self.disconnected_hub_cameras.remove(hub_camera)
                         log.info(f'Camera {hub_camera.device_mxid} was reconnected.')
                         break
                 except Exception as e:
