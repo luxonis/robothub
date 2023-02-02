@@ -30,8 +30,8 @@ class HubCameraManager:
         """
         self.hub_cameras = []
         self.devices = devices
-        self._update_hub_cameras(devices)
         self.app = app
+        self._update_hub_cameras(devices)
 
         self.lock = robothub.threading.Lock()
         self.reporting_thread = robothub.threading.Thread(target=self._report, name='ReportingThread', daemon=False)
