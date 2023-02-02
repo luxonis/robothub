@@ -6,6 +6,7 @@ from typing import List
 
 import robothub
 
+import robothub_depthai
 from robothub_depthai.hub_camera import HubCamera
 from depthai_sdk import OakCamera
 
@@ -23,7 +24,7 @@ class HubCameraManager:
     REPORT_FREQUENCY = 10  # seconds
     POLL_FREQUENCY = 0.002
 
-    def __init__(self, app: robothub.RobotHubApplication, devices: List[dict]):
+    def __init__(self, app: robothub_depthai.RobotHubApplication, devices: List[dict]):
         """
         :param app: The RobotHubApplication instance.
         :param devices: A list of devices to be managed.
@@ -31,6 +32,10 @@ class HubCameraManager:
         self.hub_cameras = []
         self.disconnected_hub_cameras = []
         for i, device in enumerate(devices):
+            mxid = device.oak['serialNumber']
+            if mxid in [camera.device_mxid for camera in self.hub_cameras]:
+                continue
+
             hub_camera = HubCamera(app, device_mxid=device.oak['serialNumber'], id=i)
             if hub_camera.oak_camera is not None:
                 self.hub_cameras.append(hub_camera)
@@ -157,17 +162,8 @@ class HubCameraManager:
         Reconnects the cameras that were disconnected or reconnected.
         """
         while self.app.running:
-            for hub_camera in self.disconnected_hub_cameras:
-                try:
-                    oak = OakCamera(hub_camera.device_mxid, usb_speed=hub_camera.usb_speed, rotation=hub_camera.rotation)
-                    if oak:
-                        self.disconnected_hub_cameras.remove(hub_camera)
-                        hub_camera.oak_camera = oak
-                        hub_camera.recover()
-                        self.hub_cameras.append(hub_camera)
-                        log.info(f'Camera {hub_camera.device_mxid} was reconnected.')
-                        break
-                except Exception as e:
-                    log.debug(f'Could not reconnect camera {hub_camera.device_mxid} with error: {e}')
+            if not self.disconnected_hub_cameras:
+                time.sleep(5)
+                continue
 
-            time.sleep(5)
+            self.app.on_start()

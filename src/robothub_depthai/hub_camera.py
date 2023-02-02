@@ -72,33 +72,6 @@ class HubCamera:
 
         return None
 
-    def recover(self) -> None:
-        """
-        Recreates all components and re-attaches them to the camera.
-        """
-        old2new = {}  # Old component -> new component
-        new_history = []
-        for h in self._history:
-            f, kwargs, old_component = h
-
-            if old_component in old2new:
-                kwargs['input'] = old2new[old_component]
-
-            new_component = f(**kwargs)
-            new_component.apply_config_from_component(old_component)
-
-            old2new[old_component] = new_component
-
-            new_history.append((f, kwargs, new_component))
-
-            callback = self._streams.get(old_component, None)
-            stream_handle = self._stream_handles.get(old_component, None)
-            if callback and stream_handle:
-                self._add_stream_callback(stream_handle=stream_handle, component=new_component, callback=callback)
-
-        self._history = new_history
-        self.state = robothub.DeviceState.CONNECTED
-
     def create_camera(self,
                       source: str,
                       resolution: Union[
