@@ -29,6 +29,7 @@ class HubCameraManager:
         :param devices: A list of devices to be managed.
         """
         self.hub_cameras = []
+        self.running = False
         self.devices = devices
         self.app = app
         self._update_hub_cameras(devices)
@@ -66,6 +67,7 @@ class HubCameraManager:
         log.info('Cameras: starting...')
         for camera in self.hub_cameras:
             camera.start()
+            camera.running = True
 
         log.info('Reporting thread: starting...')
         self.reporting_thread.start()
@@ -80,6 +82,15 @@ class HubCameraManager:
         log.info('Device connection thread: started successfully')
 
         log.info('Cameras: started successfully')
+
+    def manual_start(self) -> None:
+        for camera in self.hub_cameras:
+            if camera.running:
+                continue
+
+            camera.start()
+            camera.running = True
+            log.info(f'Camera {camera.device_mxid}: started successfully')
 
     def stop(self) -> None:
         """
@@ -169,3 +180,4 @@ class HubCameraManager:
 
             self._update_hub_cameras(devices=self.devices)
             self.app.on_start()
+            self.manual_start()
