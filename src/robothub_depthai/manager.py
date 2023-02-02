@@ -143,7 +143,6 @@ class HubCameraManager:
                 if not camera.poll():
                     log.info(f'Camera {camera.device_mxid} was disconnected.')
                     self._remove_camera(camera)
-                    self.disconnected_hub_cameras.append(camera)
                     continue
 
             time.sleep(self.POLL_FREQUENCY)
