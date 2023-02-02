@@ -17,6 +17,13 @@ class StereoComponent:
         self.sigma = None
         self.lr_check_threshold = None
 
+    def apply_config_from_component(self, component: 'StereoComponent'):
+        """
+        Applies configuration from another CameraComponent instance. Used after reconnecting the device.
+        """
+        self.config_stereo(component.confidence, component.align, component.median, component.extended,
+                           component.subpixel, component.lr_check, component.sigma, component.lr_check_threshold)
+
     def config_stereo(self,
                       confidence: Optional[int] = None,
                       align: Union[None, str, dai.CameraBoardSocket] = None,

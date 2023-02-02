@@ -30,6 +30,17 @@ class NNComponent:
         self.iou_threshold = None
         self.conf_threshold_yolo = None
 
+    def apply_config_from_component(self, component: 'NNComponent'):
+        """
+        Applies configuration from another CameraComponent instance. Used after reconnecting the device.
+        """
+        self.config_tracker(component.tracker_type, component.track_labels, component.assignment_policy,
+                            component.max_obj, component.threshold)
+        self.config_nn(component.conf_threshold, component.resize_mode)
+        self.config_spatial(component.bb_scale_factor, component.lower_threshold,
+                            component.upper_threshold, component.calc_algo)
+        self.config_yolo(component.num_classes, component.coordinate_size, component.anchors,
+                         component.masks, component.iou_threshold, component.conf_threshold_yolo)
 
     def config_tracker(self,
                        tracker_type: Optional[dai.TrackerType] = None,
