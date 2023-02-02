@@ -76,11 +76,19 @@ class HubCamera:
         """
         Recreates all components and re-attaches them to the camera.
         """
+        old2new = {}  # Old component -> new component
         new_history = []
         for h in self._history:
             f, kwargs, old_component = h
+
+            if old_component in old2new:
+                kwargs['input'] = old2new[old_component]
+
             new_component = f(**kwargs)
             new_component.apply_config_from_component(old_component)
+
+            old2new[old_component] = new_component
+
             new_history.append((f, kwargs, new_component))
 
             callback = self._streams.get(old_component, None)
@@ -105,9 +113,10 @@ class HubCamera:
         :param resolution: Resolution of the camera.
         :param fps: FPS of the output stream.
         """
+        args = {'source': source, 'resolution': resolution, 'fps': fps}
+
         comp = self.oak_camera.create_camera(source=source, resolution=resolution, fps=fps, encode='h264')
         comp = robothub_depthai.CameraComponent(comp)
-        args = {'source': source, 'resolution': resolution, 'fps': fps}
         self._history.append((self.create_camera, args, comp))
         return comp
 
@@ -119,14 +128,15 @@ class HubCamera:
                   spatial: Union[None, bool, StereoComponent] = None,
                   decode_fn: Optional[Callable] = None
                   ) -> NNComponent:
+        args = {'model': model, 'input': input, 'nn_type': nn_type,
+                'tracker': tracker, 'spatial': spatial, 'decode_fn': decode_fn}
+
         if isinstance(input, CameraComponent):
             input = input.component
 
         comp = self.oak_camera.create_nn(model=model, input=input, nn_type=nn_type,
                                          tracker=tracker, spatial=spatial, decode_fn=decode_fn)
         comp = NNComponent(comp)
-        args = {'model': model, 'input': input, 'nn_type': nn_type,
-                'tracker': tracker, 'spatial': spatial, 'decode_fn': decode_fn}
         self._history.append((self.create_nn, args, comp))
         return comp
 
@@ -144,9 +154,10 @@ class HubCamera:
         :param left: Left camera component, optional.
         :param right: Right camera component, optional.
         """
+        args = {'resolution': resolution, 'fps': fps, 'left': left, 'right': right}
+
         comp = self.oak_camera.create_stereo(resolution=resolution, fps=fps, left=left, right=right, encode='h264')
         comp = robothub_depthai.StereoComponent(comp)
-        args = {'resolution': resolution, 'fps': fps, 'left': left, 'right': right}
         self._history.append((self.create_stereo, args, comp))
         return comp
 
