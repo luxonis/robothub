@@ -7,18 +7,18 @@ import depthai
 import depthai as dai
 import robothub
 from depthai_sdk import OakCamera
-from depthai_sdk.components import CameraComponent, NNComponent, StereoComponent
 
 import robothub_depthai
 from robothub_depthai.callbacks import get_default_color_callback, get_default_nn_callback, get_default_depth_callback
+from robothub_depthai.components import CameraComponent, NNComponent, StereoComponent
 from robothub_depthai.utils import try_or_default
 
 __all__ = ['HubCamera']
 
 ROBOTHUB_DEPTHAI_COMPONENT = Union[
-    robothub_depthai.CameraComponent,
-    robothub_depthai.NNComponent,
-    robothub_depthai.StereoComponent
+    CameraComponent,
+    NNComponent,
+    StereoComponent
 ]
 
 
@@ -96,7 +96,7 @@ class HubCamera:
                           None, str, dai.ColorCameraProperties.SensorResolution, dai.MonoCameraProperties.SensorResolution
                       ] = None,
                       fps: Optional[float] = None
-                      ) -> robothub_depthai.CameraComponent:
+                      ) -> CameraComponent:
         """
         Creates a camera component.
 
@@ -111,24 +111,24 @@ class HubCamera:
 
     def create_nn(self,
                   model: Union[str, Path],
-                  input: Union[CameraComponent, NNComponent],
+                  input: Union[depthai_sdk.components.CameraComponent, depthai_sdk.components.NNComponent],
                   nn_type: Optional[str] = None,
                   tracker: bool = False,
                   spatial: Union[None, bool, StereoComponent] = None,
                   decode_fn: Optional[Callable] = None
-                  ) -> robothub_depthai.NNComponent:
+                  ) -> NNComponent:
         comp = self.oak_camera.create_nn(model=model, input=input, nn_type=nn_type,
                                          tracker=tracker, spatial=spatial, decode_fn=decode_fn)
-        comp = robothub_depthai.NNComponent(comp)
+        comp = NNComponent(comp)
         self._history.append((self.create_nn, locals(), comp))
         return comp
 
     def create_stereo(self,
                       resolution: Union[None, str, dai.MonoCameraProperties.SensorResolution] = None,
                       fps: Optional[float] = None,
-                      left: Union[None, dai.Node.Output, CameraComponent] = None,
-                      right: Union[None, dai.Node.Output, CameraComponent] = None,
-                      ) -> robothub_depthai.StereoComponent:
+                      left: Union[None, dai.Node.Output, depthai_sdk.components.CameraComponent] = None,
+                      right: Union[None, dai.Node.Output, depthai_sdk.components.CameraComponent] = None,
+                      ) -> StereoComponent:
         """
         Creates a stereo component.
 
