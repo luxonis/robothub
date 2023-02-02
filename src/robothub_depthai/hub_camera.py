@@ -48,14 +48,15 @@ class HubCamera:
     def _init_oak_camera(self) -> OakCamera:
         # try to init for 5 seconds
         start_time = time.time()
-        log.info(f'Attempting to initialize camera {self.device_mxid}...')
+        log.info(f'Device {self.device_mxid}: attempting to initialize...')
         while True:
             try:
                 camera = OakCamera(self.device_mxid, usb_speed=self.usb_speed, rotation=self.rotation)
+                log.info(f'Device {self.device_mxid}: initialized successfully.')
                 return camera
             except Exception as e:
                 if time.time() - start_time > 5:
-                    log.info(f'Failed to initialize camera {self.device_mxid} with exception: {e}.')
+                    log.info(f'Device {self.device_mxid}: failed to initialize with exception: {e}.')
                     break
 
                 time.sleep(1)
@@ -122,7 +123,7 @@ class HubCamera:
         :param name: Name of the stream that will be used in Live View.
         :param callback: Callback function to be called when a new frame is received.
         """
-        log.debug(f'Creating stream {name} for component {component}')
+        log.debug(f'Stream: creating stream {name} for component {component}')
 
         if unique_key in robothub.STREAMS.streams.keys():
             stream_handle = robothub.STREAMS.streams[unique_key]
