@@ -8,7 +8,6 @@ import robothub
 
 import robothub_depthai
 from robothub_depthai.hub_camera import HubCamera
-from depthai_sdk import OakCamera
 
 __all__ = ['HubCameraManager']
 
@@ -30,18 +29,8 @@ class HubCameraManager:
         :param devices: A list of devices to be managed.
         """
         self.hub_cameras = []
-        self.disconnected_hub_cameras = []
-        for i, device in enumerate(devices):
-            mxid = device.oak['serialNumber']
-            if mxid in [camera.device_mxid for camera in self.hub_cameras]:
-                continue
-
-            hub_camera = HubCamera(app, device_mxid=device.oak['serialNumber'], id=i)
-            if hub_camera.oak_camera is not None:
-                self.hub_cameras.append(hub_camera)
-            else:
-                self.disconnected_hub_cameras.append(hub_camera)
-
+        self.devices = devices
+        self._update_hub_cameras(devices)
         self.app = app
 
         self.lock = robothub.threading.Lock()
@@ -51,6 +40,19 @@ class HubCameraManager:
 
     def __exit__(self):
         self.stop()
+
+    def _update_hub_cameras(self, devices) -> None:
+        """
+        Connect the cameras.
+        """
+        for i, device in enumerate(devices):
+            mxid = device.oak['serialNumber']
+            if mxid in [camera.device_mxid for camera in self.hub_cameras]:
+                continue
+
+            hub_camera = HubCamera(self.app, device_mxid=device.oak['serialNumber'], id=i)
+            if hub_camera.oak_camera is not None:
+                self.hub_cameras.append(hub_camera)
 
     def start(self) -> None:
         """
@@ -162,8 +164,9 @@ class HubCameraManager:
         Reconnects the cameras that were disconnected or reconnected.
         """
         while self.app.running:
-            if not self.disconnected_hub_cameras:
+            if len(self.hub_cameras) < len(self.devices):
                 time.sleep(5)
                 continue
 
+            self._update_hub_cameras(devices=self.devices)
             self.app.on_start()
