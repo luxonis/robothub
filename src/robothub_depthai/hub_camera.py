@@ -55,7 +55,7 @@ class HubCamera:
         self.oak_camera = self._init_oak_camera()
         self.available_sensors = self.oak_camera.sensors if self.oak_camera else []
 
-    def _init_oak_camera(self, timeout: int = 5) -> OakCamera:
+    def _init_oak_camera(self) -> OakCamera:
         # try to init for 5 seconds
         start_time = time.time()
         log.info(f'Attempting to initialize camera {self.device_mxid}...')
@@ -64,7 +64,7 @@ class HubCamera:
                 camera = OakCamera(self.device_mxid, usb_speed=self.usb_speed, rotation=self.rotation)
                 return camera
             except Exception as e:
-                if timeout and 0 < timeout < time.time() - start_time:
+                if time.time() - start_time > 5:
                     log.info(f'Failed to initialize camera {self.device_mxid} with exception: {e}.')
                     break
 
@@ -118,6 +118,9 @@ class HubCamera:
                   spatial: Union[None, bool, StereoComponent] = None,
                   decode_fn: Optional[Callable] = None
                   ) -> NNComponent:
+        if isinstance(input, CameraComponent):
+            input = input.component
+
         comp = self.oak_camera.create_nn(model=model, input=input, nn_type=nn_type,
                                          tracker=tracker, spatial=spatial, decode_fn=decode_fn)
         comp = NNComponent(comp)
