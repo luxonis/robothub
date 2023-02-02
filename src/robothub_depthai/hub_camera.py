@@ -5,6 +5,7 @@ from typing import Union, Optional, Callable, Dict, Any
 
 import depthai
 import depthai as dai
+import depthai_sdk
 import robothub
 from depthai_sdk import OakCamera
 
