@@ -1,16 +1,16 @@
-import contextlib
 import logging as log
-import os
 import time
 from pathlib import Path
-from typing import Union, Optional, Callable, List, Dict, Any
+from typing import Union, Optional, Callable, Dict, Any
 
 import depthai
 import depthai as dai
+import depthai_sdk
 import robothub
-from depthai_sdk import OakCamera, CameraComponent, StereoComponent, NNComponent
-from robothub import DeviceState
+from depthai_sdk import OakCamera
+from depthai_sdk.components import CameraComponent, StereoComponent, NNComponent
 
+import robothub_depthai
 from robothub_depthai.callbacks import get_default_color_callback, get_default_nn_callback, get_default_depth_callback
 from robothub_depthai.utils import try_or_default
 
@@ -23,7 +23,7 @@ class HubCamera:
     """
 
     def __init__(self,
-                 app: robothub.RobotHubApplication,
+                 app: 'robothub_depthai.RobotHubApplication',
                  device_mxid: str,
                  id: int,
                  usb_speed: Union[None, str, dai.UsbSpeed] = None,
@@ -35,14 +35,33 @@ class HubCamera:
         :param rotation: Rotation of the camera, defaults to 0.
         """
         self.app = app
-        self.state = DeviceState.UNKNOWN
+        self.state = robothub.DeviceState.UNKNOWN
+        self.running = False
         self.device_mxid = device_mxid
         self.usb_speed = usb_speed
         self.rotation = rotation
         self.id = id
 
-        self.oak_camera = OakCamera(self.device_mxid, usb_speed=self.usb_speed, rotation=self.rotation)
-        self.available_sensors = self._get_sensor_names()
+        self.oak_camera = self._init_oak_camera()
+        self.available_sensors = self.oak_camera.sensors if self.oak_camera else []
+
+    def _init_oak_camera(self) -> OakCamera:
+        # try to init for 5 seconds
+        start_time = time.time()
+        log.info(f'Device {self.device_mxid}: attempting to initialize...')
+        while True:
+            try:
+                camera = OakCamera(self.device_mxid, usb_speed=self.usb_speed, rotation=self.rotation)
+                log.info(f'Device {self.device_mxid}: initialized successfully.')
+                return camera
+            except Exception as e:
+                if time.time() - start_time > 5:
+                    log.info(f'Device {self.device_mxid}: failed to initialize with exception: {e}.')
+                    break
+
+                time.sleep(1)
+
+        return None
 
     def create_camera(self,
                       source: str,
@@ -76,8 +95,8 @@ class HubCamera:
     def create_stereo(self,
                       resolution: Union[None, str, dai.MonoCameraProperties.SensorResolution] = None,
                       fps: Optional[float] = None,
-                      left: Union[None, dai.Node.Output, CameraComponent] = None,
-                      right: Union[None, dai.Node.Output, CameraComponent] = None,
+                      left: Union[None, dai.Node.Output, depthai_sdk.components.CameraComponent] = None,
+                      right: Union[None, dai.Node.Output, depthai_sdk.components.CameraComponent] = None,
                       ) -> StereoComponent:
         """
         Creates a stereo component.
@@ -94,7 +113,8 @@ class HubCamera:
                       component: Union[CameraComponent, NNComponent, StereoComponent],
                       unique_key: str,
                       name: str,
-                      callback: Callable = None) -> None:
+                      callback: Callable = None
+                      ) -> None:
         """
         Creates a stream for the given component.
 
@@ -103,39 +123,53 @@ class HubCamera:
         :param name: Name of the stream that will be used in Live View.
         :param callback: Callback function to be called when a new frame is received.
         """
-        log.debug(f'Creating stream {name} for component {component}')
+        log.debug(f'Stream: creating stream {name} for component {component}')
 
-        stream_handle = robothub.STREAMS.create_video(camera_serial=self.device_mxid,
-                                                      unique_key=unique_key,
-                                                      description=name)
+        if unique_key in robothub.STREAMS.streams.keys():
+            stream_handle = robothub.STREAMS.streams[unique_key]
+        else:
+            stream_handle = robothub.STREAMS.create_video(camera_serial=self.device_mxid,
+                                                          unique_key=unique_key,
+                                                          description=name)
 
+        self._add_stream_callback(stream_handle=stream_handle, component=component, callback=callback)
+
+    def _add_stream_callback(self,
+                             stream_handle: robothub.StreamHandle,
+                             component: Union[CameraComponent, NNComponent, StereoComponent],
+                             callback: Callable
+                             ) -> None:
+        fn = None
         if isinstance(component, CameraComponent):
-            self.oak_camera.callback(component.out.encoded,
-                                     callback=callback or get_default_color_callback(stream_handle))
+            fn = callback or get_default_color_callback(stream_handle)
         elif isinstance(component, NNComponent):
-            self.oak_camera.callback(component.out.encoded,
-                                     callback=callback or get_default_nn_callback(stream_handle))
+            fn = callback or get_default_nn_callback(stream_handle)
         elif isinstance(component, StereoComponent):
-            self.oak_camera.callback(component.out.encoded,
-                                     callback=callback or get_default_depth_callback(stream_handle))
+            fn = callback or get_default_depth_callback(stream_handle)
 
-    def callback(self, output: Any, callback: Callable):
-        self.oak_camera.callback(output, callback=callback)
+        if fn:
+            self.oak_camera.callback(component.out.encoded, callback=fn)
 
-    def poll(self) -> None:
+    def callback(self, output: Any, callback: Callable, enable_visualizer: bool = False) -> None:
+        self.oak_camera.callback(output, callback=callback, enable_visualizer=enable_visualizer)
+
+    def poll(self) -> Optional[int]:
         """
         Polls the device for new data.
         """
-        self.oak_camera.poll()
+        return self.oak_camera.poll()
 
     def start(self) -> None:
         """
         Starts the device and sets the state to connected.
         """
+        if self.state == robothub.DeviceState.CONNECTED:
+            return
+
         while not self.app.stop_event.is_set():
             try:
                 self.oak_camera.start()
-                self.state = DeviceState.CONNECTED
+                self.state = robothub.DeviceState.CONNECTED
                 return
             except Exception as e:
                 print(f'Could not start camera with exception {e}')
@@ -204,53 +238,6 @@ class HubCamera:
             info['platform'] = device_info.platform.name
 
         return info
-
-    def _connect(self, reattempt_time: int = 1) -> None:
-        """
-        Attempts to establish a connection with the device.
-        Keeps attempting to connect forever, updates self.state accordingly.
-        """
-        log.debug(f'Connecting to device {self.device_mxid}...')
-
-        self.state = DeviceState.CONNECTING
-        self.oak_camera = OakCamera(self.device_mxid, usb_speed=self.usb_speed, rotation=self.rotation)
-        while not self.app.stop_event.is_set():
-            try:
-                self.oak_camera._init_device()
-                self.state = DeviceState.CONNECTED
-                log.debug(f'Successfully connected to device {self.device_mxid}')
-                return
-            except BaseException as err:
-                log.error(f'Cannot connect to device {self.device_mxid}: {err}'
-                          f' - Retrying in {reattempt_time} seconds')
-
-            self.app.stop_event.wait(timeout=reattempt_time)
-
-    def _disconnect(self) -> None:
-        """
-        Intended to be used for a temporary disconnect to allow changing DAI pipeline etc.
-        """
-        log.debug(f'Disconnecting from device {self.device_mxid}...')
-        self.state = DeviceState.DISCONNECTED
-        with open(os.devnull, 'w') as devnull:
-            with contextlib.redirect_stdout(devnull):
-                self.oak_camera.__exit__(Exception, 'Disconnecting device', 'placeholder')
-
-        self.oak_camera = OakCamera(self.device_mxid, usb_speed=self.usb_speed, rotation=self.rotation)
-
-    def _get_sensor_names(self) -> List[str]:
-        """
-        Returns a list of available sensors on the device.
-        :return: List of available sensors.
-        """
-        self._connect()
-        if self.state == DeviceState.CONNECTED:
-            # If device connected, get sensor names
-            sensors = self.oak_camera._oak.device.getCameraSensorNames()
-            self._disconnect()
-            return sensors
-        else:
-            return []
 
     @property
     def device(self) -> dai.Device:

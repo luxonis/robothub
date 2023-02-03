@@ -3,7 +3,7 @@ import robothub_depthai
 
 class ExampleApplication(robothub_depthai.RobotHubApplication):
     def on_start(self):
-        for camera in self.hub_cameras:
+        for camera in self.connected_cameras:
             color = camera.create_camera('color', resolution='1080p', fps=30)
             nn = camera.create_nn('person-detection-retail-0013', input=color)
 

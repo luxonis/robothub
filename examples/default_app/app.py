@@ -3,7 +3,7 @@ import robothub_depthai
 
 class DefaultApplication(robothub_depthai.RobotHubApplication):
     def on_start(self):
-        for camera in self.hub_cameras:
+        for camera in self.connected_cameras:
             color_resolution = robothub.CONFIGURATION.get('color_resolution', '1080p')
             mono_resolution = robothub.CONFIGURATION.get('mono_resolution', '400p')
 

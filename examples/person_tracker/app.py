@@ -58,7 +58,7 @@ def callback(packet, visualizer):
 
 class ExampleApplication(robothub_depthai.RobotHubApplication):
     def on_start(self):
-        for oak in self.hub_cameras:
+        for oak in self.connected_cameras:
             color = oak.create_camera('color', fps=10)
             nn = oak.create_nn('person-detection-retail-0013', color, tracker=True)
 
