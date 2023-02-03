@@ -20,7 +20,7 @@ class ExampleApplication(robothub_depthai.RobotHubApplication):
         super().__init__()
         self.detector = cv2.QRCodeDetector()
 
-    def callback(self, packet, visualizer):
+    def callback(self, packet):
         for i, detection in enumerate(packet.img_detections.detections):
             expand_detection(detection)
             bbox = detection.xmin, detection.ymin, detection.xmax, detection.ymax
@@ -33,7 +33,7 @@ class ExampleApplication(robothub_depthai.RobotHubApplication):
                 print(f'Detected QR: {data}')
 
     def on_start(self):
-        for camera in self.hub_cameras:
+        for camera in self.connected_cameras:
             color = camera.create_camera('color', resolution='1080p', fps=30)
 
             nn_path = blobconverter.from_zoo(name='qr_code_detection_384x384', zoo_type='depthai', shaves=6)
