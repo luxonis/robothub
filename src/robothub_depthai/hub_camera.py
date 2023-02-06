@@ -123,7 +123,7 @@ class HubCamera:
         :param name: Name of the stream that will be used in Live View.
         :param callback: Callback function to be called when a new frame is received.
         """
-        log.debug(f'Stream: creating stream {name} for component {component}')
+        log.debug(f'Stream: creating stream {name} for component {component}.')
 
         if unique_key in robothub.STREAMS.streams.keys():
             stream_handle = robothub.STREAMS.streams[unique_key]
@@ -140,15 +140,17 @@ class HubCamera:
                              callback: Callable
                              ) -> None:
         fn = None
+        enable_visualizer = False
         if isinstance(component, CameraComponent):
             fn = callback or get_default_color_callback(stream_handle)
         elif isinstance(component, NNComponent):
             fn = callback or get_default_nn_callback(stream_handle)
+            enable_visualizer = True
         elif isinstance(component, StereoComponent):
             fn = callback or get_default_depth_callback(stream_handle)
 
         if fn:
-            self.oak_camera.callback(component.out.encoded, callback=fn)
+            self.oak_camera.callback(component.out.encoded, callback=fn, enable_visualizer=enable_visualizer)
 
     def callback(self, output: Any, callback: Callable, enable_visualizer: bool = False) -> None:
         self.oak_camera.callback(output, callback=callback, enable_visualizer=enable_visualizer)
@@ -172,7 +174,7 @@ class HubCamera:
                 self.state = robothub.DeviceState.CONNECTED
                 return
             except Exception as e:
-                print(f'Could not start camera with exception {e}')
+                print(f'Camera: could not start with exception {e}.')
 
             time.sleep(1)
 
