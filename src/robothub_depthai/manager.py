@@ -51,6 +51,9 @@ class HubCameraManager:
             if mxid in [camera.device_mxid for camera in self.running_cameras]:
                 continue
 
+            if mxid in [camera.device_mxid for camera in self.connected_cameras]:
+                continue
+
             hub_camera = HubCamera(self.app, device_mxid=device.oak['serialNumber'], id=i)
             if hub_camera.oak_camera is not None:
                 self.connected_cameras.append(hub_camera)
@@ -183,7 +186,7 @@ class HubCameraManager:
         Reconnects the cameras that were disconnected or reconnected.
         """
         while self.app.running:
-            if len(self.running_cameras) == len(self.devices):
+            if len(self.running_cameras) + len(self.connected_cameras) == len(self.devices):
                 time.sleep(5)
                 continue
 
