@@ -1,7 +1,7 @@
 import robothub_depthai
 
 
-class ExampleApplication(robothub_depthai.RobotHubApplication):
+class Application(robothub_depthai.RobotHubApplication):
     def on_start(self):
         for camera in self.connected_cameras:
             color = camera.create_camera('color', resolution='1080p', fps=30)
@@ -9,6 +9,12 @@ class ExampleApplication(robothub_depthai.RobotHubApplication):
             stereo = camera.create_stereo('800p', fps=30)
 
             # It will automatically create a stream and assign matching callback based on Component type
-            camera.create_stream(component=color, unique_key=f'color_stream_{camera.id}', name='Color stream')
-            camera.create_stream(component=nn, unique_key=f'nn_stream_{camera.id}', name='Detections stream')
-            camera.create_stream(component=stereo, unique_key=f'depth_{camera.id}', name='Depth stream')
+            camera.create_stream(component=color,
+                                 unique_key=f'color_stream_{camera.id}',
+                                 name=f'Color stream {camera.id}')
+            camera.create_stream(component=nn,
+                                 unique_key=f'nn_stream_{camera.id}',
+                                 name=f'Detections stream {camera.id}')
+            camera.create_stream(component=stereo,
+                                 unique_key=f'depth_{camera.id}',
+                                 name=f'Depth stream {camera.id}')

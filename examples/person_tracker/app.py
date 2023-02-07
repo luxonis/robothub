@@ -56,7 +56,7 @@ def callback(packet, visualizer):
             )
 
 
-class ExampleApplication(robothub_depthai.RobotHubApplication):
+class Application(robothub_depthai.RobotHubApplication):
     def on_start(self):
         for oak in self.connected_cameras:
             color = oak.create_camera('color', fps=10)
@@ -67,5 +67,5 @@ class ExampleApplication(robothub_depthai.RobotHubApplication):
                               track_labels=[1],
                               assignment_policy=TrackerIdAssignmentPolicy.SMALLEST_ID)
 
-            oak.create_stream(component=nn, unique_key=f'nn_stream_{oak.id}', name='Detections stream')
+            oak.create_stream(component=nn, unique_key=f'nn_stream_{oak.id}', name=f'Detections stream {oak.id}')
             oak.callback(nn.out.tracker, callback=callback)

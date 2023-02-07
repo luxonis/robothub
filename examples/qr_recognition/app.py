@@ -15,7 +15,7 @@ def expand_detection(det, percent=2):
     det.ymax = np.clip(det.ymax + percent, 0, 1)
 
 
-class ExampleApplication(robothub_depthai.RobotHubApplication):
+class Application(robothub_depthai.RobotHubApplication):
     def __init__(self):
         super().__init__()
         self.detector = cv2.QRCodeDetector()
@@ -40,5 +40,7 @@ class ExampleApplication(robothub_depthai.RobotHubApplication):
             nn = camera.create_nn(nn_path, color, nn_type='mobilenet')
 
             # It will automatically create a stream and assign matching callback based on Component type
-            camera.create_stream(component=nn, unique_key=f'nn_stream_{camera.id}', name='Detections stream')
+            camera.create_stream(component=nn,
+                                 unique_key=f'nn_stream_{camera.id}',
+                                 name=f'Detections stream {camera.id}')
             camera.callback(nn, callback=self.callback)

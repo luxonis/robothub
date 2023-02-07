@@ -1,7 +1,7 @@
 import robothub_depthai
 
 
-class ExampleApplication(robothub_depthai.RobotHubApplication):
+class Application(robothub_depthai.RobotHubApplication):
     def on_start(self):
         for camera in self.connected_cameras:
             color = camera.create_camera('color', resolution='1080p', fps=30)
