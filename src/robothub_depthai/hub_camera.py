@@ -48,18 +48,16 @@ class HubCamera:
     def _init_oak_camera(self) -> OakCamera:
         # try to init for 5 seconds
         start_time = time.time()
-        log.info(f'Device {self.device_mxid}: attempting to initialize...')
-        while True:
+        while not self.app.stop_event.is_set():
             try:
                 camera = OakCamera(self.device_mxid, usb_speed=self.usb_speed, rotation=self.rotation)
                 log.info(f'Device {self.device_mxid}: initialized successfully.')
                 return camera
             except Exception as e:
                 if time.time() - start_time > 5:
-                    log.info(f'Device {self.device_mxid}: failed to initialize with exception: {e}.')
                     break
 
-                time.sleep(1)
+                self.app.stop_event.wait(1)
 
         return None
 
@@ -176,7 +174,7 @@ class HubCamera:
             except Exception as e:
                 print(f'Camera: could not start with exception {e}.')
 
-            time.sleep(1)
+            self.app.stop_event.wait(1)
 
     def stop(self) -> None:
         """

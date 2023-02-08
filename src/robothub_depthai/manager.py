@@ -28,8 +28,8 @@ class HubCameraManager:
         :param app: The RobotHubApplication instance.
         :param devices: A list of devices to be managed.
         """
-        self.connected_cameras = []
-        self.running_cameras = []
+        self.unbooted_cameras = []
+        self.booted_cameras = []
         self.devices = devices
         self.app = app
         self._update_hub_cameras(devices)
@@ -48,15 +48,15 @@ class HubCameraManager:
         """
         for i, device in enumerate(devices):
             mxid = device.oak['serialNumber']
-            if mxid in [camera.device_mxid for camera in self.running_cameras]:
+            if mxid in [camera.device_mxid for camera in self.booted_cameras]:
                 continue
 
-            if mxid in [camera.device_mxid for camera in self.connected_cameras]:
+            if mxid in [camera.device_mxid for camera in self.unbooted_cameras]:
                 continue
 
             hub_camera = HubCamera(self.app, device_mxid=device.oak['serialNumber'], id=i)
             if hub_camera.oak_camera is not None:
-                self.connected_cameras.append(hub_camera)
+                self.unbooted_cameras.append(hub_camera)
 
     def start(self) -> None:
         """
@@ -67,18 +67,18 @@ class HubCameraManager:
         log.info('Device connection thread: started successfully.')
 
         # Endless loop to prevent app from exiting if no devices are found
-        while True:
-            if self.connected_cameras:
+        while not self.app.stop_event.is_set():
+            if self.unbooted_cameras:
                 break
 
-            time.sleep(5)
+            self.app.stop_event.wait(5)
 
         log.info('Devices: starting...')
-        connected_cameras = self.connected_cameras.copy()
+        connected_cameras = self.unbooted_cameras.copy()
         for camera in connected_cameras:
             camera.start()
-            self.running_cameras.append(camera)
-            self.connected_cameras.remove(camera)
+            self.booted_cameras.append(camera)
+            self.unbooted_cameras.remove(camera)
 
         log.info('Reporting thread: starting...')
         self.reporting_thread.start()
@@ -91,11 +91,11 @@ class HubCameraManager:
         log.info('Devices: started successfully.')
 
     def manual_start(self) -> None:
-        connected_cameras = self.connected_cameras.copy()
+        connected_cameras = self.unbooted_cameras.copy()
         for camera in connected_cameras:
             camera.start()
-            self.running_cameras.append(camera)
-            self.connected_cameras.remove(camera)
+            self.booted_cameras.append(camera)
+            self.unbooted_cameras.remove(camera)
             log.info(f'Device {camera.device_mxid}: started successfully')
 
     def stop(self) -> None:
@@ -128,7 +128,7 @@ class HubCameraManager:
         except BaseException as e:
             raise Exception(f'Destroy all streams excepted with: {e}.')
 
-        for camera in self.running_cameras:
+        for camera in self.booted_cameras:
             try:
                 if camera.state != robothub.DeviceState.DISCONNECTED:
                     with open(os.devnull, 'w') as devnull:
@@ -145,7 +145,7 @@ class HubCameraManager:
         Reporting frequency is defined by REPORT_FREQUENCY.
         """
         while self.app.running:
-            for camera in self.running_cameras:
+            for camera in self.booted_cameras:
                 try:
                     device_info = camera.info_report()
                     device_stats = camera.stats_report()
@@ -155,20 +155,20 @@ class HubCameraManager:
                 except Exception as e:
                     log.debug(f'Device {camera.device_mxid}: could not report info/stats with error: {e}.')
 
-            time.sleep(self.REPORT_FREQUENCY)
+            self.app.stop_event.wait(self.REPORT_FREQUENCY)
 
     def _poll(self) -> None:
         """
         Polls the cameras for new detections. Polling frequency is defined by POLL_FREQUENCY.
         """
         while self.app.running:
-            for camera in self.running_cameras:
+            for camera in self.booted_cameras:
                 if not camera.poll():
                     log.info(f'Device {camera.device_mxid}: disconnected.')
                     self._remove_camera(camera)
                     continue
 
-            time.sleep(self.POLL_FREQUENCY)
+            self.app.stop_event.wait(self.POLL_FREQUENCY)
 
     def _remove_camera(self, camera: HubCamera) -> None:
         """
@@ -177,7 +177,7 @@ class HubCameraManager:
         """
         with self.lock:
             try:
-                self.running_cameras.remove(camera)
+                self.booted_cameras.remove(camera)
             except ValueError:
                 pass
 
@@ -186,8 +186,8 @@ class HubCameraManager:
         Reconnects the cameras that were disconnected or reconnected.
         """
         while self.app.running:
-            if len(self.running_cameras) + len(self.connected_cameras) == len(self.devices):
-                time.sleep(5)
+            if len(self.booted_cameras) + len(self.unbooted_cameras) == len(self.devices):
+                self.app.stop_event.wait(5)
                 continue
 
             self._update_hub_cameras(devices=self.devices)
