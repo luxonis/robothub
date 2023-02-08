@@ -6,7 +6,7 @@ long_description = io.open('README.md', encoding='utf-8').read()
 
 setup(
     name='robothub_depthai',
-    version='0.1.2',
+    version='0.2.0',
     description='RobotHub-DepthAI integration library',
     long_description=long_description,
     long_description_content_type='text/markdown',
