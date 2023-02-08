@@ -105,6 +105,7 @@ class HubCamera:
         :param right: Right camera component, optional.
         """
         comp = self.oak_camera.create_stereo(resolution=resolution, fps=fps, left=left, right=right, encode='h264')
+        comp.set_colormap(dai.Colormap.STEREO_TURBO)
         return comp
 
     def create_stream(self,
