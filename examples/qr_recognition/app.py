@@ -33,7 +33,7 @@ class Application(robothub_depthai.RobotHubApplication):
                 print(f'Detected QR: {data}')
 
     def on_start(self):
-        for camera in self.connected_cameras:
+        for camera in self.unbooted_cameras:
             color = camera.create_camera('color', resolution='1080p', fps=30)
 
             nn_path = blobconverter.from_zoo(name='qr_code_detection_384x384', zoo_type='depthai', shaves=6)
