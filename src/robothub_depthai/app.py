@@ -12,7 +12,7 @@ class RobotHubApplication(robothub.RobotHubApplication):
 
     def __init__(self):
         super().__init__()
-        self.camera_manager = HubCameraManager(self, robothub.DEVICES)
+        self.camera_manager = HubCameraManager()
 
     def start_execution(self) -> None:
         self.camera_manager.start()

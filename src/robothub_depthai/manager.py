@@ -1,12 +1,8 @@
+import contextlib
 import logging as log
 import os
-import contextlib
-from typing import List
 
 import robothub
-
-import robothub_depthai
-from robothub_depthai.hub_camera import HubCamera
 
 __all__ = ['HubCameraManager']
 
@@ -22,16 +18,12 @@ class HubCameraManager:
     REPORT_FREQUENCY = 10  # seconds
     POLL_FREQUENCY = 0.0005
 
-    def __init__(self, app: 'robothub_depthai.RobotHubApplication', devices: List[dict]):
-        """
-        :param app: The RobotHubApplication instance.
-        :param devices: A list of devices to be managed.
-        """
-        self.unbooted_cameras = []
-        self.booted_cameras = []
-        self.devices = devices
-        self.app = app
-        self._update_hub_cameras(devices)
+    def __init__(self):
+        self._devices = []
+        self._connected_devices = []
+
+        self.running = False
+        self.stop_event = robothub.threading.Event()
 
         self.lock = robothub.threading.Lock()
         self.reporting_thread = robothub.threading.Thread(target=self._report, name='ReportingThread', daemon=False)
@@ -41,43 +33,27 @@ class HubCameraManager:
     def __exit__(self):
         self.stop()
 
-    def _update_hub_cameras(self, devices) -> None:
-        """
-        Connect the cameras.
-        """
-        for i, device in enumerate(devices):
-            mxid = device.oak['serialNumber']
-            if mxid in [camera.device_mxid for camera in self.booted_cameras]:
-                continue
-
-            if mxid in [camera.device_mxid for camera in self.unbooted_cameras]:
-                continue
-
-            hub_camera = HubCamera(self.app, device_mxid=device.oak['serialNumber'], id=i)
-            if hub_camera.oak_camera is not None:
-                self.unbooted_cameras.append(hub_camera)
-
     def start(self) -> None:
         """
         Start the cameras, start reporting and polling threads.
         """
+        self.running = True
+
         log.info('Device connection thread: starting...')
         self.connection_thread.start()
         log.info('Device connection thread: started successfully.')
 
         # Endless loop to prevent app from exiting if no devices are found
-        while not self.app.stop_event.is_set():
-            if self.unbooted_cameras:
+        while self.running:
+            if self._devices:
                 break
 
-            self.app.stop_event.wait(5)
+            self.stop_event.wait(5)
 
         log.info('Devices: starting...')
-        connected_cameras = self.unbooted_cameras.copy()
-        for camera in connected_cameras:
-            camera.start()
-            self.booted_cameras.append(camera)
-            self.unbooted_cameras.remove(camera)
+        for device in self._devices:
+            device.start()
+            self._connected_devices.append(device)
 
         log.info('Reporting thread: starting...')
         self.reporting_thread.start()
@@ -89,38 +65,16 @@ class HubCameraManager:
 
         log.info('Devices: started successfully.')
 
-    def manual_start(self) -> None:
-        connected_cameras = self.unbooted_cameras.copy()
-        for camera in connected_cameras:
-            camera.start()
-            self.booted_cameras.append(camera)
-            self.unbooted_cameras.remove(camera)
-            log.info(f'Device {camera.device_mxid}: started successfully')
-
     def stop(self) -> None:
         """
         Stop the cameras, stop reporting and polling threads.
         """
         log.debug('Threads: gracefully stopping...')
-        self.app.stop_event.set()
+        self.stop_event.set()
 
-        try:
-            if self.connection_thread.is_alive():
-                self.connection_thread.join()
-        except BaseException as e:
-            log.error(f'Connection thread: join excepted with: {e}.')
-
-        try:
-            if self.reporting_thread.is_alive():
-                self.reporting_thread.join()
-        except BaseException as e:
-            log.error(f'Reporting thread: join excepted with: {e}.')
-            
-        try:
-            if self.polling_thread.is_alive():
-                self.polling_thread.join()
-        except BaseException as e:
-            log.error(f'Polling thread: join excepted with: {e}.')
+        self.__graceful_thread_join(self.connection_thread)
+        self.__graceful_thread_join(self.reporting_thread)
+        self.__graceful_thread_join(self.polling_thread)
 
         try:
             robothub.STREAMS.destroy_all_streams()
@@ -132,18 +86,30 @@ class HubCameraManager:
                 if camera.state != robothub.DeviceState.DISCONNECTED:
                     with open(os.devnull, 'w') as devnull:
                         with contextlib.redirect_stdout(devnull):
-                            camera.oak_camera.__exit__(Exception, 'Device disconnected - app shutting down', None)
+                            camera.hub_camera.__exit__(Exception, 'Device disconnected - app shutting down', None)
             except BaseException as e:
                 raise Exception(f'Device {camera.device_mxid}: could not exit with exception: {e}.')
 
         log.info('App: stopped successfully.')
+
+    def add_device(self, device: 'Device') -> None:
+        """
+        Add a camera to the list of cameras.
+        """
+        self._devices.append(device)
+
+    def remove_device(self, device: 'Device') -> None:
+        """
+        Remove a camera from the list of cameras.
+        """
+        self._devices.remove(device)
 
     def _report(self) -> None:
         """
         Reports the state of the cameras to the agent. Active when app is running, inactive when app is stopped.
         Reporting frequency is defined by REPORT_FREQUENCY.
         """
-        while self.app.running:
+        while self.running:
             for camera in self.booted_cameras:
                 try:
                     device_info = camera.info_report()
@@ -154,41 +120,40 @@ class HubCameraManager:
                 except Exception as e:
                     log.debug(f'Device {camera.device_mxid}: could not report info/stats with error: {e}.')
 
-            self.app.stop_event.wait(self.REPORT_FREQUENCY)
+            self.stop_event.wait(self.REPORT_FREQUENCY)
 
     def _poll(self) -> None:
         """
         Polls the cameras for new detections. Polling frequency is defined by POLL_FREQUENCY.
         """
-        while self.app.running:
+        while self.running:
             for camera in self.booted_cameras:
                 if not camera.poll():
                     log.info(f'Device {camera.device_mxid}: disconnected.')
-                    self._remove_camera(camera)
+                    camera.hub_camera = None
                     continue
 
-            self.app.stop_event.wait(self.POLL_FREQUENCY)
-
-    def _remove_camera(self, camera: HubCamera) -> None:
-        """
-        Removes a camera from the list of cameras.
-        :param camera: The camera to remove.
-        """
-        with self.lock:
-            try:
-                self.booted_cameras.remove(camera)
-            except ValueError:
-                pass
+            self.stop_event.wait(self.POLL_FREQUENCY)
 
     def _connect(self) -> None:
         """
         Reconnects the cameras that were disconnected or reconnected.
         """
-        while self.app.running:
-            if len(self.booted_cameras) + len(self.unbooted_cameras) == len(self.devices):
-                self.app.stop_event.wait(5)
+        while self.running:
+            if len(self._connected_devices) == len(self._devices):
+                self.stop_event.wait(5)
                 continue
 
-            self._update_hub_cameras(devices=self.devices)
-            self.app.on_start()
-            self.manual_start()
+            # self._update_hub_cameras(devices=self.devices)
+            # TODO
+
+    @staticmethod
+    def __graceful_thread_join(thread) -> None:
+        """
+        Gracefully stop a thread.
+        """
+        try:
+            if thread.is_alive():
+                thread.join()
+        except BaseException as e:
+            log.error(f'{thread.getName()}: join excepted with: {e}.')
