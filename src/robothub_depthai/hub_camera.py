@@ -10,7 +10,6 @@ import robothub
 from depthai_sdk import OakCamera
 from depthai_sdk.components import CameraComponent, StereoComponent, NNComponent
 
-import robothub_depthai
 from robothub_depthai.callbacks import get_default_color_callback, get_default_nn_callback, get_default_depth_callback
 from robothub_depthai.utils import try_or_default
 
@@ -23,32 +22,29 @@ class HubCamera:
     """
 
     def __init__(self,
-                 app: 'robothub_depthai.RobotHubApplication',
                  device_mxid: str,
-                 id: int,
                  usb_speed: Union[None, str, dai.UsbSpeed] = None,
                  rotation: int = 0):
         """
-        :param app: RobotHubApplication instance.
         :param device_mxid: MXID of the device.
         :param usb_speed: USB speed to use.
         :param rotation: Rotation of the camera, defaults to 0.
         """
-        self.app = app
         self.state = robothub.DeviceState.UNKNOWN
         self.running = False
         self.device_mxid = device_mxid
         self.usb_speed = usb_speed
         self.rotation = rotation
-        self.id = id
 
-        self.oak_camera = self._init_oak_camera()
-        self.available_sensors = self.oak_camera.sensors if self.oak_camera else []
+        self.running = False
 
-    def _init_oak_camera(self) -> OakCamera:
+        self.oak_camera = None
+        self.available_sensors = []
+
+    def _init_oak_camera(self) -> Optional[OakCamera]:
         # try to init for 5 seconds
         start_time = time.time()
-        while not self.app.stop_event.is_set():
+        while self.running:
             try:
                 camera = OakCamera(self.device_mxid, usb_speed=self.usb_speed, rotation=self.rotation)
                 log.info(f'Device {self.device_mxid}: initialized successfully.')
@@ -57,7 +53,7 @@ class HubCamera:
                 if time.time() - start_time > 5:
                     break
 
-                self.app.stop_event.wait(1)
+                time.sleep(1)
 
         return None
 
@@ -124,6 +120,9 @@ class HubCamera:
         """
         log.debug(f'Stream: creating stream {name} for component {component}.')
 
+        if unique_key is None:
+            unique_key = f'{self.device_mxid}_{component.out.encoded.name}'
+
         if unique_key in robothub.STREAMS.streams.keys():
             stream_handle = robothub.STREAMS.streams[unique_key]
         else:
@@ -167,20 +166,25 @@ class HubCamera:
         if self.state == robothub.DeviceState.CONNECTED:
             return
 
-        while not self.app.stop_event.is_set():
+        self.running = True
+
+        while self.running:
             try:
+                self.oak_camera = self._init_oak_camera()
+                self.available_sensors = self.oak_camera.sensors if self.oak_camera else []
                 self.oak_camera.start()
                 self.state = robothub.DeviceState.CONNECTED
                 return
             except Exception as e:
                 print(f'Camera: could not start with exception {e}.')
 
-            self.app.stop_event.wait(1)
+            time.sleep(1)
 
     def stop(self) -> None:
         """
         Stops the device and sets the state to disconnected.
         """
+        self.running = False
         self.oak_camera.device.close()
 
     def stats_report(self) -> Dict[str, Any]:
