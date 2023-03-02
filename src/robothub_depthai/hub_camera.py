@@ -35,7 +35,7 @@ class HubCamera:
         self.usb_speed = usb_speed
         self.rotation = rotation
 
-        self.running = False
+        self.stopped = False
 
         self.oak_camera = self._init_oak_camera()
         self.available_sensors = self.oak_camera.sensors if self.oak_camera else []
@@ -43,7 +43,7 @@ class HubCamera:
     def _init_oak_camera(self) -> Optional[OakCamera]:
         # try to init for 5 seconds
         start_time = time.time()
-        while self.running:
+        while not self.stopped:
             try:
                 camera = OakCamera(self.device_mxid, usb_speed=self.usb_speed, rotation=self.rotation)
                 log.info(f'Device {self.device_mxid}: initialized successfully.')
@@ -120,7 +120,7 @@ class HubCamera:
         log.debug(f'Stream: creating stream {name} for component {component}.')
 
         if unique_key is None:
-            unique_key = f'{self.device_mxid}_{component.out.encoded.name}'
+            unique_key = f'{self.device_mxid}_{component.__class__.__name__.lower()}_{component.out.encoded.__name__}'
 
         if unique_key in robothub.STREAMS.streams.keys():
             stream_handle = robothub.STREAMS.streams[unique_key]
@@ -165,9 +165,7 @@ class HubCamera:
         if self.state == robothub.DeviceState.CONNECTED:
             return
 
-        self.running = True
-
-        while self.running:
+        while not self.stopped:
             try:
                 self.oak_camera.start()
                 self.state = robothub.DeviceState.CONNECTED
@@ -181,7 +179,7 @@ class HubCamera:
         """
         Stops the device and sets the state to disconnected.
         """
-        self.running = False
+        self.stopped = True
         self.oak_camera.device.close()
         self.oak_camera = None
 
