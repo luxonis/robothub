@@ -1,6 +1,6 @@
 from abc import abstractmethod, ABC
 
-from robothub_depthai import HubCamera, Camera, NeuralNetwork
+from robothub_depthai import HubCamera
 
 
 class Command(ABC):
@@ -73,9 +73,9 @@ class StreamCommand(Command):
         self.hub_camera = self._command.hub_camera
         component = self._command.get_component()
 
-        if isinstance(component, Camera):
+        if isinstance(component, 'Camera'):
             stream_component = component.camera_component
-        elif isinstance(component, NeuralNetwork):
+        elif isinstance(component, 'NeuralNetwork'):
             stream_component = component.nn_component
         else:
             raise Exception('Component not supported for streaming, only Camera and NeuralNetwork are supported.')
