@@ -43,7 +43,6 @@ class DeviceManager:
         """
         self.running = True
 
-        log.info('Device connection thread: starting...')
         self.connection_thread.start()
         log.info('Device connection thread: started successfully.')
 
@@ -56,19 +55,15 @@ class DeviceManager:
 
         log.info('Devices: starting...')
         for device in self._devices:
-            hub_camera = HubCamera(device_mxid=device.mxid)
-            device.start(hub_camera)
-            self._hub_cameras.append(hub_camera)
+            self._connect_device(device)
 
-        log.info('Reporting thread: starting...')
+        log.info('Devices: started successfully.')
+
         self.reporting_thread.start()
         log.info('Reporting thread: started successfully.')
 
-        log.info('Polling thread: starting...')
         self.polling_thread.start()
         log.info('Polling thread: started successfully.')
-
-        log.info('Devices: started successfully.')
 
     def stop(self) -> None:
         """
@@ -145,12 +140,23 @@ class DeviceManager:
         Reconnects the cameras that were disconnected or reconnected.
         """
         while self.running:
-            if len(self._connected_devices) == len(self._devices):
+            if len(self._hub_cameras) == len(robothub.DEVICES):
                 self.stop_event.wait(5)
                 continue
 
-            # self._update_hub_cameras(devices=self.devices)
-            # TODO
+            mxids = [camera.device_mxid for camera in self._hub_cameras]
+            for device in self._devices:
+                if device.mxid not in mxids:
+                    self._connect_device(device)
+
+    def _connect_device(self, device: 'Device') -> None:
+        """
+        Connect a device to the app.
+        """
+        hub_camera = HubCamera(device_mxid=device.mxid)
+        device._start(hub_camera)  # Initialize the device (create streams, etc.)
+        hub_camera.start()  # Start the pipeline
+        self._hub_cameras.append(hub_camera)
 
     @staticmethod
     def __graceful_thread_join(thread) -> None:
