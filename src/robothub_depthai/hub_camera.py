@@ -37,8 +37,8 @@ class HubCamera:
 
         self.running = False
 
-        self.oak_camera = None
-        self.available_sensors = []
+        self.oak_camera = self._init_oak_camera()
+        self.available_sensors = self.oak_camera.sensors if self.oak_camera else []
 
     def _init_oak_camera(self) -> Optional[OakCamera]:
         # try to init for 5 seconds
@@ -169,8 +169,6 @@ class HubCamera:
 
         while self.running:
             try:
-                self.oak_camera = self._init_oak_camera()
-                self.available_sensors = self.oak_camera.sensors if self.oak_camera else []
                 self.oak_camera.start()
                 self.state = robothub.DeviceState.CONNECTED
                 return
