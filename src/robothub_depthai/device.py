@@ -2,8 +2,8 @@ from typing import Callable, Union
 
 import depthai_sdk
 
-from robothub_depthai import CAMERA_MANAGER
 from robothub_depthai.commands import CommandHistory, CreateCameraCommand, CreateNeuralNetworkCommand, StreamCommand
+from robothub_depthai.manager import DEVICE_MANAGER
 
 DEVICES = []
 
@@ -52,17 +52,19 @@ class Device:
 
         self.command_history = CommandHistory()
 
-    def start(self) -> None:
+    def start(self, hub_camera) -> None:
         """
         Starts the device.
         """
         for command in self.command_history:
+            command.set_camera(hub_camera)
             command.execute()
 
             # Check if stream is enabled, if so, create a stream command and execute it
             if isinstance(command, Streamable) and command.stream_enabled:
                 stream_command = StreamCommand(command)
-                self.command_history.push(stream_command)
+                if stream_command not in self.command_history:
+                    self.command_history.push(stream_command)
                 stream_command.execute()
 
     def get_camera(self, name: str, resolution: str, fps: int) -> 'Camera':
@@ -95,19 +97,8 @@ def get_device(id: str = None, name: str = None, mxid: str = None, ip_address: s
     Returns a Device instance.
     """
     device = Device(id, name, mxid, ip_address)
-    CAMERA_MANAGER.add_device(device)
-    return Device(id, name, mxid, ip_address)
-
-
-def get_devices():
-    return DEVICES
-
-
-def start_devices():
-    for device in DEVICES:
-        device.start()
-
-# device,
+    DEVICE_MANAGER.add_device(device)
+    return device
 
 # class App(robothub_depthai.RobotHubApplication):
 #     def on_start(self):

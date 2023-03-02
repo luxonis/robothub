@@ -31,7 +31,6 @@ class HubCamera:
         :param rotation: Rotation of the camera, defaults to 0.
         """
         self.state = robothub.DeviceState.UNKNOWN
-        self.running = False
         self.device_mxid = device_mxid
         self.usb_speed = usb_speed
         self.rotation = rotation
@@ -186,6 +185,7 @@ class HubCamera:
         """
         self.running = False
         self.oak_camera.device.close()
+        self.oak_camera = None
 
     def stats_report(self) -> Dict[str, Any]:
         """

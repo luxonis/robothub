@@ -4,14 +4,16 @@ import os
 
 import robothub
 
-__all__ = ['HubCameraManager']
+__all__ = ['DeviceManager', 'DEVICE_MANAGER']
+
+from robothub_depthai import HubCamera
 
 
 class NoDevicesException(Exception):
     pass
 
 
-class HubCameraManager:
+class DeviceManager:
     """
     A manager class to handle multiple HubCamera instances.
     """
@@ -21,6 +23,8 @@ class HubCameraManager:
     def __init__(self):
         self._devices = []
         self._connected_devices = []
+
+        self._hub_cameras = []
 
         self.running = False
         self.stop_event = robothub.threading.Event()
@@ -52,8 +56,9 @@ class HubCameraManager:
 
         log.info('Devices: starting...')
         for device in self._devices:
-            device.start()
-            self._connected_devices.append(device)
+            hub_camera = HubCamera(device_mxid=device.mxid)
+            device.start(hub_camera)
+            self._hub_cameras.append(hub_camera)
 
         log.info('Reporting thread: starting...')
         self.reporting_thread.start()
@@ -81,7 +86,7 @@ class HubCameraManager:
         except BaseException as e:
             raise Exception(f'Destroy all streams excepted with: {e}.')
 
-        for camera in self.booted_cameras:
+        for camera in self._hub_cameras:
             try:
                 if camera.state != robothub.DeviceState.DISCONNECTED:
                     with open(os.devnull, 'w') as devnull:
@@ -110,7 +115,7 @@ class HubCameraManager:
         Reporting frequency is defined by REPORT_FREQUENCY.
         """
         while self.running:
-            for camera in self.booted_cameras:
+            for camera in self._hub_cameras:
                 try:
                     device_info = camera.info_report()
                     device_stats = camera.stats_report()
@@ -127,10 +132,10 @@ class HubCameraManager:
         Polls the cameras for new detections. Polling frequency is defined by POLL_FREQUENCY.
         """
         while self.running:
-            for camera in self.booted_cameras:
+            for camera in self._hub_cameras:
                 if not camera.poll():
                     log.info(f'Device {camera.device_mxid}: disconnected.')
-                    camera.hub_camera = None
+                    self._hub_cameras.remove(camera)
                     continue
 
             self.stop_event.wait(self.POLL_FREQUENCY)
@@ -157,3 +162,6 @@ class HubCameraManager:
                 thread.join()
         except BaseException as e:
             log.error(f'{thread.getName()}: join excepted with: {e}.')
+
+
+DEVICE_MANAGER = DeviceManager()

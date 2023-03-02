@@ -32,9 +32,6 @@ class CreateCameraCommand(Command):
         self._camera = camera
 
     def execute(self) -> None:
-        oak_camera = HubCamera(self._camera.name)
-        self.hub_camera = oak_camera
-
         camera_component = self.hub_camera.create_camera(source=self._camera.name,
                                                          resolution=self._camera.resolution,
                                                          fps=self._camera.fps)
