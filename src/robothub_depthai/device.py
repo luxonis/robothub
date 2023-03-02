@@ -1,7 +1,5 @@
 from typing import Callable, Union
 
-import depthai_sdk
-
 from robothub_depthai.commands import CommandHistory, CreateCameraCommand, CreateNeuralNetworkCommand, StreamCommand
 from robothub_depthai.manager import DEVICE_MANAGER
 
@@ -52,19 +50,19 @@ class Device:
 
         self.command_history = CommandHistory()
 
-    def start(self, hub_camera) -> None:
+    def _start(self, hub_camera) -> None:
         """
-        Starts the device.
+        Internal method to execute all commands.
         """
         for command in self.command_history:
             command.set_camera(hub_camera)
             command.execute()
 
             # Check if stream is enabled, if so, create a stream command and execute it
-            if isinstance(command, Streamable) and command.stream_enabled:
+            component = command.get_component()
+            if isinstance(component, Streamable) and component.stream_enabled:
                 stream_command = StreamCommand(command)
-                if stream_command not in self.command_history:
-                    self.command_history.push(stream_command)
+                stream_command.set_camera(hub_camera)
                 stream_command.execute()
 
     def get_camera(self, name: str, resolution: str, fps: int) -> 'Camera':
@@ -99,24 +97,3 @@ def get_device(id: str = None, name: str = None, mxid: str = None, ip_address: s
     device = Device(id, name, mxid, ip_address)
     DEVICE_MANAGER.add_device(device)
     return device
-
-# class App(robothub_depthai.RobotHubApplication):
-#     def on_start(self):
-#         device = get_device(id='oak-d-pro-1')
-#
-#         color = device.get_camera('color', resolution='1080p', fps=30)
-#         color.stream_to_hub(name='Color stream')
-#
-#         # Neural network
-#         neural_network = device.create_neural_network('person-detection-retail-0013', input=color)
-#         neural_network.set_callback(self.on_detected_person)
-#
-#         # Stream neural network output to hub
-#         neural_network.stream_to_hub(name='Detections stream')
-#
-#     def start_execution(self):
-#         self.on_start()
-#         start_devices()
-#
-#     def on_detected_person(self, packet):
-#         packet.upload_as_detection(name='Detected person')
