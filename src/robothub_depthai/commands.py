@@ -1,6 +1,5 @@
 from abc import abstractmethod, ABC
 
-import robothub_depthai.device as device
 from robothub_depthai import HubCamera
 
 
@@ -28,7 +27,7 @@ class CreateCameraCommand(Command):
     Creates a new component.
     """
 
-    def __init__(self, camera: device.Camera) -> None:
+    def __init__(self, camera: 'Camera') -> None:
         super().__init__()
         self._camera = camera
 
@@ -38,7 +37,7 @@ class CreateCameraCommand(Command):
                                                          fps=self._camera.fps)
         self._camera.camera_component = camera_component
 
-    def get_component(self) -> device.Camera:
+    def get_component(self) -> 'Camera':
         return self._camera
 
 
@@ -47,7 +46,7 @@ class CreateNeuralNetworkCommand(Command):
     Creates a new component.
     """
 
-    def __init__(self, neural_network: device.NeuralNetwork) -> None:
+    def __init__(self, neural_network: 'NeuralNetwork') -> None:
         super().__init__()
         self._neural_network = neural_network
 
@@ -56,7 +55,7 @@ class CreateNeuralNetworkCommand(Command):
                                                    self._neural_network.input.camera_component)
         self._neural_network.nn_component = neural_network
 
-    def get_component(self) -> device.NeuralNetwork:
+    def get_component(self) -> 'NeuralNetwork':
         return self._neural_network
 
 
@@ -73,6 +72,7 @@ class StreamCommand(Command):
         self.hub_camera = self._command.hub_camera
         component = self._command.get_component()
 
+        from robothub_depthai import device
         if isinstance(component, device.Camera):
             stream_component = component.camera_component
         elif isinstance(component, device.NeuralNetwork):
