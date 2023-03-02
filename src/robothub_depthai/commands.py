@@ -28,7 +28,7 @@ class CreateCameraCommand(Command):
     Creates a new component.
     """
 
-    def __init__(self, camera: 'Camera') -> None:
+    def __init__(self, camera: device.Camera) -> None:
         super().__init__()
         self._camera = camera
 
@@ -38,7 +38,7 @@ class CreateCameraCommand(Command):
                                                          fps=self._camera.fps)
         self._camera.camera_component = camera_component
 
-    def get_component(self) -> 'Camera':
+    def get_component(self) -> device.Camera:
         return self._camera
 
 
@@ -47,17 +47,16 @@ class CreateNeuralNetworkCommand(Command):
     Creates a new component.
     """
 
-    def __init__(self, neural_network: 'NeuralNetwork') -> None:
+    def __init__(self, neural_network: device.NeuralNetwork) -> None:
         super().__init__()
         self._neural_network = neural_network
 
     def execute(self) -> None:
-        self.hub_camera = self._neural_network.input.hub_camera
-
-        neural_network = self.hub_camera.create_nn(self._neural_network.name, self._neural_network.input.hub_camera)
+        neural_network = self.hub_camera.create_nn(self._neural_network.name,
+                                                   self._neural_network.input.camera_component)
         self._neural_network.nn_component = neural_network
 
-    def get_component(self) -> 'NeuralNetwork':
+    def get_component(self) -> device.NeuralNetwork:
         return self._neural_network
 
 
