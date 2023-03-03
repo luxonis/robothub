@@ -1,44 +1,13 @@
-from typing import Callable, Union
+from typing import Callable
 
-from robothub_depthai.commands import CommandHistory, CreateCameraCommand, CreateNeuralNetworkCommand, StreamCommand
+from robothub_depthai.commands import CommandHistory, CreateCameraCommand, CreateNeuralNetworkCommand, StreamCommand, \
+    CreateStereoCommand
+from robothub_depthai.components import Streamable, Stereo
+from robothub_depthai.components.camera import Camera
+from robothub_depthai.components.neural_network import NeuralNetwork
 from robothub_depthai.manager import DEVICE_MANAGER
 
-DEVICES = []
-
-
-class Streamable:
-    def __init__(self) -> None:
-        self.stream_enabled = False
-        self.stream_name = None
-        self.stream_key = None
-
-    def stream_to_hub(self, name: str, unique_key: str = None) -> None:
-        self.stream_enabled = True
-        self.stream_name = name
-        self.stream_key = unique_key
-
-
-class Camera(Streamable):
-    def __init__(self, name: str, resolution: str, fps: int) -> None:
-        super().__init__()
-        self.name = name
-        self.resolution = resolution
-        self.fps = fps
-
-        self.camera_component = None  # type: depthai_sdk.components.CameraComponent
-
-
-class NeuralNetwork(Streamable):
-    def __init__(self, name: str, input: Union[Camera, 'NeuralNetwork']):
-        super().__init__()
-        self.name = name
-        self.input = input
-
-        self.nn_component = None  # type: depthai_sdk.components.NNComponent
-        self.callback = None
-
-    def set_callback(self, callback: Callable) -> None:
-        self.callback = callback
+__all__ = ['Device', 'get_device']
 
 
 class Device:
@@ -65,7 +34,7 @@ class Device:
                 stream_command.set_camera(hub_camera)
                 stream_command.execute()
 
-    def get_camera(self, name: str, resolution: str, fps: int) -> 'Camera':
+    def get_camera(self, name: str, resolution: str, fps: int) -> Camera:
         """
         Returns a Camera instance by its ID.
         """
@@ -74,7 +43,7 @@ class Device:
         self.command_history.push(command)
         return camera
 
-    def create_neural_network(self, name: str, input: 'Camera') -> 'NeuralNetwork':
+    def create_neural_network(self, name: str, input: Camera) -> NeuralNetwork:
         """
         Creates a neural network.
         """
