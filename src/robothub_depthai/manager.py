@@ -6,7 +6,7 @@ import robothub
 
 __all__ = ['DeviceManager', 'DEVICE_MANAGER']
 
-from robothub_depthai import HubCamera
+from robothub_depthai.hub_camera import HubCamera
 
 
 class NoDevicesException(Exception):

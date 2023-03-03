@@ -1,10 +1,13 @@
 from typing import Callable
 
-from robothub_depthai.commands import CommandHistory, CreateCameraCommand, CreateNeuralNetworkCommand, StreamCommand, \
-    CreateStereoCommand
-from robothub_depthai.components import Streamable, Stereo
+from robothub_depthai.commands import (
+    CreateStereoCommand, CreateCameraCommand, CreateNeuralNetworkCommand,
+    StreamCommand, CommandHistory
+)
 from robothub_depthai.components.camera import Camera
 from robothub_depthai.components.neural_network import NeuralNetwork
+from robothub_depthai.components.stereo import Stereo
+from robothub_depthai.components.streamable import Streamable
 from robothub_depthai.manager import DEVICE_MANAGER
 
 __all__ = ['Device', 'get_device']
