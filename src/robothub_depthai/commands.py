@@ -1,7 +1,9 @@
 from abc import abstractmethod, ABC
 
-from robothub_depthai import HubCamera
-from robothub_depthai.components import Camera, NeuralNetwork, Stereo
+from robothub_depthai.components.camera import Camera
+from robothub_depthai.components.neural_network import NeuralNetwork
+from robothub_depthai.components.stereo import Stereo
+from robothub_depthai.hub_camera import HubCamera
 
 __all__ = [
     'CreateCameraCommand', 'CreateNeuralNetworkCommand', 'CreateStereoCommand',

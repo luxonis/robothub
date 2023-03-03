@@ -1,4 +1,4 @@
-from robothub_depthai.components import Streamable
+from robothub_depthai.components.streamable import Streamable
 
 __all__ = ['Camera']
 
