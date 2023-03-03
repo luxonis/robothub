@@ -52,6 +52,15 @@ class Device:
         self.command_history.push(command)
         return neural_network
 
+    def create_stereo(self, resolution: str, fps: int, left_camera: Camera, right_camera: Camera):
+        """
+        Creates a stereo component.
+        """
+        stereo = Stereo(resolution, fps)
+        command = CreateStereoCommand(stereo)
+        self.command_history.push(command)
+        return stereo
+
     def set_disconnect_callback(self, callback: Callable) -> None:
         pass
 

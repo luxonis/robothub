@@ -24,10 +24,6 @@ class Command(ABC):
     def set_camera(self, hub_camera: HubCamera) -> None:
         self.hub_camera = hub_camera
 
-    @abstractmethod
-    def execute(self) -> None:
-        pass
-
     def get_component(self):
         return None
 
@@ -67,6 +63,23 @@ class CreateNeuralNetworkCommand(Command):
 
     def get_component(self) -> NeuralNetwork:
         return self._neural_network
+
+
+class CreateStereoCommand(Command):
+    """
+    Creates a new stereo component.
+    """
+
+    def __init__(self, stereo: Stereo) -> None:
+        super().__init__()
+        self._stereo = stereo
+
+    def execute(self) -> None:
+        stereo_component = self.hub_camera.create_stereo(resolution=self._stereo.resolution, fps=self._stereo.fps)
+        self._stereo.stereo_component = stereo_component
+
+    def get_component(self) -> Stereo:
+        return self._stereo
 
 
 class StreamCommand(Command):
