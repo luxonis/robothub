@@ -94,7 +94,6 @@ class StreamCommand(Command):
         self._command = command
 
     def execute(self) -> None:
-        self.hub_camera = self._command.hub_camera
         component = self._command.get_component()
 
         if isinstance(component, Camera):
