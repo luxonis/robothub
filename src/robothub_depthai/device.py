@@ -52,7 +52,7 @@ class Device:
         self.command_history.push(command)
         return neural_network
 
-    def create_stereo(self, resolution: str, fps: int, left_camera: Camera, right_camera: Camera):
+    def get_stereo_camera(self, resolution: str, fps: int, left_camera: Camera, right_camera: Camera):
         """
         Creates a stereo component.
         """
