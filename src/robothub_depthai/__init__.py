@@ -5,8 +5,9 @@ try:
 except:
     pass
 
+import callbacks
+import components
 from .app import *
-from .callbacks import *
+from .device import *
 from .hub_camera import *
 from .manager import *
-from .device import *
