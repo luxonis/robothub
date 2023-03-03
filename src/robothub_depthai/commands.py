@@ -101,6 +101,8 @@ class StreamCommand(Command):
             stream_component = component.camera_component
         elif isinstance(component, NeuralNetwork):
             stream_component = component.nn_component
+        elif isinstance(component, Stereo):
+            stream_component = component.stereo_component
         else:
             raise Exception('Component not supported for streaming, only Camera and NeuralNetwork are supported.')
 
