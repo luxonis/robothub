@@ -22,8 +22,6 @@ class DeviceManager:
 
     def __init__(self):
         self._devices = []
-        self._connected_devices = []
-
         self._hub_cameras = []
 
         self.running = False
@@ -43,9 +41,6 @@ class DeviceManager:
         """
         self.running = True
 
-        self.connection_thread.start()
-        log.info('Device connection thread: started successfully.')
-
         # Endless loop to prevent app from exiting if no devices are found
         while self.running:
             if self._devices:
@@ -53,11 +48,8 @@ class DeviceManager:
 
             self.stop_event.wait(5)
 
-        log.info('Devices: starting...')
-        for device in self._devices:
-            self._connect_device(device)
-
-        log.info('Devices: started successfully.')
+        self.connection_thread.start()
+        log.info('Device connection thread: started successfully.')
 
         self.reporting_thread.start()
         log.info('Reporting thread: started successfully.')
