@@ -1,12 +1,14 @@
 import contextlib
 import logging as log
 import os
+from typing import Optional
 
 import robothub
 
-__all__ = ['DeviceManager', 'DEVICE_MANAGER']
-
+from robothub_depthai import Device
 from robothub_depthai.hub_camera import HubCamera
+
+__all__ = ['DeviceManager', 'DEVICE_MANAGER']
 
 
 class NoDevicesException(Exception):
@@ -21,14 +23,13 @@ class DeviceManager:
     POLL_FREQUENCY = 0.0005
 
     def __init__(self):
-        self._devices = []
-        self._hub_cameras = []
+        self._devices = []  # Used to store all devices, shouldn't be modified in any way
+        self._hub_cameras = []  # Used to store all HubCamera instances that are currently running
 
         self.running = False
-        self.connecting_to_device = False
+        self.connecting_to_device = False  # Used to prevent multiple threads from connecting to the same device
         self.stop_event = robothub.threading.Event()
 
-        self.lock = robothub.threading.Lock()
         self.reporting_thread = robothub.threading.Thread(target=self._report, name='ReportingThread', daemon=False)
         self.polling_thread = robothub.threading.Thread(target=self._poll, name='PollingThread', daemon=False)
         self.connection_thread = robothub.threading.Thread(target=self._connect, name='ConnectionThread', daemon=False)
@@ -122,8 +123,7 @@ class DeviceManager:
         while self.running:
             for camera in self._hub_cameras:
                 if not camera.poll():
-                    log.info(f'Device {camera.device_mxid}: disconnected.')
-                    self._hub_cameras.remove(camera)
+                    self._disconnect_camera(camera)
                     continue
 
             self.stop_event.wait(self.POLL_FREQUENCY)
@@ -154,7 +154,31 @@ class DeviceManager:
             return
 
         hub_camera.start()  # Start the pipeline
+
+        device.connect_callback(hub_camera)
         self._hub_cameras.append(hub_camera)
+
+    def _disconnect_camera(self, camera: HubCamera) -> None:
+        """
+        Disconnect a device from the app.
+        """
+        log.info(f'Device {camera.device_mxid}: disconnected.')
+        camera.stop()
+        self._hub_cameras.remove(camera)
+
+        device = self._get_device_by_mxid(camera.device_mxid)
+        if device:
+            device.disconnect_callback(device)
+
+    def _get_device_by_mxid(self, mxid: str) -> Optional[Device]:
+        """
+        Get a device by its mxid.
+        """
+        for device in self._devices:
+            if device.mxid == mxid:
+                return device
+
+        return None
 
     @staticmethod
     def __graceful_thread_join(thread) -> None:
