@@ -25,6 +25,7 @@ class DeviceManager:
         self._hub_cameras = []
 
         self.running = False
+        self.connecting_to_device = False
         self.stop_event = robothub.threading.Event()
 
         self.lock = robothub.threading.Lock()
@@ -132,14 +133,16 @@ class DeviceManager:
         Reconnects the cameras that were disconnected or reconnected.
         """
         while self.running:
-            if len(self._hub_cameras) == len(self._devices):
+            if len(self._hub_cameras) == len(self._devices) or self.connecting_to_device:
                 self.stop_event.wait(5)
                 continue
 
             mxids = [camera.device_mxid for camera in self._hub_cameras]
             for device in self._devices:
                 if device.mxid not in mxids:
+                    self.connecting_to_device = True
                     self._connect_device(device)
+                    self.connecting_to_device = False
 
     def _connect_device(self, device: 'Device') -> None:
         """
