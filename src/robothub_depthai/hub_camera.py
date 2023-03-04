@@ -180,7 +180,8 @@ class HubCamera:
         Stops the device and sets the state to disconnected.
         """
         self.stopped = True
-        self.oak_camera.device.close()
+        if self.oak_camera:
+            self.oak_camera.device.close()
         self.oak_camera = None
 
     def stats_report(self) -> Dict[str, Any]:
