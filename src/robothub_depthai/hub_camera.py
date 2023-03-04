@@ -70,6 +70,9 @@ class HubCamera:
         :param resolution: Resolution of the camera.
         :param fps: FPS of the output stream.
         """
+        if not self.oak_camera:
+            raise RuntimeError('Camera not initialized.')
+
         comp = self.oak_camera.create_camera(source=source, resolution=resolution, fps=fps, encode='h264')
         return comp
 
@@ -81,6 +84,9 @@ class HubCamera:
                   spatial: Union[None, bool, StereoComponent] = None,
                   decode_fn: Optional[Callable] = None
                   ) -> NNComponent:
+        if not self.oak_camera:
+            raise RuntimeError('Camera not initialized.')
+
         comp = self.oak_camera.create_nn(model=model, input=input, nn_type=nn_type,
                                          tracker=tracker, spatial=spatial, decode_fn=decode_fn)
         return comp
@@ -99,6 +105,9 @@ class HubCamera:
         :param left: Left camera component, optional.
         :param right: Right camera component, optional.
         """
+        if not self.oak_camera:
+            raise RuntimeError('Camera not initialized.')
+
         comp = self.oak_camera.create_stereo(resolution=resolution, fps=fps, left=left, right=right, encode='h264')
         comp.set_colormap(dai.Colormap.STEREO_TURBO)
         return comp
