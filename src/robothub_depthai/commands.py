@@ -1,4 +1,5 @@
 from abc import abstractmethod, ABC
+from typing import Callable
 
 from robothub_depthai.components.camera import Camera
 from robothub_depthai.components.neural_network import NeuralNetwork
@@ -9,6 +10,8 @@ __all__ = [
     'CreateCameraCommand', 'CreateNeuralNetworkCommand', 'CreateStereoCommand',
     'StreamCommand', 'CommandHistory'
 ]
+
+from robothub_depthai.packet import HubPacket
 
 
 class Command(ABC):
@@ -43,6 +46,8 @@ class CreateCameraCommand(Command):
         camera_component = self.hub_camera.create_camera(source=self._camera.name,
                                                          resolution=self._camera.resolution,
                                                          fps=self._camera.fps)
+        camera_component.config_camera(self._camera.camera_config)
+
         self._camera.camera_component = camera_component
 
     def get_component(self) -> Camera:
@@ -59,12 +64,33 @@ class CreateNeuralNetworkCommand(Command):
         self._neural_network = neural_network
 
     def execute(self) -> None:
-        neural_network = self.hub_camera.create_nn(self._neural_network.name,
-                                                   self._neural_network.input.camera_component)
-        self._neural_network.nn_component = neural_network
+        nn_component = self.hub_camera.create_nn(model=self._neural_network.name,
+                                                 input=self._neural_network.input.camera_component,
+                                                 nn_type=self._neural_network.nn_type,
+                                                 tracker=self._neural_network.tracker,
+                                                 spatial=self._neural_network.spatial,
+                                                 decode_fn=self._neural_network.decode_fn)
+
+        for callback in self._neural_network.callbacks:
+            nn_component.callback(self._get_callback_wrapper(callback))
+
+        self._neural_network.nn_component = nn_component
 
     def get_component(self) -> NeuralNetwork:
         return self._neural_network
+
+    @staticmethod
+    def _get_callback_wrapper(callback) -> Callable[[HubPacket], None]:
+        """
+        Wraps the callback to be called with a HubPacket.
+        :param callback: The callback to be wrapped.
+        :return: The wrapped callback.
+        """
+
+        def callback_wrapper(packet):
+            callback(HubPacket(packet=packet))
+
+        return callback_wrapper
 
 
 class CreateStereoCommand(Command):

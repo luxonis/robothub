@@ -1,6 +1,9 @@
 import logging
-from typing import Callable
+from typing import Callable, Any
 
+from depthai import NNData
+
+from robothub_depthai import HubCamera
 from robothub_depthai.commands import (
     CreateStereoCommand, CreateCameraCommand, CreateNeuralNetworkCommand,
     StreamCommand, CommandHistory
@@ -57,11 +60,32 @@ class Device:
         self.command_history.push(command)
         return camera
 
-    def create_neural_network(self, name: str, input: Camera) -> NeuralNetwork:
+    def create_neural_network(self,
+                              name: str,
+                              input: Camera,
+                              fps: int = 30,
+                              nn_type: str = None,
+                              decode_fn: Callable[[NNData], Any] = None,
+                              tracker: bool = None,
+                              spatial: bool = False
+                              ) -> NeuralNetwork:
         """
         Creates a neural network.
+
+        :param name: The name of the neural network.
+        :param input: The input camera.
+        :param fps: The FPS of the neural network.
+        :param nn_type: The type of neural network. Either 'yolo' or 'mobilenet'.
+        :param decode_fn: The decode function to use. Decoding is done on the host.
+        :param tracker: Whether to use tracking.
+        :param spatial: Whether to use spatial detection.
+        :return: The neural network.
         """
-        neural_network = NeuralNetwork(name, input)
+        if isinstance(input, NeuralNetwork):
+            raise NotImplementedError('Neural networks cannot be used as input for other neural networks yet')
+
+        neural_network = NeuralNetwork(name=name, input=input, fps=fps, nn_type=nn_type, decode_fn=decode_fn,
+                                       tracker=tracker, spatial=spatial)
         command = CreateNeuralNetworkCommand(neural_network)
         self.command_history.push(command)
         return neural_network
