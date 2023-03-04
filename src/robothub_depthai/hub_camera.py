@@ -41,14 +41,18 @@ class HubCamera:
         self.available_sensors = self.oak_camera.sensors if self.oak_camera else []
 
     def _init_oak_camera(self) -> Optional[OakCamera]:
-        # try to init for 5 seconds
+        """
+        Initializes the OakCamera instance. Will try to initialize for 5 seconds before returning None.
+
+        :return: OakCamera instance if successful, None otherwise.
+        """
         start_time = time.time()
         while not self.stopped:
             try:
                 camera = OakCamera(self.device_mxid, usb_speed=self.usb_speed, rotation=self.rotation)
                 log.info(f'Device {self.device_mxid}: initialized successfully.')
                 return camera
-            except Exception as e:
+            except Exception:
                 if time.time() - start_time > 5:
                     break
 
@@ -108,6 +112,9 @@ class HubCamera:
         if not self.oak_camera:
             raise RuntimeError('Camera not initialized.')
 
+        if not self.has_stereo:
+            raise RuntimeError('Device does not have stereo cameras.')
+
         comp = self.oak_camera.create_stereo(resolution=resolution, fps=fps, left=left, right=right, encode='h264')
         comp.set_colormap(dai.Colormap.STEREO_TURBO)
         return comp
@@ -145,6 +152,14 @@ class HubCamera:
                              component: Union[CameraComponent, NNComponent, StereoComponent],
                              callback: Callable
                              ) -> None:
+        """
+        Selects the correct callback function for the given component and adds it to the stream.
+
+        :param stream_handle: Stream handle to add the callback to.
+        :param component: Component to create a callback for.
+        :param callback: User-defined callback function to be called when a new frame is received.
+        :return: None
+        """
         fn = None
         enable_visualizer = False
         if isinstance(component, CameraComponent):
@@ -159,6 +174,14 @@ class HubCamera:
             self.oak_camera.callback(component.out.encoded, callback=fn, enable_visualizer=enable_visualizer)
 
     def callback(self, output: Any, callback: Callable, enable_visualizer: bool = False) -> None:
+        """
+        Sets a callback function for the given output.
+
+        :param output: Output to set the callback for.
+        :param callback: Callback function to be called when a new frame is received.
+        :param enable_visualizer: Whether to enable the visualizer that provides metadata.
+        :return: None
+        """
         self.oak_camera.callback(output, callback=callback, enable_visualizer=enable_visualizer)
 
     def poll(self) -> Optional[int]:

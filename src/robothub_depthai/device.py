@@ -18,15 +18,31 @@ __all__ = ['Device', 'get_device']
 
 
 class Device:
+    """
+    Device represents a single device. It is used to create components and execute commands.
+    Startup and shutdown of the device is handled by the DeviceManager.
+    """
+
     def __init__(self, id: str, name: str, mxid: str, ip_address: str) -> None:
+        """
+        :param id: ID of the device.
+        :param name: Name of the device.
+        :param mxid: MXID of the device.
+        :param ip_address: IP address of the device.
+        """
+        # Device info
         self.id = id
         self.name = name
         self.mxid = mxid
         self.ip_address = ip_address
 
-        self.command_history = CommandHistory()
+        # Callbacks
+        self.disconnect_callback = None
+        self.connect_callback = None
 
-    def _start(self, hub_camera) -> bool:
+        self._command_history = CommandHistory()
+
+    def _start(self, hub_camera: HubCamera) -> bool:
         """
         Internal method to execute all commands.
 
@@ -34,7 +50,7 @@ class Device:
         :return: True if successful, False otherwise.
         """
         try:
-            for command in self.command_history:
+            for command in self._command_history:
                 command.set_camera(hub_camera)
                 command.execute()
 
@@ -53,11 +69,16 @@ class Device:
 
     def get_camera(self, name: str, resolution: str, fps: int) -> Camera:
         """
-        Returns a Camera instance by its ID.
+        Creates a camera component.
+
+        :param name: The name of the camera.
+        :param resolution: The resolution of the camera.
+        :param fps: The FPS of the camera.
+        :return: The camera.
         """
         camera = Camera(name, resolution, fps)
         command = CreateCameraCommand(camera)
-        self.command_history.push(command)
+        self._command_history.push(command)
         return camera
 
     def create_neural_network(self,
@@ -87,28 +108,49 @@ class Device:
         neural_network = NeuralNetwork(name=name, input=input, fps=fps, nn_type=nn_type, decode_fn=decode_fn,
                                        tracker=tracker, spatial=spatial)
         command = CreateNeuralNetworkCommand(neural_network)
-        self.command_history.push(command)
+        self._command_history.push(command)
         return neural_network
 
     def get_stereo_camera(self, resolution: str, fps: int, left_camera: Camera = None, right_camera: Camera = None):
         """
         Creates a stereo component.
+
+        :param resolution: The resolution of the stereo camera.
+        :param fps: The FPS of the stereo camera.
         """
         stereo = Stereo(resolution, fps)
         command = CreateStereoCommand(stereo)
-        self.command_history.push(command)
+        self._command_history.push(command)
         return stereo
 
-    def set_disconnect_callback(self, callback: Callable) -> None:
-        pass
+    def set_connect_callback(self, callback: Callable[[HubCamera], None]) -> None:
+        """
+        Sets the callback to be called when the device connects.
 
-    def set_connect_callback(self, callback: Callable) -> None:
-        pass
+        :param callback: The callback to be called when the device connects.
+        :return: None
+        """
+        self.connect_callback = callback
+
+    def set_disconnect_callback(self, callback: Callable[[HubCamera], None]) -> None:
+        """
+        Sets the callback to be called when the device disconnects.
+
+        :param callback: The callback to be called when the device disconnects.
+        :return: None
+        """
+        self.disconnect_callback = callback
 
 
-def get_device(id: str = None, name: str = None, mxid: str = None, ip_address: str = None):
+def get_device(id: str = None, name: str = None, mxid: str = None, ip_address: str = None) -> Device:
     """
-    Returns a Device instance.
+    Returns a device by its ID, name, mxid or IP address.
+
+    :param id: The ID of the device.
+    :param name: The name of the device.
+    :param mxid: The mxid of the device.
+    :param ip_address: The IP address of the device.
+    :return: The device.
     """
     device = Device(id, name, mxid, ip_address)
     DEVICE_MANAGER.add_device(device)

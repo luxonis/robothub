@@ -1,4 +1,7 @@
 class Streamable:
+    """
+    Auxiliary class for components that can be streamed to the hub.
+    """
     def __init__(self) -> None:
         self.stream_enabled = False
         self.stream_name = None
