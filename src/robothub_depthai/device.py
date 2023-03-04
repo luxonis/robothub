@@ -1,3 +1,4 @@
+import logging
 from typing import Callable
 
 from robothub_depthai.commands import (
@@ -22,20 +23,30 @@ class Device:
 
         self.command_history = CommandHistory()
 
-    def _start(self, hub_camera) -> None:
+    def _start(self, hub_camera) -> bool:
         """
         Internal method to execute all commands.
-        """
-        for command in self.command_history:
-            command.set_camera(hub_camera)
-            command.execute()
 
-            # Check if stream is enabled, if so, create a stream command and execute it
-            component = command.get_component()
-            if isinstance(component, Streamable) and component.stream_enabled:
-                stream_command = StreamCommand(command)
-                stream_command.set_camera(hub_camera)
-                stream_command.execute()
+        :param hub_camera: The HubCamera instance to use.
+        :return: True if successful, False otherwise.
+        """
+        try:
+            for command in self.command_history:
+                command.set_camera(hub_camera)
+                command.execute()
+
+                # Check if stream is enabled, if so, create a stream command and execute it
+                component = command.get_component()
+                if isinstance(component, Streamable) and component.stream_enabled:
+                    stream_command = StreamCommand(command)
+                    stream_command.set_camera(hub_camera)
+                    stream_command.execute()
+
+        except Exception as e:
+            logging.info(f'Failed to start device with error: {e}')
+            return False
+
+        return True
 
     def get_camera(self, name: str, resolution: str, fps: int) -> Camera:
         """

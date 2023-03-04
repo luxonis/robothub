@@ -78,7 +78,7 @@ class DeviceManager:
                 if camera.state != robothub.DeviceState.DISCONNECTED:
                     with open(os.devnull, 'w') as devnull:
                         with contextlib.redirect_stdout(devnull):
-                            camera.hub_camera.__exit__(Exception, 'Device disconnected - app shutting down', None)
+                            camera.oak_camera.__exit__(Exception, 'Device disconnected - app shutting down', None)
             except BaseException as e:
                 raise Exception(f'Device {camera.device_mxid}: could not exit with exception: {e}.')
 
@@ -132,7 +132,7 @@ class DeviceManager:
         Reconnects the cameras that were disconnected or reconnected.
         """
         while self.running:
-            if len(self._hub_cameras) == len(robothub.DEVICES):
+            if len(self._hub_cameras) == len(self._devices):
                 self.stop_event.wait(5)
                 continue
 
@@ -146,7 +146,10 @@ class DeviceManager:
         Connect a device to the app.
         """
         hub_camera = HubCamera(device_mxid=device.mxid)
-        device._start(hub_camera)  # Initialize the device (create streams, etc.)
+        if not device._start(hub_camera):  # Initialize the device (create streams, etc.)
+            hub_camera.stop()
+            return
+
         hub_camera.start()  # Start the pipeline
         self._hub_cameras.append(hub_camera)
 
