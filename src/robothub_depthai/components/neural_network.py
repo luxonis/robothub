@@ -14,7 +14,7 @@ class NeuralNetwork(Streamable):
                  nn_type: Optional[str] = None,  # Either 'yolo' or 'mobilenet'
                  decode_fn: Optional[Callable] = None,
                  tracker: bool = False,
-                 spatial: bool = False):
+                 spatial: Optional[bool] = None):
         super().__init__()
         self.name = name
         self.input = input
