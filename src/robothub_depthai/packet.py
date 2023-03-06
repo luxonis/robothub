@@ -1,10 +1,8 @@
 import robothub
 
-from robothub_depthai import Device
-
 
 class HubPacket:
-    def __init__(self, device: Device, packet):
+    def __init__(self, device: 'Device', packet):
         self.device = device
         self.packet = packet
 

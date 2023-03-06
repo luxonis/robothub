@@ -5,7 +5,6 @@ from typing import Optional
 
 import robothub
 
-from robothub_depthai import Device
 from robothub_depthai.hub_camera import HubCamera
 
 __all__ = ['DeviceManager', 'DEVICE_MANAGER']
@@ -170,7 +169,7 @@ class DeviceManager:
         if device:
             device.disconnect_callback(device)
 
-    def _get_device_by_mxid(self, mxid: str) -> Optional[Device]:
+    def _get_device_by_mxid(self, mxid: str) -> Optional['Device']:
         """
         Get a device by its mxid.
         """
