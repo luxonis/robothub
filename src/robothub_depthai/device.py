@@ -37,8 +37,8 @@ class Device:
         self.ip_address = ip_address
 
         # Callbacks
-        self.disconnect_callback = None
-        self.connect_callback = None
+        self.disconnect_callback = lambda x: None  # type: Callable[[Any], None]
+        self.connect_callback = lambda x: None  # type: Callable[[Any], None]
 
         self._command_history = CommandHistory()
 
