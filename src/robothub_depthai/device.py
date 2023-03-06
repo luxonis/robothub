@@ -1,5 +1,5 @@
 import logging
-from typing import Callable, Any
+from typing import Callable, Any, Optional
 
 from depthai import NNData
 
@@ -87,8 +87,8 @@ class Device:
                               fps: int = 30,
                               nn_type: str = None,
                               decode_fn: Callable[[NNData], Any] = None,
-                              tracker: bool = None,
-                              spatial: bool = False
+                              tracker: bool = False,
+                              spatial: Optional[bool] = None
                               ) -> NeuralNetwork:
         """
         Creates a neural network.
