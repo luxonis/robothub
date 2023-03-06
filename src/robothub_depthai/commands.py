@@ -47,7 +47,7 @@ class CreateCameraCommand(Command):
         camera_component = self.hub_camera.create_camera(source=self._camera.name,
                                                          resolution=self._camera.resolution,
                                                          fps=self._camera.fps)
-        camera_component.config_camera(self._camera.camera_config)
+        camera_component.config_color_camera(**asdict(self._camera.camera_config))
 
         self._camera.camera_component = camera_component
 
@@ -73,7 +73,7 @@ class CreateNeuralNetworkCommand(Command):
                                                  decode_fn=self._neural_network.decode_fn)
 
         for callback in self._neural_network.callbacks:
-            nn_component.callback(self._get_callback_wrapper(callback))
+            self.hub_camera.callback(nn_component, self._get_callback_wrapper(callback), True)
 
         self._neural_network.nn_component = nn_component
 
