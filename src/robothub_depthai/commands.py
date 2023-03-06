@@ -1,4 +1,5 @@
 from abc import abstractmethod, ABC
+from dataclasses import asdict
 from typing import Callable
 
 from robothub_depthai.components.camera import Camera

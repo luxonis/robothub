@@ -3,7 +3,7 @@ from typing import Callable, Any
 
 from depthai import NNData
 
-from robothub_depthai import HubCamera
+from robothub_depthai.hub_camera import HubCamera
 from robothub_depthai.commands import (
     CreateStereoCommand, CreateCameraCommand, CreateNeuralNetworkCommand,
     StreamCommand, CommandHistory
