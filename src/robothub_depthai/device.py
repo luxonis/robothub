@@ -57,7 +57,7 @@ class Device:
                 # Check if stream is enabled, if so, create a stream command and execute it
                 component = command.get_component()
                 if isinstance(component, Streamable) and component.stream_enabled:
-                    stream_command = StreamCommand(command)
+                    stream_command = StreamCommand(self, command)
                     stream_command.set_camera(hub_camera)
                     stream_command.execute()
 
