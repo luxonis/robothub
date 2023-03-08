@@ -84,7 +84,6 @@ class Device:
     def create_neural_network(self,
                               name: str,
                               input: Camera,
-                              fps: int = 30,
                               nn_type: str = None,
                               decode_fn: Callable[[NNData], Any] = None,
                               tracker: bool = False,
@@ -95,7 +94,6 @@ class Device:
 
         :param name: The name of the neural network.
         :param input: The input camera.
-        :param fps: The FPS of the neural network.
         :param nn_type: The type of neural network. Either 'yolo' or 'mobilenet'.
         :param decode_fn: The decode function to use. Decoding is done on the host.
         :param tracker: Whether to use tracking.
@@ -105,7 +103,7 @@ class Device:
         if isinstance(input, NeuralNetwork):
             raise NotImplementedError('Neural networks cannot be used as input for other neural networks yet')
 
-        neural_network = NeuralNetwork(name=name, input=input, fps=fps, nn_type=nn_type, decode_fn=decode_fn,
+        neural_network = NeuralNetwork(name=name, input=input, nn_type=nn_type, decode_fn=decode_fn,
                                        tracker=tracker, spatial=spatial)
         command = CreateNeuralNetworkCommand(self, neural_network)
         self._command_history.push(command)
