@@ -77,7 +77,7 @@ class Device:
         :return: The camera.
         """
         camera = Camera(name, resolution, fps)
-        command = CreateCameraCommand(device, camera)
+        command = CreateCameraCommand(self, camera)
         self._command_history.push(command)
         return camera
 
@@ -107,7 +107,7 @@ class Device:
 
         neural_network = NeuralNetwork(name=name, input=input, fps=fps, nn_type=nn_type, decode_fn=decode_fn,
                                        tracker=tracker, spatial=spatial)
-        command = CreateNeuralNetworkCommand(neural_network)
+        command = CreateNeuralNetworkCommand(self, neural_network)
         self._command_history.push(command)
         return neural_network
 
@@ -119,7 +119,7 @@ class Device:
         :param fps: The FPS of the stereo camera.
         """
         stereo = Stereo(resolution, fps, left_camera, right_camera)
-        command = CreateStereoCommand(stereo)
+        command = CreateStereoCommand(self, stereo)
         self._command_history.push(command)
         return stereo
 
