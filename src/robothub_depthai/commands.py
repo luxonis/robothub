@@ -20,7 +20,8 @@ class Command(ABC):
     The Command interface declares a method for executing a command.
     """
 
-    def __init__(self):
+    def __init__(self, device: 'Device'):
+        self.device = device
         self.hub_camera = None
 
     @abstractmethod
@@ -39,8 +40,8 @@ class CreateCameraCommand(Command):
     Creates a new camera component.
     """
 
-    def __init__(self, camera: Camera) -> None:
-        super().__init__()
+    def __init__(self, device: 'Device', camera: Camera) -> None:
+        super().__init__(device=device)
         self._camera = camera
 
     def execute(self) -> None:
@@ -60,8 +61,8 @@ class CreateNeuralNetworkCommand(Command):
     Creates a new neural network component.
     """
 
-    def __init__(self, neural_network: NeuralNetwork) -> None:
-        super().__init__()
+    def __init__(self, device: 'Device', neural_network: NeuralNetwork) -> None:
+        super().__init__(device=device)
         self._neural_network = neural_network
 
     def execute(self) -> None:
@@ -89,7 +90,7 @@ class CreateNeuralNetworkCommand(Command):
         """
 
         def callback_wrapper(packet):
-            callback(HubPacket(packet=packet))
+            callback(HubPacket(device=self.device, packet=packet))
 
         return callback_wrapper
 
@@ -99,12 +100,17 @@ class CreateStereoCommand(Command):
     Creates a new stereo component.
     """
 
-    def __init__(self, stereo: Stereo) -> None:
-        super().__init__()
+    def __init__(self, device: 'Device', stereo: Stereo) -> None:
+        super().__init__(device=device)
         self._stereo = stereo
 
     def execute(self) -> None:
-        stereo_component = self.hub_camera.create_stereo(resolution=self._stereo.resolution, fps=self._stereo.fps)
+        left = self._stereo.left_camera.camera_component if self._stereo.left_camera else None
+        right = self._stereo.right_camera.camera_component if self._stereo.right_camera else None
+        stereo_component = self.hub_camera.create_stereo(resolution=self._stereo.resolution,
+                                                         fps=self._stereo.fps,
+                                                         left=left,
+                                                         right=right)
         self._stereo.stereo_component = stereo_component
 
     def get_component(self) -> Stereo:

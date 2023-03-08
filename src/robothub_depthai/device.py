@@ -77,7 +77,7 @@ class Device:
         :return: The camera.
         """
         camera = Camera(name, resolution, fps)
-        command = CreateCameraCommand(camera)
+        command = CreateCameraCommand(device, camera)
         self._command_history.push(command)
         return camera
 
@@ -118,7 +118,7 @@ class Device:
         :param resolution: The resolution of the stereo camera.
         :param fps: The FPS of the stereo camera.
         """
-        stereo = Stereo(resolution, fps)
+        stereo = Stereo(resolution, fps, left_camera, right_camera)
         command = CreateStereoCommand(stereo)
         self._command_history.push(command)
         return stereo
