@@ -10,7 +10,6 @@ class NeuralNetwork(Streamable):
     def __init__(self,
                  name: str,
                  input: Union[Camera, 'NeuralNetwork'],
-                 fps: int,
                  nn_type: Optional[str] = None,  # Either 'yolo' or 'mobilenet'
                  decode_fn: Optional[Callable] = None,
                  tracker: bool = False,
@@ -18,7 +17,6 @@ class NeuralNetwork(Streamable):
         super().__init__()
         self.name = name
         self.input = input
-        self.fps = fps
         self.nn_type = nn_type
         self.decode_fn = decode_fn
         self.tracker = tracker
