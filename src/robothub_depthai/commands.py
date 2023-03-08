@@ -122,8 +122,8 @@ class StreamCommand(Command):
     Creates a new stream.
     """
 
-    def __init__(self, command) -> None:
-        super().__init__()
+    def __init__(self, device: 'Device', command: 'Command') -> None:
+        super().__init__(device=device)
         self._command = command
 
     def execute(self) -> None:
