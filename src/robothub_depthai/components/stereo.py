@@ -19,10 +19,13 @@ class DepthRange(IntEnum):
 
 
 class Stereo(Streamable):
-    def __init__(self, resolution: str, fps: int) -> None:
+    def __init__(self, resolution: str, fps: int, left_camera: 'Camera' = None, right_camera: 'Camera' = None) -> None:
         super().__init__()
         self.resolution = resolution
         self.fps = fps
+
+        self.left_camera = left_camera
+        self.right_camera = right_camera
 
         self.quality = DepthQuality.DEFAULT
         self.range = DepthRange.DEFAULT
