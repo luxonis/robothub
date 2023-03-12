@@ -26,24 +26,24 @@ jobs:
         pip install build pydoctor
         wget https://raw.githubusercontent.com/luxonis/python-api-analyzer-to-json/main/gen-docs.py -O gen-docs.py
 
+        curl https://rclone.org/install.sh | sudo bash
+
+        mkdir -p ~/.config/rclone || true
+        echo "[cfr2]" > ~/.config/rclone/rclone.conf
+        echo "type = s3" >> ~/.config/rclone/rclone.conf
+        echo "provider = Cloudflare" >> ~/.config/rclone/rclone.conf
+        echo "access_key_id = ${R2_ACCESS_KEY_ID}" >> ~/.config/rclone/rclone.conf
+        echo "secret_access_key = ${R2_SECRET_ACCESS_KEY}" >> ~/.config/rclone/rclone.conf
+        echo "endpoint = https://780448894f6a1605bf84886104d96c1f.r2.cloudflarestorage.com" >> ~/.config/rclone/rclone.conf
+        echo "acl = private" >> ~/.config/rclone/rclone.conf
+
     - name: Build package
       run: python -m build
 
     - name: Generate docs
       run: |
         python gen-docs.py ./src/robothub_depthai
-        mkdir -p s3-upload/${{ github.ref_name }}
-        mv docs.json s3-upload/${{ github.ref_name }}/schema.json
-
-    - uses: shallwefootball/s3-upload-action@master
-      with:
-        aws_key_id: ${{ secrets.R2_ACCESS_KEY_ID }}
-        aws_secret_access_key: ${{ secrets.R2_SECRET_ACCESS_KEY}}
-        aws_bucket: docs-assets
-        endpoint: https://780448894f6a1605bf84886104d96c1f.r2.cloudflarestorage.com/
-        source_dir: s3-upload/${{ github.ref_name }}
-        destination_dir: libraries/python/robothub_oak/${{ github.ref_name }}
-
+        rclone copy "docs.json" "cfr2:docs-assets/libraries/python/robothub_oak/${{ github.ref_name }}/schema.json"
 
     - name: Publish package
       uses: pypa/gh-action-pypi-publish@27b31702a0e7fc50959f5ad993c78deac1bdfc29
