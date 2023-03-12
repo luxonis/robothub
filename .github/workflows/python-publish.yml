@@ -43,7 +43,7 @@ jobs:
     - name: Generate docs
       run: |
         python gen-docs.py ./src/robothub_depthai
-        rclone copy "docs.json" "cfr2:docs-assets/libraries/python/robothub_oak/${{ github.ref_name }}/schema.json"
+        rclone copy "docs.json" "cfr2:docs-assets/libraries/python/robothub_oak/${{ github.ref_name }}/"
 
     - name: Publish package
       uses: pypa/gh-action-pypi-publish@27b31702a0e7fc50959f5ad993c78deac1bdfc29
