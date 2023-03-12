@@ -30,7 +30,10 @@ jobs:
       run: python -m build
 
     - name: Generate docs
-      run: python gen-docs.py ./src/robothub_depthai
+      run: |
+        python gen-docs.py ./src/robothub_depthai
+        mkdir -p s3-upload/${{ env.GITHUB_REF_NAME }}
+        mv docs.json s3-upload/${{ env.GITHUB_REF_NAME }}/schema.json
 
     - uses: shallwefootball/s3-upload-action@master
       with:
@@ -38,7 +41,7 @@ jobs:
         aws_secret_access_key: ${{ secrets.R2_SECRET_ACCESS_KEY}}
         aws_bucket: docs-assets
         endpoint: https://780448894f6a1605bf84886104d96c1f.r2.cloudflarestorage.com/
-        source_dir: docs.json
+        source_dir: s3-upload/${{ env.GITHUB_REF_NAME }}
         destination_dir: libraries/python/robothub_oak/${{ env.GITHUB_REF_NAME }}/schema.json
 
 
