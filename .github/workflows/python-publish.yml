@@ -33,13 +33,13 @@ jobs:
       run: python gen-docs.py ./src/robothub_depthai
 
     - uses: shallwefootball/s3-upload-action@master
-        with:
-          aws_key_id: ${{ secrets.R2_ACCESS_KEY_ID }}
-          aws_secret_access_key: ${{ secrets.R2_SECRET_ACCESS_KEY}}
-          aws_bucket: docs-assets
-          endpoint: https://780448894f6a1605bf84886104d96c1f.r2.cloudflarestorage.com/
-          source_dir: docs.json
-          destination_dir: libraries/python/robothub_oak/${{ env.GITHUB_REF_NAME }}/schema.json
+      with:
+        aws_key_id: ${{ secrets.R2_ACCESS_KEY_ID }}
+        aws_secret_access_key: ${{ secrets.R2_SECRET_ACCESS_KEY}}
+        aws_bucket: docs-assets
+        endpoint: https://780448894f6a1605bf84886104d96c1f.r2.cloudflarestorage.com/
+        source_dir: docs.json
+        destination_dir: libraries/python/robothub_oak/${{ env.GITHUB_REF_NAME }}/schema.json
 
 
     - name: Publish package
