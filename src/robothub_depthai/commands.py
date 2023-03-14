@@ -81,8 +81,7 @@ class CreateNeuralNetworkCommand(Command):
     def get_component(self) -> NeuralNetwork:
         return self._neural_network
 
-    @staticmethod
-    def _get_callback_wrapper(callback) -> Callable[[HubPacket], None]:
+    def _get_callback_wrapper(self, callback: Callable) -> Callable[[HubPacket], None]:
         """
         Wraps the callback to be called with a HubPacket.
         :param callback: The callback to be wrapped.

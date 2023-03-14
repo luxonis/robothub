@@ -1,3 +1,5 @@
+import warnings
+
 import robothub
 
 
@@ -7,9 +9,12 @@ class HubPacket:
         self.packet = packet
 
     def upload_as_detection(self, title: str):
-        frame_bytes = self.packet.imgFrame.getData()
-        # TODO add metadata
-        robothub.DETECTIONS.send_frame_detection(imagedata=frame_bytes, title=title, camera_serial=self.device.mxid)
+        try:
+            frame_bytes = self.packet.imgFrame.getData()
+            # TODO add metadata
+            robothub.DETECTIONS.send_frame_detection(imagedata=frame_bytes, title=title, camera_serial=self.device.mxid)
+        except Exception as e:
+            warnings.warn(f'Could not upload detection with error: {e}')
 
     def upload_as_event(self, title):
         raise NotImplementedError('Not implemented yet')
