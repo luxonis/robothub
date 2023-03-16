@@ -25,7 +25,6 @@ class DeviceManager:
         self._devices = []  # Used to store all devices, shouldn't be modified in any way
         self._hub_cameras = []  # Used to store all HubCamera instances that are currently running
 
-        self.running = False
         self.connecting_to_device = False  # Used to prevent multiple threads from connecting to the same device
         self.stop_event = robothub.threading.Event()
 
@@ -40,10 +39,9 @@ class DeviceManager:
         """
         Start the cameras, start reporting and polling threads.
         """
-        self.running = True
 
         # Endless loop to prevent app from exiting if no devices are found
-        while self.running:
+        while not self.stop_event.is_set():
             if self._devices:
                 break
 
@@ -102,7 +100,7 @@ class DeviceManager:
         Reports the state of the cameras to the agent. Active when app is running, inactive when app is stopped.
         Reporting frequency is defined by REPORT_FREQUENCY.
         """
-        while self.running:
+        while not self.stop_event.is_set():
             for camera in self._hub_cameras:
                 try:
                     device_info = camera.info_report()
@@ -119,7 +117,7 @@ class DeviceManager:
         """
         Polls the cameras for new detections. Polling frequency is defined by POLL_FREQUENCY.
         """
-        while self.running:
+        while not self.stop_event.is_set():
             for camera in self._hub_cameras:
                 if not camera.poll():
                     self._disconnect_camera(camera)
@@ -131,7 +129,7 @@ class DeviceManager:
         """
         Reconnects the cameras that were disconnected or reconnected.
         """
-        while self.running:
+        while not self.stop_event.is_set():
             if len(self._hub_cameras) == len(self._devices) or self.connecting_to_device:
                 self.stop_event.wait(5)
                 continue
