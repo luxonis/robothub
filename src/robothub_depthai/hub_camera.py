@@ -35,7 +35,7 @@ class HubCamera:
         self.usb_speed = usb_speed
         self.rotation = rotation
 
-        self.stopped = False
+        self.stop_event = robothub.threading.Event()
 
         self.oak_camera = self._init_oak_camera()
         self.available_sensors = self.oak_camera.sensors if self.oak_camera else []
@@ -47,7 +47,7 @@ class HubCamera:
         :return: OakCamera instance if successful, None otherwise.
         """
         start_time = time.time()
-        while not self.stopped:
+        while not self.stop_event.is_set():
             try:
                 camera = OakCamera(self.device_mxid, usb_speed=self.usb_speed, rotation=self.rotation)
                 log.info(f'Device {self.device_mxid}: initialized successfully.')
@@ -197,7 +197,7 @@ class HubCamera:
         if self.state == robothub.DeviceState.CONNECTED:
             return
 
-        while not self.stopped:
+        while not self.stop_event.is_set():
             try:
                 self.oak_camera.start()
                 self.state = robothub.DeviceState.CONNECTED
@@ -211,7 +211,7 @@ class HubCamera:
         """
         Stops the device and sets the state to disconnected.
         """
-        self.stopped = True
+        self.stop_event.set()
         if self.oak_camera:
             self.oak_camera.device.close()
         self.oak_camera = None
