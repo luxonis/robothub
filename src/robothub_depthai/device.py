@@ -1,4 +1,4 @@
-import logging
+import warnings
 from typing import Callable, Any, Optional, List
 
 import robothub
@@ -63,7 +63,7 @@ class Device:
                     stream_command.execute()
 
         except Exception as e:
-            logging.debug(f'Failed to start device {self._get_device_name()} with error: {e}')
+            warnings.warn(f'Failed to start device {self._get_device_name()} with error: {e}')
             return False
 
         return True
