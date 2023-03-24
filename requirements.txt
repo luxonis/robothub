@@ -1,1 +1,1 @@
-depthai_sdk>=1.9.2
+depthai_sdk>=1.9.4.1
