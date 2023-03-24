@@ -78,14 +78,14 @@ class CreateNeuralNetworkCommand(Command):
                                                  decode_fn=self._neural_network.decode_fn)
 
         for callback in self._neural_network.callbacks:
-            self.hub_camera.callback(nn_component, self._get_callback_wrapper(callback), True)
+            self.hub_camera.callback(nn_component, self._callback_wrapper(callback), True)
 
         self._neural_network.nn_component = nn_component
 
     def get_component(self) -> NeuralNetwork:
         return self._neural_network
 
-    def _get_callback_wrapper(self, callback: Callable) -> Callable[[HubPacket], None]:
+    def _callback_wrapper(self, callback: Callable) -> Callable[[HubPacket], None]:
         """
         Wraps the callback to be called with a HubPacket.
         :param callback: The callback to be wrapped.
