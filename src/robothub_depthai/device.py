@@ -165,9 +165,11 @@ def get_all_devices() -> List[Device]:
 
     :return: All devices.
     """
+    devices = []
     for obj in robothub.DEVICES:
-        device = Device(mxid=obj['serialNumber'])
+        device = Device(mxid=obj.oak['serialNumber'])
         if device not in DEVICE_MANAGER.devices:
             DEVICE_MANAGER.add_device(device)
+        devices.append(device)
 
-    return DEVICE_MANAGER.get_devices()
+    return devices
