@@ -152,7 +152,7 @@ class DeviceManager:
         """
         Connect a device to the app.
         """
-        hub_camera = HubCamera(device=device.mxid)
+        hub_camera = HubCamera(device=device.get_device_name())
         if not device._start(hub_camera):  # Initialize the device (create streams, etc.)
             hub_camera.stop()
             return
