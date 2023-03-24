@@ -4,11 +4,11 @@ from typing import Callable
 
 import depthai_sdk.classes.packets as packets
 
-from robothub_depthai.components.camera import Camera
-from robothub_depthai.components.neural_network import NeuralNetwork
-from robothub_depthai.components.stereo import Stereo
-from robothub_depthai.hub_camera import HubCamera
-from robothub_depthai.packets import HubPacket, DetectionPacket, TrackerPacket, DepthPacket, IMUPacket
+from robothub_oak.components.camera import Camera
+from robothub_oak.components.neural_network import NeuralNetwork
+from robothub_oak.components.stereo import Stereo
+from robothub_oak.hub_camera import HubCamera
+from robothub_oak.packets import HubPacket, DetectionPacket, TrackerPacket, DepthPacket, IMUPacket
 
 __all__ = [
     'CreateCameraCommand',
