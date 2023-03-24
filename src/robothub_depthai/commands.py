@@ -2,17 +2,18 @@ from abc import abstractmethod, ABC
 from dataclasses import asdict
 from typing import Callable
 
+import depthai_sdk.classes.packets as packets
+
 from robothub_depthai.components.camera import Camera
 from robothub_depthai.components.neural_network import NeuralNetwork
 from robothub_depthai.components.stereo import Stereo
 from robothub_depthai.hub_camera import HubCamera
+from robothub_depthai.packets import HubPacket, DetectionPacket, TrackerPacket, DepthPacket
 
 __all__ = [
     'CreateCameraCommand', 'CreateNeuralNetworkCommand', 'CreateStereoCommand',
     'StreamCommand', 'CommandHistory'
 ]
-
-from robothub_depthai.packet import HubPacket
 
 
 class Command(ABC):
@@ -88,8 +89,18 @@ class CreateNeuralNetworkCommand(Command):
         :return: The wrapped callback.
         """
 
+        def __determine_packet_type(packet) -> Callable:
+            if isinstance(packet, packets.FramePacket):
+                return HubPacket
+            elif isinstance(packet, packets.DetectionPacket):
+                return DetectionPacket
+            elif isinstance(packet, packets.TrackerPacket):
+                return TrackerPacket
+            elif isinstance(packet, packets.DepthPacket):
+                return DepthPacket
+
         def callback_wrapper(packet):
-            callback(HubPacket(device=self.device, packet=packet))
+            callback(__determine_packet_type(packet)(device=self.device, packet=packet))
 
         return callback_wrapper
 
