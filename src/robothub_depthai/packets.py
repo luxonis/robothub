@@ -7,7 +7,7 @@ except ImportError:
 
 import robothub
 
-__all__ = ['HubPacket', 'DetectionPacket', 'TrackerPacket', 'DepthPacket']
+__all__ = ['HubPacket', 'DetectionPacket', 'TrackerPacket', 'DepthPacket', 'IMUPacket']
 
 
 class HubPacket:
@@ -67,3 +67,10 @@ class TrackerPacket(DetectionPacket):
 
     def upload_as_event(self, title):
         raise NotImplementedError('Not implemented yet')
+
+
+class IMUPacket:
+    def __init__(self, device: 'Device', packet):
+        self.device = device
+        self._packet = packet
+        # TODO add parsed data

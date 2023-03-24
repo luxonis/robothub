@@ -8,11 +8,14 @@ from robothub_depthai.components.camera import Camera
 from robothub_depthai.components.neural_network import NeuralNetwork
 from robothub_depthai.components.stereo import Stereo
 from robothub_depthai.hub_camera import HubCamera
-from robothub_depthai.packets import HubPacket, DetectionPacket, TrackerPacket, DepthPacket
+from robothub_depthai.packets import HubPacket, DetectionPacket, TrackerPacket, DepthPacket, IMUPacket
 
 __all__ = [
-    'CreateCameraCommand', 'CreateNeuralNetworkCommand', 'CreateStereoCommand',
-    'StreamCommand', 'CommandHistory'
+    'CreateCameraCommand',
+    'CreateNeuralNetworkCommand',
+    'CreateStereoCommand',
+    'StreamCommand',
+    'CommandHistory'
 ]
 
 
@@ -90,14 +93,17 @@ class CreateNeuralNetworkCommand(Command):
         """
 
         def __determine_packet_type(packet) -> Callable:
-            if isinstance(packet, packets.FramePacket):
-                return HubPacket
-            elif isinstance(packet, packets.DetectionPacket):
+            packet_type = type(packet)
+            if packet_type is packets.DetectionPacket:
                 return DetectionPacket
-            elif isinstance(packet, packets.TrackerPacket):
+            elif packet_type is packets.TrackerPacket:
                 return TrackerPacket
-            elif isinstance(packet, packets.DepthPacket):
+            elif packet_type is packets.DepthPacket:
                 return DepthPacket
+            elif packet_type is packets.IMUPacket:
+                return IMUPacket
+            else:
+                return HubPacket
 
         def callback_wrapper(packet):
             callback(__determine_packet_type(packet)(device=self.device, packet=packet))
