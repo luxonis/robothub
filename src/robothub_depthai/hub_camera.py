@@ -75,7 +75,7 @@ class HubCamera:
         :param fps: FPS of the output stream.
         """
         if not self.oak_camera:
-            raise RuntimeError('Camera not initialized.')
+            raise RuntimeError('Camera not connected/initialized.')
 
         comp = self.oak_camera.create_camera(source=source, resolution=resolution, fps=fps, encode='h264')
         return comp
@@ -89,7 +89,7 @@ class HubCamera:
                   decode_fn: Optional[Callable] = None
                   ) -> NNComponent:
         if not self.oak_camera:
-            raise RuntimeError('Camera not initialized.')
+            raise RuntimeError('Camera not connected/initialized.')
 
         comp = self.oak_camera.create_nn(model=model, input=input, nn_type=nn_type,
                                          tracker=tracker, spatial=spatial, decode_fn=decode_fn)
@@ -110,7 +110,7 @@ class HubCamera:
         :param right: Right camera component, optional.
         """
         if not self.oak_camera:
-            raise RuntimeError('Camera not initialized.')
+            raise RuntimeError('Camera not connected/initialized.')
 
         if not self.has_stereo:
             raise RuntimeError('Device does not have stereo cameras.')

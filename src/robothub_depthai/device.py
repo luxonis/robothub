@@ -63,7 +63,7 @@ class Device:
                     stream_command.execute()
 
         except Exception as e:
-            logging.info(f'Failed to start device with error: {e}')
+            logging.debug(f'Failed to start device {self._get_device_name()} with error: {e}')
             return False
 
         return True
@@ -139,6 +139,9 @@ class Device:
         :return: None
         """
         self.disconnect_callback = callback
+
+    def _get_device_name(self):
+        return self.id or self.name or self.mxid or self.ip_address
 
 
 def get_device(id: str = None, name: str = None, mxid: str = None, ip_address: str = None) -> Device:
