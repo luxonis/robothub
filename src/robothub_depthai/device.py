@@ -1,9 +1,9 @@
 import logging
-from typing import Callable, Any, Optional
+from typing import Callable, Any, Optional, List
 
+import robothub
 from depthai import NNData
 
-from robothub_depthai.hub_camera import HubCamera
 from robothub_depthai.commands import (
     CreateStereoCommand, CreateCameraCommand, CreateNeuralNetworkCommand,
     StreamCommand, CommandHistory
@@ -12,9 +12,10 @@ from robothub_depthai.components.camera import Camera
 from robothub_depthai.components.neural_network import NeuralNetwork
 from robothub_depthai.components.stereo import Stereo
 from robothub_depthai.components.streamable import Streamable
+from robothub_depthai.hub_camera import HubCamera
 from robothub_depthai.manager import DEVICE_MANAGER
 
-__all__ = ['Device', 'get_device']
+__all__ = ['Device', 'get_device', 'get_all_devices']
 
 
 class Device:
@@ -23,7 +24,7 @@ class Device:
     Startup and shutdown of the device is handled by the DeviceManager.
     """
 
-    def __init__(self, id: str, name: str, mxid: str, ip_address: str) -> None:
+    def __init__(self, id: str = None, name: str = None, mxid: str = None, ip_address: str = None) -> None:
         """
         :param id: ID of the device.
         :param name: Name of the device.
@@ -150,6 +151,23 @@ def get_device(id: str = None, name: str = None, mxid: str = None, ip_address: s
     :param ip_address: The IP address of the device.
     :return: The device.
     """
-    device = Device(id, name, mxid, ip_address)
-    DEVICE_MANAGER.add_device(device)
+    assert id or name or mxid or ip_address, 'Must specify at least one of id, name, mxid or ip_address'
+
+    device = Device(id=id, name=name, mxid=mxid, ip_address=ip_address)
+    if device not in DEVICE_MANAGER.devices:
+        DEVICE_MANAGER.add_device(device)
     return device
+
+
+def get_all_devices() -> List[Device]:
+    """
+    Returns all devices.
+
+    :return: All devices.
+    """
+    for obj in robothub.DEVICES:
+        device = Device(mxid=obj['serialNumber'])
+        if device not in DEVICE_MANAGER.devices:
+            DEVICE_MANAGER.add_device(device)
+
+    return DEVICE_MANAGER.get_devices()
