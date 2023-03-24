@@ -22,16 +22,16 @@ class HubCamera:
     """
 
     def __init__(self,
-                 device_mxid: str,
+                 device: str,
                  usb_speed: Union[None, str, dai.UsbSpeed] = None,
                  rotation: int = 0):
         """
-        :param device_mxid: MXID of the device.
+        :param device: Device identifier, either mxid, IP address or USB port.
         :param usb_speed: USB speed to use.
         :param rotation: Rotation of the camera, defaults to 0.
         """
         self.state = robothub.DeviceState.UNKNOWN
-        self.device_mxid = device_mxid
+        self.device_mxid = device
         self.usb_speed = usb_speed
         self.rotation = rotation
 

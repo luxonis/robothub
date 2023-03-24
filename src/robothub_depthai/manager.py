@@ -1,7 +1,7 @@
 import contextlib
 import logging as log
 import os
-from typing import Optional
+from typing import Optional, List
 
 import robothub
 
@@ -95,6 +95,13 @@ class DeviceManager:
         """
         self._devices.remove(device)
 
+    @property
+    def devices(self) -> List['Device']:
+        """
+        Returns the list of cameras.
+        """
+        return self._devices
+
     def _report(self) -> None:
         """
         Reports the state of the cameras to the agent. Active when app is running, inactive when app is stopped.
@@ -145,7 +152,7 @@ class DeviceManager:
         """
         Connect a device to the app.
         """
-        hub_camera = HubCamera(device_mxid=device.mxid)
+        hub_camera = HubCamera(device=device.mxid)
         if not device._start(hub_camera):  # Initialize the device (create streams, etc.)
             hub_camera.stop()
             return
