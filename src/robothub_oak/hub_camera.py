@@ -31,7 +31,7 @@ class HubCamera:
         :param rotation: Rotation of the camera, defaults to 0.
         """
         self.state = robothub.DeviceState.UNKNOWN
-        self.device_mxid = device
+        self.device_name = device
         self.usb_speed = usb_speed
         self.rotation = rotation
 
@@ -49,8 +49,8 @@ class HubCamera:
         start_time = time.time()
         while not self.stop_event.is_set():
             try:
-                camera = OakCamera(self.device_mxid, usb_speed=self.usb_speed, rotation=self.rotation)
-                log.info(f'Device {self.device_mxid}: initialized successfully.')
+                camera = OakCamera(self.device_name, usb_speed=self.usb_speed, rotation=self.rotation)
+                log.info(f'Device {self.device_name}: initialized successfully.')
                 return camera
             except Exception:
                 if time.time() - start_time > 5:
@@ -136,12 +136,12 @@ class HubCamera:
         log.debug(f'Stream: creating stream {name} for component {component}.')
 
         if unique_key is None:
-            unique_key = f'{self.device_mxid}_{component.__class__.__name__.lower()}_{component.out.encoded.__name__}'
+            unique_key = f'{self.device_name}_{component.__class__.__name__.lower()}_{component.out.encoded.__name__}'
 
         if unique_key in robothub.STREAMS.streams.keys():
             stream_handle = robothub.STREAMS.streams[unique_key]
         else:
-            stream_handle = robothub.STREAMS.create_video(camera_serial=self.device_mxid,
+            stream_handle = robothub.STREAMS.create_video(camera_serial=self.device_name,
                                                           unique_key=unique_key,
                                                           description=name)
 
