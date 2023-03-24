@@ -1,4 +1,5 @@
 import contextlib
+import logging
 import logging as log
 import os
 from typing import Optional, List
@@ -161,6 +162,8 @@ class DeviceManager:
 
         device.connect_callback(hub_camera)
         self._hub_cameras.append(hub_camera)
+
+        logging.info(f'Device {device.get_device_name()}: started successfully.')
 
     def _disconnect_camera(self, camera: HubCamera) -> None:
         """
