@@ -54,17 +54,18 @@ class Device:
             for command in self._command_history:
                 command.set_camera(hub_camera)
                 command.execute()
-
-                # Check if stream is enabled, if so, create a stream command and execute it
-                component = command.get_component()
-                if isinstance(component, Streamable) and component.stream_enabled:
-                    stream_command = StreamCommand(self, command)
-                    stream_command.set_camera(hub_camera)
-                    stream_command.execute()
-
         except Exception as e:
             warnings.warn(f'Failed to start device {self.get_device_name()} with error: {e}')
             return False
+
+        # Create streams
+        for command in self._command_history:
+            # Check if stream is enabled, if so, create a stream command and execute it
+            component = command.get_component()
+            if isinstance(component, Streamable) and component.stream_enabled:
+                stream_command = StreamCommand(self, command)
+                stream_command.set_camera(hub_camera)
+                stream_command.execute()
 
         return True
 
