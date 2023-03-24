@@ -79,7 +79,7 @@ class DeviceManager:
                         with contextlib.redirect_stdout(devnull):
                             camera.oak_camera.__exit__(Exception, 'Device disconnected - app shutting down', None)
             except BaseException as e:
-                raise Exception(f'Device {camera.device_mxid}: could not exit with exception: {e}.')
+                raise Exception(f'Device {camera.device_name}: could not exit with exception: {e}.')
 
         log.info('App: stopped successfully.')
 
@@ -116,7 +116,7 @@ class DeviceManager:
                     robothub.AGENT.publish_device_info(device_info)
                     robothub.AGENT.publish_device_stats(device_stats)
                 except Exception as e:
-                    log.debug(f'Device {camera.device_mxid}: could not report info/stats with error: {e}.')
+                    log.debug(f'Device {camera.device_name}: could not report info/stats with error: {e}.')
 
             self.stop_event.wait(self.REPORT_FREQUENCY)
 
@@ -141,7 +141,7 @@ class DeviceManager:
                 self.stop_event.wait(5)
                 continue
 
-            mxids = [camera.device_mxid for camera in self._hub_cameras]
+            mxids = [camera.device_name for camera in self._hub_cameras]
             for device in self._devices:
                 if device.mxid not in mxids:
                     self.connecting_to_device = True
@@ -166,11 +166,11 @@ class DeviceManager:
         """
         Disconnect a device from the app.
         """
-        log.info(f'Device {camera.device_mxid}: disconnected.')
+        log.info(f'Device {camera.device_name}: disconnected.')
         camera.stop()
         self._hub_cameras.remove(camera)
 
-        device = self._get_device_by_mxid(camera.device_mxid)
+        device = self._get_device_by_mxid(camera.device_name)
         if device:
             device.disconnect_callback(device)
 
