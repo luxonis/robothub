@@ -1,7 +1,7 @@
 from typing import Union, Callable, Optional
 
-from robothub_depthai.components import Camera
-from robothub_depthai.components.streamable import Streamable
+from robothub_oak.components import Camera
+from robothub_oak.components.streamable import Streamable
 
 __all__ = ['NeuralNetwork']
 

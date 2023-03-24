@@ -3,7 +3,7 @@ from typing import Optional, Tuple, Union, Any, Dict
 
 import depthai as dai
 
-from robothub_depthai.components.streamable import Streamable
+from robothub_oak.components.streamable import Streamable
 
 __all__ = ['Camera']
 

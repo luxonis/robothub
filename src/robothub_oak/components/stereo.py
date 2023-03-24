@@ -1,7 +1,7 @@
 from enum import IntEnum
 from typing import Union
 
-from robothub_depthai.components.streamable import Streamable
+from robothub_oak.components.streamable import Streamable
 
 __all__ = ['Stereo']
 

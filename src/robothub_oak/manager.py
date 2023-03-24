@@ -5,7 +5,7 @@ from typing import Optional, List
 
 import robothub
 
-from robothub_depthai.hub_camera import HubCamera
+from robothub_oak.hub_camera import HubCamera
 
 __all__ = ['DeviceManager', 'DEVICE_MANAGER']
 

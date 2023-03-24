@@ -4,16 +4,16 @@ from typing import Callable, Any, Optional, List
 import robothub
 from depthai import NNData
 
-from robothub_depthai.commands import (
+from robothub_oak.commands import (
     CreateStereoCommand, CreateCameraCommand, CreateNeuralNetworkCommand,
     StreamCommand, CommandHistory
 )
-from robothub_depthai.components.camera import Camera
-from robothub_depthai.components.neural_network import NeuralNetwork
-from robothub_depthai.components.stereo import Stereo
-from robothub_depthai.components.streamable import Streamable
-from robothub_depthai.hub_camera import HubCamera
-from robothub_depthai.manager import DEVICE_MANAGER
+from robothub_oak.components.camera import Camera
+from robothub_oak.components.neural_network import NeuralNetwork
+from robothub_oak.components.stereo import Stereo
+from robothub_oak.components.streamable import Streamable
+from robothub_oak.hub_camera import HubCamera
+from robothub_oak.manager import DEVICE_MANAGER
 
 __all__ = ['Device', 'get_device', 'get_all_devices']
 
@@ -63,7 +63,7 @@ class Device:
                     stream_command.execute()
 
         except Exception as e:
-            warnings.warn(f'Failed to start device {self._get_device_name()} with error: {e}')
+            warnings.warn(f'Failed to start device {self.get_device_name()} with error: {e}')
             return False
 
         return True
@@ -140,7 +140,7 @@ class Device:
         """
         self.disconnect_callback = callback
 
-    def _get_device_name(self):
+    def get_device_name(self):
         return self.id or self.name or self.mxid or self.ip_address
 
 
