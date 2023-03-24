@@ -50,7 +50,6 @@ class HubCamera:
         while not self.stop_event.is_set():
             try:
                 camera = OakCamera(self.device_name, usb_speed=self.usb_speed, rotation=self.rotation)
-                log.info(f'Device {self.device_name}: initialized successfully.')
                 return camera
             except Exception:
                 if time.time() - start_time > 5:
