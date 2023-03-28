@@ -6,6 +6,7 @@ from typing import Optional, List
 
 import robothub
 
+from robothub_oak.device import Device
 from robothub_oak.hub_camera import HubCamera
 
 __all__ = ['DeviceManager', 'DEVICE_MANAGER']
@@ -197,6 +198,40 @@ class DeviceManager:
                 thread.join()
         except BaseException as e:
             log.error(f'{thread.getName()}: join excepted with: {e}.')
+
+    @staticmethod
+    def get_device(id: str = None, name: str = None, mxid: str = None, ip_address: str = None) -> Device:
+        """
+        Returns a device by its ID, name, mxid or IP address.
+
+        :param id: The ID of the device.
+        :param name: The name of the device.
+        :param mxid: The mxid of the device.
+        :param ip_address: The IP address of the device.
+        :return: The device.
+        """
+        assert id or name or mxid or ip_address, 'Must specify at least one of id, name, mxid or ip_address'
+
+        device = Device(id=id, name=name, mxid=mxid, ip_address=ip_address)
+        if device not in DEVICE_MANAGER.devices:
+            DEVICE_MANAGER.add_device(device)
+        return device
+
+    @staticmethod
+    def get_all_devices() -> List[Device]:
+        """
+        Returns all devices.
+
+        :return: All devices.
+        """
+        devices = []
+        for obj in robothub.DEVICES:
+            device = Device(mxid=obj.oak['serialNumber'])
+            if device not in DEVICE_MANAGER.devices:
+                DEVICE_MANAGER.add_device(device)
+            devices.append(device)
+
+        return devices
 
 
 DEVICE_MANAGER = DeviceManager()

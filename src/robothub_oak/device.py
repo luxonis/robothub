@@ -1,7 +1,6 @@
 import warnings
-from typing import Callable, Any, Optional, List
+from typing import Callable, Any, Optional
 
-import robothub
 from depthai import NNData
 
 from robothub_oak.commands import (
@@ -13,9 +12,8 @@ from robothub_oak.components.neural_network import NeuralNetwork
 from robothub_oak.components.stereo import Stereo
 from robothub_oak.components.streamable import Streamable
 from robothub_oak.hub_camera import HubCamera
-from robothub_oak.manager import DEVICE_MANAGER
 
-__all__ = ['Device', 'get_device', 'get_all_devices']
+__all__ = ['Device']
 
 
 class Device:
@@ -146,37 +144,3 @@ class Device:
 
     def get_device_name(self):
         return self.id or self.name or self.mxid or self.ip_address
-
-
-def get_device(id: str = None, name: str = None, mxid: str = None, ip_address: str = None) -> Device:
-    """
-    Returns a device by its ID, name, mxid or IP address.
-
-    :param id: The ID of the device.
-    :param name: The name of the device.
-    :param mxid: The mxid of the device.
-    :param ip_address: The IP address of the device.
-    :return: The device.
-    """
-    assert id or name or mxid or ip_address, 'Must specify at least one of id, name, mxid or ip_address'
-
-    device = Device(id=id, name=name, mxid=mxid, ip_address=ip_address)
-    if device not in DEVICE_MANAGER.devices:
-        DEVICE_MANAGER.add_device(device)
-    return device
-
-
-def get_all_devices() -> List[Device]:
-    """
-    Returns all devices.
-
-    :return: All devices.
-    """
-    devices = []
-    for obj in robothub.DEVICES:
-        device = Device(mxid=obj.oak['serialNumber'])
-        if device not in DEVICE_MANAGER.devices:
-            DEVICE_MANAGER.add_device(device)
-        devices.append(device)
-
-    return devices
