@@ -153,7 +153,7 @@ class DeviceManager:
         """
         Connect a device to the app.
         """
-        hub_camera = HubCamera(device=device.get_device_name())
+        hub_camera = HubCamera(device_name=device.get_device_name())
         if not device._start(hub_camera):  # Initialize the device (create streams, etc.)
             hub_camera.stop()
             return
@@ -173,16 +173,16 @@ class DeviceManager:
         camera.stop()
         self._hub_cameras.remove(camera)
 
-        device = self._get_device_by_mxid(camera.device_name)
+        device = self._get_device_by_name(camera.device_name)
         if device:
-            device.disconnect_callback(device)
+            device.disconnect_callback(camera)
 
-    def _get_device_by_mxid(self, mxid: str) -> Optional['Device']:
+    def _get_device_by_name(self, name: str) -> Optional['Device']:
         """
         Get a device by its mxid.
         """
         for device in self._devices:
-            if device.mxid == mxid:
+            if device.get_device_name() == name:
                 return device
 
         return None
