@@ -50,6 +50,9 @@ class Device:
         :param hub_camera: The HubCamera instance to use.
         :return: True if successful, False otherwise.
         """
+        if hub_camera.oak_camera is None:
+            return False
+
         try:
             for command in self._command_history:
                 command.set_camera(hub_camera)
