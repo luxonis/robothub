@@ -53,6 +53,10 @@ class Device:
 
         try:
             for command in self._command_history:
+                if isinstance(command, CreateStereoCommand) and not hub_camera.has_stereo:
+                    warnings.warn(f'Device {self.get_device_name()} does not support stereo, skipping stereo creation.')
+                    return False
+
                 command.set_camera(hub_camera)
                 command.execute()
         except Exception as e:
@@ -63,6 +67,11 @@ class Device:
         for command in self._command_history:
             # Check if stream is enabled, if so, create a stream command and execute it
             component = command.get_component()
+
+            # Component can be None if the command failed to execute (e.g., stereo component on a single camera device)
+            if component is None:
+                continue
+
             if isinstance(component, Streamable) and component.stream_enabled:
                 stream_command = StreamCommand(self, command)
                 stream_command.set_camera(hub_camera)
