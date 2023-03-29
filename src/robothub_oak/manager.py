@@ -58,6 +58,9 @@ class DeviceManager:
         self.polling_thread.start()
         log.info('Polling thread: started successfully.')
 
+        while not self.stop_event.is_set():
+            self.stop_event.wait(60)
+
     def stop(self) -> None:
         """
         Stop the cameras, stop reporting and polling threads.
