@@ -1,7 +1,7 @@
-
 import logging
 
 __all__ = ['try_or_default', 'set_logging_level']
+
 
 def try_or_default(func, default=None):
     try:
