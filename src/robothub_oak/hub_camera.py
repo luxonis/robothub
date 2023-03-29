@@ -57,7 +57,7 @@ class HubCamera:
                 if time.time() - start_time > 10:
                     break
 
-                time.sleep(1)
+                self.stop_event.wait(1)
 
         return None
 
@@ -212,7 +212,7 @@ class HubCamera:
             except Exception as e:
                 warnings.warn(f'Camera: could not start with exception {e}.')
 
-            time.sleep(1)
+            self.stop_event.wait(1)
 
     def stop(self) -> None:
         """
