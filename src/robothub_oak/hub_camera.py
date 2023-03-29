@@ -1,5 +1,6 @@
 import logging as log
 import time
+import warnings
 from pathlib import Path
 from typing import Union, Optional, Callable, Dict, Any
 
@@ -57,6 +58,19 @@ class HubCamera:
                     break
 
                 time.sleep(1)
+
+        start_time = time.time()
+        devices = []
+        for device in rh.DEVICES:
+            while True:
+                try:
+                    camera = OakCamera(device.oak['serialNumber'])
+                    devices.append(camera)
+                except Exception:
+                    if time.time() - start_time > 10:
+                        break
+
+                    time.sleep(0.5)
 
         return None
 
@@ -209,7 +223,7 @@ class HubCamera:
                 self.state = robothub.DeviceState.CONNECTED
                 return
             except Exception as e:
-                print(f'Camera: could not start with exception {e}.')
+                warnings.warn(f'Camera: could not start with exception {e}.')
 
             time.sleep(1)
 
