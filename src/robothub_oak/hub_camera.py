@@ -1,5 +1,6 @@
 import logging as log
 import time
+import warnings
 from pathlib import Path
 from typing import Union, Optional, Callable, Dict, Any
 
@@ -10,9 +11,8 @@ import robothub
 from depthai_sdk import OakCamera
 from depthai_sdk.components import CameraComponent, StereoComponent, NNComponent
 
-import robothub_depthai
-from robothub_depthai.callbacks import get_default_color_callback, get_default_nn_callback, get_default_depth_callback
-from robothub_depthai.utils import try_or_default
+from robothub_oak.callbacks import get_default_color_callback, get_default_nn_callback, get_default_depth_callback
+from robothub_oak.utils import try_or_default
 
 __all__ = ['HubCamera']
 
@@ -23,41 +23,41 @@ class HubCamera:
     """
 
     def __init__(self,
-                 app: 'robothub_depthai.RobotHubApplication',
-                 device_mxid: str,
-                 id: int,
+                 device_name: str,
                  usb_speed: Union[None, str, dai.UsbSpeed] = None,
                  rotation: int = 0):
         """
-        :param app: RobotHubApplication instance.
-        :param device_mxid: MXID of the device.
+        :param device_name: Device identifier, either mxid, IP address or USB port.
         :param usb_speed: USB speed to use.
         :param rotation: Rotation of the camera, defaults to 0.
         """
-        self.app = app
         self.state = robothub.DeviceState.UNKNOWN
-        self.running = False
-        self.device_mxid = device_mxid
+        self.device_name = device_name
         self.usb_speed = usb_speed
         self.rotation = rotation
-        self.id = id
+
+        self.stop_event = robothub.threading.Event()
+        self.streams = {}  # unique_key -> StreamHandle
 
         self.oak_camera = self._init_oak_camera()
         self.available_sensors = self.oak_camera.sensors if self.oak_camera else []
 
-    def _init_oak_camera(self) -> OakCamera:
-        # try to init for 5 seconds
+    def _init_oak_camera(self) -> Optional[OakCamera]:
+        """
+        Initializes the OakCamera instance. Will try to initialize for 5 seconds before returning None.
+
+        :return: OakCamera instance if successful, None otherwise.
+        """
         start_time = time.time()
-        while not self.app.stop_event.is_set():
+        while not self.stop_event.is_set():
             try:
-                camera = OakCamera(self.device_mxid, usb_speed=self.usb_speed, rotation=self.rotation)
-                log.info(f'Device {self.device_mxid}: initialized successfully.')
+                camera = OakCamera(self.device_name, usb_speed=self.usb_speed, rotation=self.rotation)
                 return camera
-            except Exception as e:
-                if time.time() - start_time > 5:
+            except Exception:
+                if time.time() - start_time > 10:
                     break
 
-                self.app.stop_event.wait(1)
+                self.stop_event.wait(1)
 
         return None
 
@@ -74,6 +74,7 @@ class HubCamera:
         :param source: Source of the camera. Can be either 'color', 'left', 'right' or a sensor name.
         :param resolution: Resolution of the camera.
         :param fps: FPS of the output stream.
+        :return: The camera component.
         """
         comp = self.oak_camera.create_camera(source=source, resolution=resolution, fps=fps, encode='h264')
         return comp
@@ -86,6 +87,18 @@ class HubCamera:
                   spatial: Union[None, bool, StereoComponent] = None,
                   decode_fn: Optional[Callable] = None
                   ) -> NNComponent:
+        """
+        Creates a neural network component.
+
+        :param model: Name or path to the model.
+        :param input: Input component, either a camera or another neural network.
+        :param nn_type: Either 'yolo' or 'mobilenet'. For other types, use None.
+        :param tracker: If True, will enable and add a tracker to the output.
+        :param spatial: If True, will enable and add spatial data to the output. If a StereoComponent is provided,
+                        will use that component to calculate the spatial data.
+        :param decode_fn: Function to decode the output of the neural network.
+        :return: Neural network component.
+        """
         comp = self.oak_camera.create_nn(model=model, input=input, nn_type=nn_type,
                                          tracker=tracker, spatial=spatial, decode_fn=decode_fn)
         return comp
@@ -103,7 +116,11 @@ class HubCamera:
         :param fps: FPS of the output stream.
         :param left: Left camera component, optional.
         :param right: Right camera component, optional.
+        :return: Stereo component.
         """
+        if not self.has_stereo:
+            raise RuntimeError('Device does not have stereo cameras.')
+
         comp = self.oak_camera.create_stereo(resolution=resolution, fps=fps, left=left, right=right, encode='h264')
         comp.set_colormap(dai.Colormap.STEREO_TURBO)
         return comp
@@ -124,12 +141,16 @@ class HubCamera:
         """
         log.debug(f'Stream: creating stream {name} for component {component}.')
 
+        if unique_key is None:
+            unique_key = f'{self.device_name}_{component.__class__.__name__.lower()}_{component.out.encoded.__name__}'
+
         if unique_key in robothub.STREAMS.streams.keys():
             stream_handle = robothub.STREAMS.streams[unique_key]
         else:
-            stream_handle = robothub.STREAMS.create_video(camera_serial=self.device_mxid,
+            stream_handle = robothub.STREAMS.create_video(camera_serial=self.device_name,
                                                           unique_key=unique_key,
                                                           description=name)
+        self.streams[unique_key] = stream_handle
 
         self._add_stream_callback(stream_handle=stream_handle, component=component, callback=callback)
 
@@ -138,6 +159,14 @@ class HubCamera:
                              component: Union[CameraComponent, NNComponent, StereoComponent],
                              callback: Callable
                              ) -> None:
+        """
+        Selects the correct callback function for the given component and adds it to the stream.
+
+        :param stream_handle: Stream handle to add the callback to.
+        :param component: Component to create a callback for.
+        :param callback: User-defined callback function to be called when a new frame is received.
+        :return: None
+        """
         fn = None
         enable_visualizer = False
         if isinstance(component, CameraComponent):
@@ -152,6 +181,14 @@ class HubCamera:
             self.oak_camera.callback(component.out.encoded, callback=fn, enable_visualizer=enable_visualizer)
 
     def callback(self, output: Any, callback: Callable, enable_visualizer: bool = False) -> None:
+        """
+        Sets a callback function for the given output.
+
+        :param output: Output to set the callback for.
+        :param callback: Callback function to be called when a new frame is received.
+        :param enable_visualizer: Whether to enable the visualizer that provides metadata.
+        :return: None
+        """
         self.oak_camera.callback(output, callback=callback, enable_visualizer=enable_visualizer)
 
     def poll(self) -> Optional[int]:
@@ -167,21 +204,28 @@ class HubCamera:
         if self.state == robothub.DeviceState.CONNECTED:
             return
 
-        while not self.app.stop_event.is_set():
+        while not self.stop_event.is_set():
             try:
                 self.oak_camera.start()
                 self.state = robothub.DeviceState.CONNECTED
                 return
             except Exception as e:
-                print(f'Camera: could not start with exception {e}.')
+                warnings.warn(f'Camera: could not start with exception {e}.')
 
-            self.app.stop_event.wait(1)
+            self.stop_event.wait(1)
 
     def stop(self) -> None:
         """
         Stops the device and sets the state to disconnected.
         """
-        self.oak_camera.device.close()
+        self.stop_event.set()
+
+        for stream in self.streams.values():
+            robothub.STREAMS.destroy(stream)
+
+        if self.oak_camera:
+            self.oak_camera.device.close()
+        self.oak_camera = None
 
     def stats_report(self) -> Dict[str, Any]:
         """
@@ -244,6 +288,7 @@ class HubCamera:
     def device(self) -> dai.Device:
         """
         Returns the device object.
+        :return: depthai.Device object.
         """
         return self.oak_camera.device
 
