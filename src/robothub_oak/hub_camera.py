@@ -59,19 +59,6 @@ class HubCamera:
 
                 time.sleep(1)
 
-        start_time = time.time()
-        devices = []
-        for device in rh.DEVICES:
-            while True:
-                try:
-                    camera = OakCamera(device.oak['serialNumber'])
-                    devices.append(camera)
-                except Exception:
-                    if time.time() - start_time > 10:
-                        break
-
-                    time.sleep(0.5)
-
         return None
 
     def create_camera(self,
