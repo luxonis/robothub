@@ -79,7 +79,7 @@ class DeviceManager:
                 if camera.state != robothub.DeviceState.DISCONNECTED:
                     with open(os.devnull, 'w') as devnull:
                         with contextlib.redirect_stdout(devnull):
-                            camera.oak_camera.__exit__(Exception, 'Device disconnected - app shutting down', None)
+                            camera.stop()
             except BaseException as e:
                 raise Exception(f'Device {camera.device_name}: could not exit with exception: {e}.')
 
