@@ -42,7 +42,7 @@ jobs:
 
     - name: Generate docs
       run: |
-        python gen-docs.py ./src/robothub_depthai
+        python gen-docs.py ./src/robothub_oak
         mv docs.json schema.json
         rclone copy "schema.json" "cfr2:docs-assets/libraries/python/robothub_oak/${{ github.ref_name }}/"
 
