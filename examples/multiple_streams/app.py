@@ -1,20 +1,23 @@
-import robothub_depthai
+import robothub
+
+from robothub_oak.manager import DEVICE_MANAGER
 
 
-class Application(robothub_depthai.RobotHubApplication):
+class Application(robothub.RobotHubApplication):
     def on_start(self):
-        for camera in self.unbooted_cameras:
-            color = camera.create_camera('color', resolution='1080p', fps=30)
-            nn = camera.create_nn('person-detection-retail-0013', input=color)
-            stereo = camera.create_stereo('800p', fps=30)
+        devices = DEVICE_MANAGER.get_all_devices()
+        for device in devices:
+            color = device.get_camera('color', resolution='1080p', fps=30)
+            color.stream_to_hub(name=f'Color stream {device.id}')
 
-            # It will automatically create a stream and assign matching callback based on Component type
-            camera.create_stream(component=color,
-                                 unique_key=f'color_stream_{camera.id}',
-                                 name=f'Color stream {camera.id}')
-            camera.create_stream(component=nn,
-                                 unique_key=f'nn_stream_{camera.id}',
-                                 name=f'Detections stream {camera.id}')
-            camera.create_stream(component=stereo,
-                                 unique_key=f'depth_{camera.id}',
-                                 name=f'Depth stream {camera.id}')
+            stereo = device.get_stereo_camera(resolution='400p', fps=30)
+            stereo.stream_to_hub(name=f'Stereo stream {device.id}')
+
+            nn = device.create_neural_network('person-detection-retail-0013', color)
+            nn.stream_to_hub(name=f'NN stream {device.id}')
+
+    def start_execution(self):
+        DEVICE_MANAGER.start()
+
+    def on_stop(self):
+        DEVICE_MANAGER.stop()

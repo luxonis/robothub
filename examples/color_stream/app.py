@@ -1,10 +1,17 @@
-import robothub_depthai
+import robothub
+
+from robothub_oak.manager import DEVICE_MANAGER
 
 
-class Application(robothub_depthai.RobotHubApplication):
+class Application(robothub.RobotHubApplication):
     def on_start(self):
-        for camera in self.unbooted_cameras:
-            color = camera.create_camera('color', resolution='1080p', fps=30)
+        devices = DEVICE_MANAGER.get_all_devices()
+        for device in devices:
+            color = device.get_camera('color', resolution='1080p', fps=30)
+            color.stream_to_hub(name=f'Color stream {device.id}')
 
-            # It will automatically create a stream and assign matching callback based on Component type
-            camera.create_stream(component=color, unique_key=f'color_{camera.id}', name='Color stream')
+    def start_execution(self):
+        DEVICE_MANAGER.start()
+
+    def on_stop(self):
+        DEVICE_MANAGER.stop()
