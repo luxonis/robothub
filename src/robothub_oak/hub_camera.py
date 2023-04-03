@@ -271,12 +271,12 @@ class HubCamera:
         device_info = try_or_default(self.device.getDeviceInfo)
         calibration = try_or_default(self.device.readFactoryCalibration) or try_or_default(self.device.readCalibration2)
         eeprom_data = try_or_default(calibration.getEepromData)
+        info['bootloader_version'] = try_or_default(self.device.getBootloaderVersion().toStringSemver())
 
         if eeprom_data:
             info['product_name'] = eeprom_data.productName
             info['board_name'] = eeprom_data.boardName
             info['board_rev'] = eeprom_data.boardRev
-            info['bootloader_version'] = str(eeprom_data.version)
 
         if device_info:
             info['protocol'] = device_info.protocol.name
