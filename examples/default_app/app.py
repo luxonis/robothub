@@ -1,18 +1,23 @@
-import robothub_depthai
+import robothub
+
+from robothub_oak.manager import DEVICE_MANAGER
 
 
-class DefaultApplication(robothub_depthai.RobotHubApplication):
+class DefaultApplication(robothub.RobotHubApplication):
     def on_start(self):
-        for camera in self.unbooted_cameras:
+        devices = DEVICE_MANAGER.get_all_devices()
+        for device in devices:
             color_resolution = '1080p'
             mono_resolution = '400p'
 
-            if camera.has_color:
-                print(f'Initialized color stream with resolution: {color_resolution}')
-                color = camera.create_camera('color', resolution=color_resolution, fps=30)
-                camera.create_stream(component=color, unique_key=f'color_{camera.id}', name=f'Color stream {camera.id}')
+            color = device.get_camera('color', resolution=color_resolution, fps=30)
+            color.stream_to_hub(name=f'Color stream {device.id}')
 
-            if camera.has_stereo:
-                print(f'Initialized depth stream with resolution: {mono_resolution}')
-                stereo = camera.create_stereo(resolution=mono_resolution, fps=30)
-                camera.create_stream(component=stereo, unique_key=f'depth_{camera.id}', name=f'Depth stream {camera.id}')
+            stereo = device.get_stereo_camera(resolution=mono_resolution, fps=30)
+            stereo.stream_to_hub(name=f'Stereo stream {device.id}')
+
+    def start_execution(self):
+        DEVICE_MANAGER.start()
+
+    def on_stop(self):
+        DEVICE_MANAGER.stop()

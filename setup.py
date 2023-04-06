@@ -6,7 +6,7 @@ long_description = io.open('README.md', encoding='utf-8').read()
 
 setup(
     name='robothub_oak',
-    version='1.0.0',
+    version='1.0.2',
     description='RobotHub-OAK integration library',
     long_description=long_description,
     long_description_content_type='text/markdown',
@@ -19,11 +19,11 @@ setup(
     package_dir={'': 'src'},  # https://stackoverflow.com/a/67238346/5494277
     include_package_data=True,
     project_urls={
-        'Homepage': 'https://github.com/luxonis/robothub-depthai/',
+        'Homepage': 'https://github.com/luxonis/robothub-oak/',
         'Documentation': 'https://hub-docs.luxonis.com/',
     },
     classifiers=[
-        'Development Status :: 3 - Alpha',
+        'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
         'Intended Audience :: Education',
         'Intended Audience :: Information Technology',
