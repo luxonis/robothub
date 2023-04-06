@@ -223,6 +223,8 @@ class HubCamera:
         for stream in self.streams.values():
             robothub.STREAMS.destroy(stream)
 
+        self.streams.clear()
+
         if self.oak_camera:
             self.oak_camera.device.close()
         self.oak_camera = None

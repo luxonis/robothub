@@ -69,7 +69,7 @@ class Device:
             component = command.get_component()
 
             # Component can be None if the command failed to execute (e.g., stereo component on a single camera device)
-            if component is None:
+            if isinstance(command, CreateStereoCommand) and component.stereo_component is None:
                 continue
 
             if isinstance(component, Streamable) and component.stream_enabled:
