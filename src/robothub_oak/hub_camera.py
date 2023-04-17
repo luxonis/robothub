@@ -229,6 +229,8 @@ class HubCamera:
         self.streams.clear()
         self.state = robothub.DeviceState.DISCONNECTED
 
+        self.streams.clear()
+
         if self.oak_camera:
             self.oak_camera.device.close()
 
