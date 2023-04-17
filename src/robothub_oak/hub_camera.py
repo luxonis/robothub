@@ -221,12 +221,19 @@ class HubCamera:
         self.stop_event.set()
 
         for stream in self.streams.values():
-            robothub.STREAMS.destroy(stream)
+            try:
+                robothub.STREAMS.destroy(stream)
+            except ValueError:
+                pass
+
+        self.streams.clear()
+        self.state = robothub.DeviceState.DISCONNECTED
 
         self.streams.clear()
 
         if self.oak_camera:
             self.oak_camera.device.close()
+
         self.oak_camera = None
 
     def stats_report(self) -> Dict[str, Any]:
