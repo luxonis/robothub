@@ -221,10 +221,17 @@ class HubCamera:
         self.stop_event.set()
 
         for stream in self.streams.values():
-            robothub.STREAMS.destroy(stream)
+            try:
+                robothub.STREAMS.destroy(stream)
+            except ValueError:
+                pass
+
+        self.streams.clear()
+        self.state = robothub.DeviceState.DISCONNECTED
 
         if self.oak_camera:
             self.oak_camera.device.close()
+
         self.oak_camera = None
 
     def stats_report(self) -> Dict[str, Any]:
@@ -271,12 +278,12 @@ class HubCamera:
         device_info = try_or_default(self.device.getDeviceInfo)
         calibration = try_or_default(self.device.readFactoryCalibration) or try_or_default(self.device.readCalibration2)
         eeprom_data = try_or_default(calibration.getEepromData)
+        info['bootloader_version'] = try_or_default(self.device.getBootloaderVersion().toStringSemver())
 
         if eeprom_data:
             info['product_name'] = eeprom_data.productName
             info['board_name'] = eeprom_data.boardName
             info['board_rev'] = eeprom_data.boardRev
-            info['bootloader_version'] = str(eeprom_data.version)
 
         if device_info:
             info['protocol'] = device_info.protocol.name
