@@ -144,7 +144,7 @@ class CreateStereoCommand(Command):
                                        lr_check=lr_check,
                                        subpixel=subpixel,
                                        median=median,
-                                       extended_disparity=extended_disparity)
+                                       extended=extended_disparity)
 
         self._stereo.stereo_component = stereo_component
 
