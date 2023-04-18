@@ -3,7 +3,7 @@ from typing import Union
 
 from robothub_oak.components.streamable import Streamable
 
-__all__ = ['Stereo']
+__all__ = ['Stereo', 'DepthQuality', 'DepthRange']
 
 
 class DepthQuality(IntEnum):
@@ -30,13 +30,28 @@ class Stereo(Streamable):
         self.quality = DepthQuality.DEFAULT
         self.range = DepthRange.DEFAULT
 
+        self.align = 'color'
         self.stereo_component = None  # type: depthai_sdk.components.StereoComponent
 
-    def configure(self, quality: Union[str, DepthQuality] = None, range: Union[str, DepthRange] = None) -> None:
-        if quality:
-            self.quality = self._set_enum_value(DepthQuality, quality)
-        if range:
-            self.range = self._set_enum_value(DepthRange, range)
+    def configure(self,
+                  depth_quality: Union[str, DepthQuality] = None,
+                  depth_range: Union[str, DepthRange] = None,
+                  align: str = None) -> None:
+        """
+        Configures the stereo component.
+
+        :param depth_quality: Quality of the depth map. Can be one of 'fast', 'default' or 'quality'.
+        :param depth_range: Working range of the stereo module. Can be one of 'short', 'default' or 'long'.
+        :param align: Alignment of the depth map. Can be one of 'color', 'left', 'right' or 'cama,c' (or similar).
+                      Defaults to 'color'.
+        :return: None.
+        """
+        if depth_quality:
+            self.quality = self._set_enum_value(DepthQuality, depth_quality)
+        if depth_range:
+            self.range = self._set_enum_value(DepthRange, depth_range)
+        if align:
+            self.align = align
 
     @staticmethod
     def _set_enum_value(enum, value):
