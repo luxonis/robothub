@@ -115,18 +115,29 @@ class Device:
         if isinstance(input, NeuralNetwork):
             raise NotImplementedError('Neural networks cannot be used as input for other neural networks yet')
 
-        neural_network = NeuralNetwork(name=name, input=input, nn_type=nn_type, decode_fn=decode_fn,
-                                       tracker=tracker, spatial=spatial)
+        neural_network = NeuralNetwork(name=name,
+                                       input=input,
+                                       nn_type=nn_type,
+                                       decode_fn=decode_fn,
+                                       tracker=tracker,
+                                       spatial=spatial)
         command = CreateNeuralNetworkCommand(self, neural_network)
         self._command_history.push(command)
         return neural_network
 
-    def get_stereo_camera(self, resolution: str, fps: int, left_camera: Camera = None, right_camera: Camera = None):
+    def get_stereo_camera(self,
+                          resolution: str = None,
+                          fps: int = None,
+                          left_camera: Camera = None,
+                          right_camera: Camera = None)\
+            -> Stereo:
         """
         Creates a stereo component.
 
         :param resolution: The resolution of the stereo camera.
         :param fps: The FPS of the stereo camera.
+        :param left_camera: The left camera.
+        :param right_camera: The right camera.
         """
         stereo = Stereo(resolution, fps, left_camera, right_camera)
         command = CreateStereoCommand(self, stereo)
@@ -138,7 +149,7 @@ class Device:
         Sets the callback to be called when the device connects.
 
         :param callback: The callback to be called when the device connects.
-        :return: None
+        :return: None.
         """
         self.connect_callback = callback
 
@@ -147,9 +158,12 @@ class Device:
         Sets the callback to be called when the device disconnects.
 
         :param callback: The callback to be called when the device disconnects.
-        :return: None
+        :return: None.
         """
         self.disconnect_callback = callback
 
-    def get_device_name(self):
+    def get_device_name(self) -> str:
+        """
+        Returns the name of the device.
+        """
         return self.id or self.name or self.mxid or self.ip_address

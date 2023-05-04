@@ -1,5 +1,5 @@
 from enum import IntEnum
-from typing import Union
+from typing import Union, Optional
 
 from robothub_oak.components.streamable import Streamable
 
@@ -19,7 +19,19 @@ class DepthRange(IntEnum):
 
 
 class Stereo(Streamable):
-    def __init__(self, resolution: str, fps: int, left_camera: 'Camera' = None, right_camera: 'Camera' = None) -> None:
+    def __init__(self,
+                 resolution: Optional[str],
+                 fps: Optional[int],
+                 left_camera: Optional['Camera'] = None,
+                 right_camera: Optional['Camera'] = None):
+        """
+        This component represents the stereo module of the OAK device.
+
+        :param resolution: Resolution of the disparity/depth map. Can be one of '400p', '480p', '720p', or '800p'.
+        :param fps: FPS of the stereo output.
+        :param left_camera: Left camera component.
+        :param right_camera: Right camera component.
+        """
         super().__init__()
         self.resolution = resolution
         self.fps = fps

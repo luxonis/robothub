@@ -12,10 +12,6 @@ from robothub_oak.hub_camera import HubCamera
 __all__ = ['DeviceManager', 'DEVICE_MANAGER']
 
 
-class NoDevicesException(Exception):
-    pass
-
-
 class DeviceManager:
     """
     A manager class to handle multiple HubCamera instances.
@@ -58,6 +54,7 @@ class DeviceManager:
         self.polling_thread.start()
         log.info('Polling thread: started successfully.')
 
+        # Endless loop to prevent app from exiting, keeps the main thread alive
         while not self.stop_event.is_set():
             self.stop_event.wait(60)
 
@@ -218,6 +215,7 @@ class DeviceManager:
         device = Device(id=id, name=name, mxid=mxid, ip_address=ip_address)
         if device not in DEVICE_MANAGER.devices:
             DEVICE_MANAGER.add_device(device)
+
         return device
 
     @staticmethod
@@ -237,4 +235,4 @@ class DeviceManager:
         return devices
 
 
-DEVICE_MANAGER = DeviceManager()
+DEVICE_MANAGER = DeviceManager()  # Global device manager

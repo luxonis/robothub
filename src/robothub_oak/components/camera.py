@@ -10,6 +10,9 @@ __all__ = ['Camera']
 
 @dataclass
 class CameraConfig:
+    """
+    Dataclass representing the configuration of the camera.
+    """
     interleaved: Optional[bool] = None
     color_order: Union[None, dai.ColorCameraProperties.ColorOrder, str] = None
     manual_focus: Optional[int] = None
@@ -25,7 +28,11 @@ class CameraConfig:
 
 
 class Camera(Streamable):
-    def __init__(self, name: str, resolution: str, fps: int) -> None:
+    """
+    This component represents a single camera on the OAK, either color or mono one.
+    The API provides a way to configure the camera, but it is not required to do so.
+    """
+    def __init__(self, name: str, resolution: Optional[str], fps: Optional[int]) -> None:
         super().__init__()
         self.name = name
         self.resolution = resolution
@@ -49,7 +56,10 @@ class Camera(Streamable):
                   sharpness: Optional[int] = None,
                   luma_denoise: Optional[int] = None,
                   chroma_denoise: Optional[int] = None,
-                  ):
+                  ) -> None:
+        """
+        Configures the camera component.
+        """
         kwargs = self._process_kwargs(locals())
 
         if len(kwargs) > 0:
