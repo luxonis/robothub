@@ -38,11 +38,11 @@ class HubCamera:
 
         self.stop_event = robothub.threading.Event()
         self.streams = {}  # unique_key -> StreamHandle
+        self.available_sensors = []  # self.oak_camera.sensors if self.oak_camera else []
 
-        self.oak_camera = self._init_oak_camera()
-        self.available_sensors = self.oak_camera.sensors if self.oak_camera else []
+        self.oak_camera = self.init_oak_camera()
 
-    def _init_oak_camera(self) -> Optional[OakCamera]:
+    def init_oak_camera(self) -> Optional[OakCamera]:
         """
         Initializes the OakCamera instance. Will try to initialize for 5 seconds before returning None.
 
@@ -52,6 +52,7 @@ class HubCamera:
         while not self.stop_event.is_set():
             try:
                 camera = OakCamera(self.device_name, usb_speed=self.usb_speed, rotation=self.rotation)
+                self.available_sensors = camera.sensors
                 return camera
             except Exception:
                 if time.time() - start_time > 10:
@@ -235,6 +236,7 @@ class HubCamera:
             self.oak_camera.device.close()
 
         self.oak_camera = None
+        self.available_sensors = []
 
     def stats_report(self) -> Dict[str, Any]:
         """
