@@ -35,6 +35,12 @@ class Device:
         self.mxid = mxid
         self.ip_address = ip_address
 
+        self.cameras = {}  # type: Dict[str, Camera]
+        self.stereo = None  # type: Optional[Stereo]
+        self.neural_networks = {}  # type: Dict[str, NeuralNetwork]
+
+        self.hub_camera = None  # type: Optional[HubCamera]
+
         # Callbacks
         self.disconnect_callback = lambda x: None  # type: Callable[[Any], None]
         self.connect_callback = lambda x: None  # type: Callable[[Any], None]
@@ -50,6 +56,8 @@ class Device:
         """
         if hub_camera.oak_camera is None:
             return False
+
+        self.hub_camera = hub_camera
 
         try:
             for command in self._command_history:
@@ -79,7 +87,24 @@ class Device:
 
         return True
 
-    def get_camera(self, name: str, resolution: str, fps: int) -> Camera:
+    def restart(self) -> bool:
+        """
+        Restarts the device. This will stop all components and streams and recreate them.
+
+        :return: True if successful, False otherwise.
+        """
+        try:
+            if self.hub_camera:
+                self.hub_camera.stop()
+                self.hub_camera.init_oak_camera()
+                self._start(hub_camera=self.hub_camera)
+        except Exception as e:
+            warnings.warn(f'Failed to restart device {self.get_device_name()} with error: {e}')
+            return False
+
+        return True
+
+    def get_camera(self, name: str, resolution: str = None, fps: int = None) -> Camera:
         """
         Creates a camera component.
 
@@ -88,14 +113,20 @@ class Device:
         :param fps: The FPS of the camera.
         :return: The camera.
         """
+        # Check if camera already exists
+        if name in self.cameras:
+            return self.cameras[name]
+
         camera = Camera(name, resolution, fps)
+        self.cameras[name] = camera
+
         command = CreateCameraCommand(self, camera)
         self._command_history.push(command)
         return camera
 
     def create_neural_network(self,
                               name: str,
-                              input: Camera,
+                              input: Camera = None,
                               nn_type: str = None,
                               decode_fn: Callable[[NNData], Any] = None,
                               tracker: bool = False,
@@ -112,6 +143,11 @@ class Device:
         :param spatial: Whether to use spatial detection.
         :return: The neural network.
         """
+        if name in self.neural_networks:
+            return self.neural_networks[name]
+        elif not input:
+            raise ValueError('Neural network must have an input')
+
         if isinstance(input, NeuralNetwork):
             raise NotImplementedError('Neural networks cannot be used as input for other neural networks yet')
 
@@ -139,10 +175,13 @@ class Device:
         :param left_camera: The left camera.
         :param right_camera: The right camera.
         """
-        stereo = Stereo(resolution, fps, left_camera, right_camera)
-        command = CreateStereoCommand(self, stereo)
+        if self.stereo:
+            return self.stereo
+
+        self.stereo = Stereo(resolution, fps, left_camera, right_camera)
+        command = CreateStereoCommand(self, self.stereo)
         self._command_history.push(command)
-        return stereo
+        return self.stereo
 
     def set_connect_callback(self, callback: Callable[[HubCamera], None]) -> None:
         """

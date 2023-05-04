@@ -65,6 +65,24 @@ class Camera(Streamable):
         if len(kwargs) > 0:
             self.camera_config = replace(self.camera_config, **kwargs)
 
+    def set_resolution(self, resolution: str) -> None:
+        """
+        Sets the resolution of the camera.
+
+        :param resolution: String representation of the resolution, e.g. '1080p' or '4K'.
+        :return: None.
+        """
+        self.resolution = resolution
+
+    def set_fps(self, fps: int) -> None:
+        """
+        Sets the FPS of the camera.
+
+        :param fps: FPS to set as an integer.
+        :return: None.
+        """
+        self.fps = fps
+
     @staticmethod
     def _process_kwargs(kwargs: Dict[str, Any]) -> Dict[str, Any]:
         """Process the kwargs and remove all None values."""
