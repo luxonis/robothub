@@ -213,7 +213,10 @@ class DeviceManager:
         assert id or name or mxid or ip_address, 'Must specify at least one of id, name, mxid or ip_address'
 
         device = Device(id=id, name=name, mxid=mxid, ip_address=ip_address)
-        if device not in DEVICE_MANAGER.devices:
+
+        # Add device to device manager if it doesn't exist
+        device_name = device.get_device_name()
+        if device_name not in [d.get_device_name() for d in DEVICE_MANAGER.devices]:
             DEVICE_MANAGER.add_device(device)
 
         return device
