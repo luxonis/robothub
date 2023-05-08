@@ -2,6 +2,7 @@ import contextlib
 import logging
 import logging as log
 import os
+from collections import defaultdict
 from typing import Optional, List
 
 import robothub
@@ -233,7 +234,12 @@ class DeviceManager:
         """
         devices = []
         for obj in robothub.DEVICES:
-            device = Device(mxid=obj.oak['serialNumber'])
+            device_dict = defaultdict(lambda: None, obj.oak)
+            device = Device(mxid=device_dict['serialNumber'],
+                            name=device_dict['productName'],
+                            id=device_dict['name'],
+                            ip_address=device_dict['ipAddress'])
+
             exists = False
             for d in DEVICE_MANAGER.devices:
                 if d == device:
