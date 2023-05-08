@@ -47,6 +47,14 @@ class Device:
 
         self._command_history = CommandHistory()
 
+    def __eq__(self, other):
+        if isinstance(other, Device):
+            return self.id == other.id or self.name == other.name or self.mxid == other.mxid or self.ip_address == other.ip_address
+        elif isinstance(other, str):
+            return self.id == other or self.name == other or self.mxid == other or self.ip_address == other
+        else:
+            return False
+
     def _start(self, hub_camera: HubCamera) -> bool:
         """
         Internal method to execute all commands.
