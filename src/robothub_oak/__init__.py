@@ -8,3 +8,5 @@ except:
 from .device import *
 from .hub_camera import *
 from .manager import *
+
+__version__ = '1.1.0'
