@@ -6,7 +6,7 @@ import depthai_sdk.classes.packets as packets
 
 from robothub_oak.components.camera import Camera
 from robothub_oak.components.neural_network import NeuralNetwork
-from robothub_oak.components.stereo import Stereo
+from robothub_oak.components.stereo import Stereo, DepthQuality, DepthRange
 from robothub_oak.hub_camera import HubCamera
 from robothub_oak.packets import HubPacket, DetectionPacket, TrackerPacket, DepthPacket, IMUPacket
 
@@ -127,6 +127,25 @@ class CreateStereoCommand(Command):
                                                          fps=self._stereo.fps,
                                                          left=left,
                                                          right=right)
+
+        # Configure stereo component
+        stereo_quality = self._stereo.quality
+        stereo_range = self._stereo.range
+
+        align = self._stereo.align
+        median = 5 if stereo_quality is DepthQuality.DEFAULT else None
+        lr_check = stereo_quality is not DepthQuality.FAST
+        subpixel = stereo_quality is DepthQuality.QUALITY
+        extended_disparity = stereo_range is DepthRange.LONG
+        if extended_disparity:
+            subpixel = False
+
+        stereo_component.config_stereo(align=align,
+                                       lr_check=lr_check,
+                                       subpixel=subpixel,
+                                       median=median,
+                                       extended=extended_disparity)
+
         self._stereo.stereo_component = stereo_component
 
     def get_component(self) -> Stereo:

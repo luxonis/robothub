@@ -48,7 +48,7 @@ def _default_encoded_callback(stream_handle: StreamHandle, packet):
     """
 
     timestamp = int(time.time() * 1_000)
-    frame_bytes = bytes(packet.imgFrame.getData())
+    frame_bytes = bytes(packet.msg.getData())
     stream_handle.publish_video_data(frame_bytes, timestamp, None)
 
 
@@ -70,5 +70,5 @@ def _default_nn_callback(stream_handle: StreamHandle, packet):
             metadata['config']['detection']['color'] = [255, 0, 0]
 
     timestamp = int(time.time() * 1_000)
-    frame_bytes = bytes(packet.imgFrame.getData())
+    frame_bytes = bytes(packet.msg.getData())
     stream_handle.publish_video_data(frame_bytes, timestamp, metadata)

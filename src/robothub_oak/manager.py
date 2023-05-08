@@ -2,6 +2,7 @@ import contextlib
 import logging
 import logging as log
 import os
+from collections import defaultdict
 from typing import Optional, List
 
 import robothub
@@ -10,10 +11,6 @@ from robothub_oak.device import Device
 from robothub_oak.hub_camera import HubCamera
 
 __all__ = ['DeviceManager', 'DEVICE_MANAGER']
-
-
-class NoDevicesException(Exception):
-    pass
 
 
 class DeviceManager:
@@ -58,6 +55,7 @@ class DeviceManager:
         self.polling_thread.start()
         log.info('Polling thread: started successfully.')
 
+        # Endless loop to prevent app from exiting, keeps the main thread alive
         while not self.stop_event.is_set():
             self.stop_event.wait(60)
 
@@ -216,8 +214,15 @@ class DeviceManager:
         assert id or name or mxid or ip_address, 'Must specify at least one of id, name, mxid or ip_address'
 
         device = Device(id=id, name=name, mxid=mxid, ip_address=ip_address)
-        if device not in DEVICE_MANAGER.devices:
-            DEVICE_MANAGER.add_device(device)
+        device_name = device.get_device_name()
+
+        # Check if device already exists
+        for d in DEVICE_MANAGER.devices:
+            if d == device_name:
+                return d
+
+        # Add device to device manager if it doesn't exist
+        DEVICE_MANAGER.add_device(device)
         return device
 
     @staticmethod
@@ -229,12 +234,22 @@ class DeviceManager:
         """
         devices = []
         for obj in robothub.DEVICES:
-            device = Device(mxid=obj.oak['serialNumber'])
-            if device not in DEVICE_MANAGER.devices:
-                DEVICE_MANAGER.add_device(device)
-            devices.append(device)
+            device_dict = defaultdict(lambda: None, obj.oak)
+            device = Device(mxid=device_dict['serialNumber'],
+                            name=device_dict['productName'],
+                            id=device_dict['name'],
+                            ip_address=device_dict['ipAddress'])
+
+            exists = False
+            for d in DEVICE_MANAGER.devices:
+                if d == device:
+                    exists = True
+                    break
+
+            if not exists:
+                devices.append(device)
 
         return devices
 
 
-DEVICE_MANAGER = DeviceManager()
+DEVICE_MANAGER = DeviceManager()  # Global device manager

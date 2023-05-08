@@ -51,3 +51,12 @@ jobs:
       with:
         user: __token__
         password: ${{ secrets.PYPI_API_TOKEN }}
+
+    - name: Repository Dispatch
+      uses: peter-evans/repository-dispatch@v2
+      with:
+        token: ${{ secrets.REPO_ACCESS_TOKEN }}
+        event-type: robothub-oak-release
+        ref: ${{ github.ref }}
+        repository: luxonis/robothub-images
+        client-payload: '{"ref": "${{ github.ref }}"}'

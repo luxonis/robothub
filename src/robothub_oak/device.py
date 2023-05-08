@@ -1,5 +1,5 @@
 import warnings
-from typing import Callable, Any, Optional
+from typing import Callable, Any, Optional, Dict
 
 from depthai import NNData
 
@@ -30,16 +30,30 @@ class Device:
         :param ip_address: IP address of the device.
         """
         # Device info
-        self.id = id
-        self.name = name
-        self.mxid = mxid
-        self.ip_address = ip_address
+        self.id = id  # device identifier provided by the user
+        self.name = name  # product name
+        self.mxid = mxid  # mxid of the device
+        self.ip_address = ip_address  # IP address of the device
+
+        self.cameras: Dict[str, Camera] = {}
+        self.stereo: Optional[Stereo] = None
+        self.neural_networks: Dict[str, NeuralNetwork] = {}
+
+        self.hub_camera: Optional[HubCamera] = None
 
         # Callbacks
-        self.disconnect_callback = lambda x: None  # type: Callable[[Any], None]
-        self.connect_callback = lambda x: None  # type: Callable[[Any], None]
+        self.disconnect_callback: Callable[[Any], None] = lambda x: None
+        self.connect_callback: Callable[[Any], None] = lambda x: None
 
         self._command_history = CommandHistory()
+
+    def __eq__(self, other):
+        if isinstance(other, Device):
+            return self.id == other.id or self.name == other.name or self.mxid == other.mxid or self.ip_address == other.ip_address
+        elif isinstance(other, str):
+            return self.id == other or self.name == other or self.mxid == other or self.ip_address == other
+        else:
+            return False
 
     def _start(self, hub_camera: HubCamera) -> bool:
         """
@@ -50,6 +64,8 @@ class Device:
         """
         if hub_camera.oak_camera is None:
             return False
+
+        self.hub_camera = hub_camera
 
         try:
             for command in self._command_history:
@@ -79,7 +95,24 @@ class Device:
 
         return True
 
-    def get_camera(self, name: str, resolution: str, fps: int) -> Camera:
+    def restart(self) -> bool:
+        """
+        Restarts the device. This will stop all components and streams and recreate them.
+
+        :return: True if successful, False otherwise.
+        """
+        try:
+            if self.hub_camera:
+                self.hub_camera.stop()
+                self.hub_camera.oak_camera = self.hub_camera.init_oak_camera()
+                self._start(hub_camera=self.hub_camera)
+        except Exception as e:
+            warnings.warn(f'Failed to restart device {self.get_device_name()} with error: {e}')
+            return False
+
+        return True
+
+    def get_camera(self, name: str, resolution: str = None, fps: int = None) -> Camera:
         """
         Creates a camera component.
 
@@ -88,14 +121,20 @@ class Device:
         :param fps: The FPS of the camera.
         :return: The camera.
         """
+        # Check if camera already exists
+        if name in self.cameras:
+            return self.cameras[name]
+
         camera = Camera(name, resolution, fps)
+        self.cameras[name] = camera
+
         command = CreateCameraCommand(self, camera)
         self._command_history.push(command)
         return camera
 
     def create_neural_network(self,
                               name: str,
-                              input: Camera,
+                              input: Camera = None,
                               nn_type: str = None,
                               decode_fn: Callable[[NNData], Any] = None,
                               tracker: bool = False,
@@ -112,33 +151,52 @@ class Device:
         :param spatial: Whether to use spatial detection.
         :return: The neural network.
         """
+        if name in self.neural_networks:
+            return self.neural_networks[name]
+        elif not input:
+            raise ValueError('Neural network must have an input')
+
         if isinstance(input, NeuralNetwork):
             raise NotImplementedError('Neural networks cannot be used as input for other neural networks yet')
 
-        neural_network = NeuralNetwork(name=name, input=input, nn_type=nn_type, decode_fn=decode_fn,
-                                       tracker=tracker, spatial=spatial)
+        neural_network = NeuralNetwork(name=name,
+                                       input=input,
+                                       nn_type=nn_type,
+                                       decode_fn=decode_fn,
+                                       tracker=tracker,
+                                       spatial=spatial)
         command = CreateNeuralNetworkCommand(self, neural_network)
         self._command_history.push(command)
         return neural_network
 
-    def get_stereo_camera(self, resolution: str, fps: int, left_camera: Camera = None, right_camera: Camera = None):
+    def get_stereo_camera(self,
+                          resolution: str = None,
+                          fps: int = None,
+                          left_camera: Camera = None,
+                          right_camera: Camera = None
+                          ) -> Stereo:
         """
         Creates a stereo component.
 
         :param resolution: The resolution of the stereo camera.
         :param fps: The FPS of the stereo camera.
+        :param left_camera: The left camera.
+        :param right_camera: The right camera.
         """
-        stereo = Stereo(resolution, fps, left_camera, right_camera)
-        command = CreateStereoCommand(self, stereo)
+        if self.stereo:
+            return self.stereo
+
+        self.stereo = Stereo(resolution, fps, left_camera, right_camera)
+        command = CreateStereoCommand(self, self.stereo)
         self._command_history.push(command)
-        return stereo
+        return self.stereo
 
     def set_connect_callback(self, callback: Callable[[HubCamera], None]) -> None:
         """
         Sets the callback to be called when the device connects.
 
         :param callback: The callback to be called when the device connects.
-        :return: None
+        :return: None.
         """
         self.connect_callback = callback
 
@@ -147,9 +205,12 @@ class Device:
         Sets the callback to be called when the device disconnects.
 
         :param callback: The callback to be called when the device disconnects.
-        :return: None
+        :return: None.
         """
         self.disconnect_callback = callback
 
-    def get_device_name(self):
-        return self.id or self.name or self.mxid or self.ip_address
+    def get_device_name(self) -> str:
+        """
+        Returns the name of the device.
+        """
+        return self.id or self.name or self.ip_address or self.mxid
