@@ -5,7 +5,6 @@ try:
 except:
     pass
 
-from .app import *
 from .device import *
 from .hub_camera import *
 from .manager import *
