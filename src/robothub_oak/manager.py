@@ -217,7 +217,7 @@ class DeviceManager:
 
         # Check if device already exists
         for d in DEVICE_MANAGER.devices:
-            if d.get_device_name() == device_name:
+            if d == device_name:
                 return d
 
         # Add device to device manager if it doesn't exist
@@ -234,9 +234,14 @@ class DeviceManager:
         devices = []
         for obj in robothub.DEVICES:
             device = Device(mxid=obj.oak['serialNumber'])
-            if device not in DEVICE_MANAGER.devices:
-                DEVICE_MANAGER.add_device(device)
-            devices.append(device)
+            exists = False
+            for d in DEVICE_MANAGER.devices:
+                if d == device:
+                    exists = True
+                    break
+
+            if not exists:
+                devices.append(device)
 
         return devices
 
