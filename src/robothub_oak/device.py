@@ -96,7 +96,7 @@ class Device:
         try:
             if self.hub_camera:
                 self.hub_camera.stop()
-                self.hub_camera.init_oak_camera()
+                self.hub_camera.oak_camera = self.hub_camera.init_oak_camera()
                 self._start(hub_camera=self.hub_camera)
         except Exception as e:
             warnings.warn(f'Failed to restart device {self.get_device_name()} with error: {e}')
@@ -165,8 +165,8 @@ class Device:
                           resolution: str = None,
                           fps: int = None,
                           left_camera: Camera = None,
-                          right_camera: Camera = None)\
-            -> Stereo:
+                          right_camera: Camera = None
+                          ) -> Stereo:
         """
         Creates a stereo component.
 
