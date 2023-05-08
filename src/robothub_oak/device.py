@@ -1,5 +1,5 @@
 import warnings
-from typing import Callable, Any, Optional
+from typing import Callable, Any, Optional, Dict
 
 from depthai import NNData
 
@@ -30,20 +30,20 @@ class Device:
         :param ip_address: IP address of the device.
         """
         # Device info
-        self.id = id
-        self.name = name
-        self.mxid = mxid
-        self.ip_address = ip_address
+        self.id = id  # device identifier provided by the user
+        self.name = name  # product name
+        self.mxid = mxid  # mxid of the device
+        self.ip_address = ip_address  # IP address of the device
 
-        self.cameras = {}  # type: Dict[str, Camera]
-        self.stereo = None  # type: Optional[Stereo]
-        self.neural_networks = {}  # type: Dict[str, NeuralNetwork]
+        self.cameras: Dict[str, Camera] = {}
+        self.stereo: Optional[Stereo] = None
+        self.neural_networks: Dict[str, NeuralNetwork] = {}
 
-        self.hub_camera = None  # type: Optional[HubCamera]
+        self.hub_camera: Optional[HubCamera] = None
 
         # Callbacks
-        self.disconnect_callback = lambda x: None  # type: Callable[[Any], None]
-        self.connect_callback = lambda x: None  # type: Callable[[Any], None]
+        self.disconnect_callback: Callable[[Any], None] = lambda x: None
+        self.connect_callback: Callable[[Any], None] = lambda x: None
 
         self._command_history = CommandHistory()
 
@@ -213,4 +213,4 @@ class Device:
         """
         Returns the name of the device.
         """
-        return self.id or self.name or self.mxid or self.ip_address
+        return self.id or self.name or self.ip_address or self.mxid
