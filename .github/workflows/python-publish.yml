@@ -57,6 +57,5 @@ jobs:
       with:
         token: ${{ secrets.REPO_ACCESS_TOKEN }}
         event-type: robothub-oak-release
-        ref: ${{ github.ref }}
         repository: luxonis/robothub-images
         client-payload: '{"ref": "${{ github.ref }}"}'
