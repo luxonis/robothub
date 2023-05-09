@@ -54,9 +54,7 @@ class Stereo(Streamable):
 
         :param depth_quality: Quality of the depth map. Can be one of 'fast', 'default' or 'quality'.
         :param depth_range: Working range of the stereo module. Can be one of 'short', 'default' or 'long'.
-        :param align: Alignment of the depth map. Can be one of 'color', 'left', 'right' or 'cama,c' (or similar).
-                      Defaults to 'color'.
-        :return: None.
+        :param align: Alignment of the depth map. Can be one of 'color', 'left', 'right' or 'cama,c' (or similar). Defaults to 'color'.
         """
         if depth_quality:
             self.quality = self._set_enum_value(DepthQuality, depth_quality)

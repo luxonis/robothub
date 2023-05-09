@@ -95,9 +95,9 @@ class HubCamera:
         :param input: Input component, either a camera or another neural network.
         :param nn_type: Either 'yolo' or 'mobilenet'. For other types, use None.
         :param tracker: If True, will enable and add a tracker to the output.
-        :param spatial: If True, will enable and add spatial data to the output. If a StereoComponent is provided,
-                        will use that component to calculate the spatial data.
+        :param spatial: If True, will enable and add spatial data to the output. If a StereoComponent is provided, will use that component to calculate the spatial data.
         :param decode_fn: Function to decode the output of the neural network.
+
         :return: Neural network component.
         """
         comp = self.oak_camera.create_nn(model=model, input=input, nn_type=nn_type,
@@ -166,7 +166,6 @@ class HubCamera:
         :param stream_handle: Stream handle to add the callback to.
         :param component: Component to create a callback for.
         :param callback: User-defined callback function to be called when a new frame is received.
-        :return: None
         """
         fn = None
         enable_visualizer = False
@@ -188,7 +187,6 @@ class HubCamera:
         :param output: Output to set the callback for.
         :param callback: Callback function to be called when a new frame is received.
         :param enable_visualizer: Whether to enable the visualizer that provides metadata.
-        :return: None
         """
         self.oak_camera.callback(output, callback=callback, enable_visualizer=enable_visualizer)
 

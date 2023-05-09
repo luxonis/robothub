@@ -196,7 +196,6 @@ class Device:
         Sets the callback to be called when the device connects.
 
         :param callback: The callback to be called when the device connects.
-        :return: None.
         """
         self.connect_callback = callback
 
@@ -205,7 +204,6 @@ class Device:
         Sets the callback to be called when the device disconnects.
 
         :param callback: The callback to be called when the device disconnects.
-        :return: None.
         """
         self.disconnect_callback = callback
 

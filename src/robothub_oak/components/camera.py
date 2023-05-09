@@ -70,7 +70,6 @@ class Camera(Streamable):
         Sets the resolution of the camera.
 
         :param resolution: String representation of the resolution, e.g. '1080p' or '4K'.
-        :return: None.
         """
         self.resolution = resolution
 
@@ -79,7 +78,6 @@ class Camera(Streamable):
         Sets the FPS of the camera.
 
         :param fps: FPS to set as an integer.
-        :return: None.
         """
         self.fps = fps
 
