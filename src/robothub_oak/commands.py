@@ -3,6 +3,7 @@ from abc import abstractmethod, ABC
 from dataclasses import asdict
 from typing import Callable
 
+import depthai as dai
 import depthai_sdk.classes.packets as packets
 
 from robothub_oak.components.camera import Camera
@@ -151,7 +152,7 @@ class CreateStereoCommand(Command):
                                        subpixel=subpixel,
                                        median=median,
                                        extended=extended_disparity)
-
+        stereo_component.set_colormap(dai.Colormap.STEREO_TURBO)
         self._stereo.stereo_component = stereo_component
 
     def get_component(self) -> Stereo:
