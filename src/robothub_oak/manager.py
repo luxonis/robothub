@@ -214,11 +214,10 @@ class DeviceManager:
         assert id or name or mxid or ip_address, 'Must specify at least one of id, name, mxid or ip_address'
 
         device = Device(id=id, name=name, mxid=mxid, ip_address=ip_address)
-        device_name = device.get_device_name()
 
         # Check if device already exists
         for d in DEVICE_MANAGER.devices:
-            if d == device_name:
+            if d == device:
                 return d
 
         # Add device to device manager if it doesn't exist
@@ -232,24 +231,25 @@ class DeviceManager:
 
         :return: All devices.
         """
-        devices = []
         for obj in robothub.DEVICES:
             device_dict = defaultdict(lambda: None, obj.oak)
-            device = Device(mxid=device_dict['serialNumber'],
-                            name=device_dict['productName'],
-                            id=device_dict['name'],
-                            ip_address=device_dict['ipAddress'])
+            device = DEVICE_MANAGER.get_device(
+                mxid=device_dict['serialNumber'],
+                name=device_dict['productName'],
+                id=device_dict['name'],
+                ip_address=device_dict['ipAddress']
+            )
 
             exists = False
             for d in DEVICE_MANAGER.devices:
                 if d == device:
                     exists = True
-                    break
+                    continue
 
             if not exists:
-                devices.append(device)
+                DEVICE_MANAGER.add_device(device)
 
-        return devices
+        return DEVICE_MANAGER.devices
 
 
 DEVICE_MANAGER = DeviceManager()  # Global device manager
