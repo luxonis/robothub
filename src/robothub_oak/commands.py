@@ -1,3 +1,4 @@
+import warnings
 from abc import abstractmethod, ABC
 from dataclasses import asdict
 from typing import Callable
@@ -132,7 +133,12 @@ class CreateStereoCommand(Command):
         stereo_quality = self._stereo.quality
         stereo_range = self._stereo.range
 
-        align = self._stereo.align
+        try:
+            align = self._stereo.align.camera_component
+        except AttributeError:
+            align = False
+            warnings.warn('An error occurred while trying to access the align component. Disabling alignment.')
+
         median = 5 if stereo_quality is DepthQuality.DEFAULT else None
         lr_check = stereo_quality is not DepthQuality.FAST
         subpixel = stereo_quality is DepthQuality.QUALITY
