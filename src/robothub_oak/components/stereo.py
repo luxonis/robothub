@@ -42,13 +42,13 @@ class Stereo(Streamable):
         self.quality = DepthQuality.DEFAULT
         self.range = DepthRange.DEFAULT
 
-        self.align = 'color'
+        self.align = None
         self.stereo_component = None  # type: depthai_sdk.components.StereoComponent
 
     def configure(self,
                   depth_quality: Union[str, DepthQuality] = None,
                   depth_range: Union[str, DepthRange] = None,
-                  align: str = None) -> None:
+                  align: 'Camera' = None) -> None:
         """
         Configures the stereo component.
 
