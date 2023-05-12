@@ -1,4 +1,4 @@
-import warnings
+import logging as log
 from abc import abstractmethod, ABC
 from dataclasses import asdict
 from typing import Callable
@@ -137,8 +137,8 @@ class CreateStereoCommand(Command):
         try:
             align = self._stereo.align.camera_component
         except AttributeError:
-            align = False
-            warnings.warn('An error occurred while trying to access the align component. Disabling alignment.')
+            align = None
+            log.debug('An error occurred while trying to access the align component. Disabling alignment.')
 
         median = 5 if stereo_quality is DepthQuality.DEFAULT else None
         lr_check = stereo_quality is not DepthQuality.FAST
