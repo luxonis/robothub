@@ -139,7 +139,7 @@ class CreateStereoCommand(Command):
         align = None
         if stereo_config.align:
             try:
-                align = stereo_config.camera_component
+                align = stereo_config.align.camera_component
             except AttributeError:
                 log.debug('An error occurred while trying to access the align component. Disabling alignment.')
 
