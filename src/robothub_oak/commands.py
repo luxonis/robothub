@@ -150,11 +150,21 @@ class CreateStereoCommand(Command):
         if stereo_range and stereo_config.extended:
             warnings.warn(f'DepthRange.{stereo_range.name} is set. Extended disparity will be ignored.')
 
-        median = 5 if stereo_quality is DepthQuality.DEFAULT else None
-        lr_check = stereo_quality is not DepthQuality.FAST
-        subpixel = stereo_quality is DepthQuality.QUALITY
-        extended_disparity = stereo_range is DepthRange.LONG
-        if extended_disparity:
+        if stereo_quality:
+            median = 5 if stereo_quality is DepthQuality.DEFAULT else None
+            lr_check = stereo_quality is not DepthQuality.FAST
+            subpixel = stereo_quality is DepthQuality.QUALITY
+        else:
+            median = stereo_config.median
+            lr_check = stereo_config.lr_check
+            subpixel = stereo_config.subpixel
+
+        if stereo_range:
+            extended_disparity = stereo_range is DepthRange.LONG
+        else:
+            extended_disparity = stereo_config.extended
+
+        if extended_disparity:  # Cannot use subpixel with extended disparity
             subpixel = False
 
         stereo_component.config_stereo(align=align,
