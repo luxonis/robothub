@@ -134,11 +134,12 @@ class CreateStereoCommand(Command):
         stereo_quality = self._stereo.quality
         stereo_range = self._stereo.range
 
-        try:
-            align = self._stereo.align.camera_component
-        except AttributeError:
-            align = None
-            log.debug('An error occurred while trying to access the align component. Disabling alignment.')
+        align = None
+        if self._stereo.align:
+            try:
+                align = self._stereo.align.camera_component
+            except AttributeError:
+                log.debug('An error occurred while trying to access the align component. Disabling alignment.')
 
         median = 5 if stereo_quality is DepthQuality.DEFAULT else None
         lr_check = stereo_quality is not DepthQuality.FAST
