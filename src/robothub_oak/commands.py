@@ -1,4 +1,5 @@
 import logging as log
+import warnings
 from abc import abstractmethod, ABC
 from dataclasses import asdict
 from typing import Callable
@@ -131,15 +132,23 @@ class CreateStereoCommand(Command):
                                                          right=right)
 
         # Configure stereo component
-        stereo_quality = self._stereo.quality
-        stereo_range = self._stereo.range
+        stereo_config = self._stereo.stereo_config
+        stereo_quality = stereo_config.depth_quality
+        stereo_range = stereo_config.depth_range
 
         align = None
-        if self._stereo.align:
+        if stereo_config.align:
             try:
-                align = self._stereo.align.camera_component
+                align = stereo_config.camera_component
             except AttributeError:
                 log.debug('An error occurred while trying to access the align component. Disabling alignment.')
+
+        # Prefer Enums over values
+        if stereo_quality and (stereo_config.median or stereo_config.lr_check or stereo_config.subpixel):
+            warnings.warn(f'DepthQuality.{stereo_quality.name} is set. Median, lr_check and subpixel will be ignored.')
+
+        if stereo_range and stereo_config.extended:
+            warnings.warn(f'DepthRange.{stereo_range.name} is set. Extended disparity will be ignored.')
 
         median = 5 if stereo_quality is DepthQuality.DEFAULT else None
         lr_check = stereo_quality is not DepthQuality.FAST
