@@ -55,7 +55,9 @@ class CreateCameraCommand(Command):
         camera_component = self.hub_camera.create_camera(source=self._camera.name,
                                                          resolution=self._camera.resolution,
                                                          fps=self._camera.fps)
-        camera_component.config_color_camera(**asdict(self._camera.camera_config))
+
+        if camera_component.is_color():
+            camera_component.config_color_camera(**asdict(self._camera.camera_config))
 
         self._camera.camera_component = camera_component
 
