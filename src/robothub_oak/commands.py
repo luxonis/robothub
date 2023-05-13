@@ -172,7 +172,7 @@ class CreateStereoCommand(Command):
                                        subpixel=subpixel,
                                        median=median,
                                        extended=extended_disparity)
-        stereo_component.set_colormap(dai.Colormap.STEREO_TURBO)
+        stereo_component.set_colormap(dai.Colormap.JET)
         self._stereo.stereo_component = stereo_component
 
     def get_component(self) -> Stereo:
