@@ -42,6 +42,10 @@ class DetectionPacket(HubPacket):
     def __init__(self, device: 'Device', packet):
         super().__init__(device, packet)
         self.detections = packet.detections
+        try:
+            self.nn_data = packet.nnData
+        except AttributeError:
+            self.nn_data = None
 
     def upload_as_detection(self, title: str):
         try:
