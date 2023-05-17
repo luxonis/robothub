@@ -50,7 +50,10 @@ class Device:
 
     def __eq__(self, other):
         if isinstance(other, Device):
-            return self.id == other.id or self.name == other.name or self.mxid == other.mxid or self.ip_address == other.ip_address
+            return (self.id and self.id == other.id) \
+                or (self.name and self.name == other.name) \
+                or (self.mxid and self.mxid == other.mxid) \
+                or (self.ip_address and self.ip_address == other.ip_address)
         elif isinstance(other, str):
             return self.id == other or self.name == other or self.mxid == other or self.ip_address == other
         else:
