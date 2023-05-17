@@ -1,11 +1,13 @@
 from dataclasses import dataclass, replace
-from typing import Optional, Tuple, Union, Any, Dict
+from typing import Optional, Tuple, Union
 
 import depthai as dai
 
 from robothub_oak.components.streamable import Streamable
 
 __all__ = ['Camera']
+
+from robothub_oak.utils import _process_kwargs
 
 
 @dataclass
@@ -32,6 +34,7 @@ class Camera(Streamable):
     This component represents a single camera on the OAK, either color or mono one.
     The API provides a way to configure the camera, but it is not required to do so.
     """
+
     def __init__(self, name: str, resolution: Optional[str], fps: Optional[int]) -> None:
         super().__init__()
         self.name = name
@@ -60,7 +63,7 @@ class Camera(Streamable):
         """
         Configures the camera component.
         """
-        kwargs = self._process_kwargs(locals())
+        kwargs = _process_kwargs(locals())
 
         if len(kwargs) > 0:
             self.camera_config = replace(self.camera_config, **kwargs)
@@ -80,10 +83,3 @@ class Camera(Streamable):
         :param fps: FPS to set as an integer.
         """
         self.fps = fps
-
-    @staticmethod
-    def _process_kwargs(kwargs: Dict[str, Any]) -> Dict[str, Any]:
-        """Process the kwargs and remove all None values."""
-        kwargs.pop('self')
-        kwargs = {k: v for k, v in kwargs.items() if v is not None}
-        return kwargs

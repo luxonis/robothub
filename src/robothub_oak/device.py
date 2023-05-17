@@ -1,3 +1,4 @@
+import traceback
 import warnings
 from typing import Callable, Any, Optional, Dict
 
@@ -49,7 +50,10 @@ class Device:
 
     def __eq__(self, other):
         if isinstance(other, Device):
-            return self.id == other.id or self.name == other.name or self.mxid == other.mxid or self.ip_address == other.ip_address
+            return (self.id and self.id == other.id) \
+                or (self.name and self.name == other.name) \
+                or (self.mxid and self.mxid == other.mxid) \
+                or (self.ip_address and self.ip_address == other.ip_address)
         elif isinstance(other, str):
             return self.id == other or self.name == other or self.mxid == other or self.ip_address == other
         else:
@@ -77,6 +81,7 @@ class Device:
                 command.execute()
         except Exception as e:
             warnings.warn(f'Failed to start device {self.get_device_name()} with error: {e}')
+            traceback.print_exc()
             return False
 
         # Create streams
@@ -108,6 +113,7 @@ class Device:
                 self._start(hub_camera=self.hub_camera)
         except Exception as e:
             warnings.warn(f'Failed to restart device {self.get_device_name()} with error: {e}')
+            traceback.print_exc()
             return False
 
         return True
@@ -155,9 +161,6 @@ class Device:
             return self.neural_networks[name]
         elif not input:
             raise ValueError('Neural network must have an input')
-
-        if isinstance(input, NeuralNetwork):
-            raise NotImplementedError('Neural networks cannot be used as input for other neural networks yet')
 
         neural_network = NeuralNetwork(name=name,
                                        input=input,

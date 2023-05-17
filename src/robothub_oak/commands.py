@@ -1,8 +1,10 @@
+import logging as log
 import warnings
 from abc import abstractmethod, ABC
 from dataclasses import asdict
 from typing import Callable
 
+import depthai as dai
 import depthai_sdk.classes.packets as packets
 
 from robothub_oak.components.camera import Camera
@@ -53,7 +55,9 @@ class CreateCameraCommand(Command):
         camera_component = self.hub_camera.create_camera(source=self._camera.name,
                                                          resolution=self._camera.resolution,
                                                          fps=self._camera.fps)
-        camera_component.config_color_camera(**asdict(self._camera.camera_config))
+
+        if camera_component.is_color():
+            camera_component.config_color_camera(**asdict(self._camera.camera_config))
 
         self._camera.camera_component = camera_component
 
@@ -71,8 +75,15 @@ class CreateNeuralNetworkCommand(Command):
         self._neural_network = neural_network
 
     def execute(self) -> None:
+        if isinstance(self._neural_network.input, Camera):
+            input_component = self._neural_network.input.camera_component
+        elif isinstance(self._neural_network.input, NeuralNetwork):
+            input_component = self._neural_network.input.nn_component
+        else:
+            raise ValueError(f'Invalid input component type: {type(self._neural_network.input)}')
+
         nn_component = self.hub_camera.create_nn(model=self._neural_network.name,
-                                                 input=self._neural_network.input.camera_component,
+                                                 input=input_component,
                                                  nn_type=self._neural_network.nn_type,
                                                  tracker=self._neural_network.tracker,
                                                  spatial=self._neural_network.spatial,
@@ -95,7 +106,7 @@ class CreateNeuralNetworkCommand(Command):
 
         def __determine_packet_type(packet) -> Callable:
             packet_type = type(packet)
-            if packet_type is packets.DetectionPacket:
+            if packet_type is packets.DetectionPacket or packet_type is packets.TwoStagePacket:
                 return DetectionPacket
             elif packet_type is packets.TrackerPacket:
                 return TrackerPacket
@@ -130,20 +141,39 @@ class CreateStereoCommand(Command):
                                                          right=right)
 
         # Configure stereo component
-        stereo_quality = self._stereo.quality
-        stereo_range = self._stereo.range
+        stereo_config = self._stereo.stereo_config
+        stereo_quality = stereo_config.depth_quality
+        stereo_range = stereo_config.depth_range
 
-        try:
-            align = self._stereo.align.camera_component
-        except AttributeError:
-            align = False
-            warnings.warn('An error occurred while trying to access the align component. Disabling alignment.')
+        align = None
+        if stereo_config.align:
+            try:
+                align = stereo_config.align.camera_component
+            except AttributeError:
+                log.debug('An error occurred while trying to access the align component. Disabling alignment.')
 
-        median = 5 if stereo_quality is DepthQuality.DEFAULT else None
-        lr_check = stereo_quality is not DepthQuality.FAST
-        subpixel = stereo_quality is DepthQuality.QUALITY
-        extended_disparity = stereo_range is DepthRange.LONG
-        if extended_disparity:
+        # Prefer Enums over values
+        if stereo_quality and (stereo_config.median or stereo_config.lr_check or stereo_config.subpixel):
+            warnings.warn(f'DepthQuality.{stereo_quality.name} is set. Median, lr_check and subpixel will be ignored.')
+
+        if stereo_range and stereo_config.extended:
+            warnings.warn(f'DepthRange.{stereo_range.name} is set. Extended disparity will be ignored.')
+
+        if stereo_quality:
+            median = 5 if stereo_quality is DepthQuality.DEFAULT else None
+            lr_check = stereo_quality is not DepthQuality.FAST
+            subpixel = stereo_quality is DepthQuality.QUALITY
+        else:
+            median = stereo_config.median
+            lr_check = stereo_config.lr_check
+            subpixel = stereo_config.subpixel
+
+        if stereo_range:
+            extended_disparity = stereo_range is DepthRange.LONG
+        else:
+            extended_disparity = stereo_config.extended
+
+        if extended_disparity:  # Cannot use subpixel with extended disparity
             subpixel = False
 
         stereo_component.config_stereo(align=align,
@@ -151,7 +181,7 @@ class CreateStereoCommand(Command):
                                        subpixel=subpixel,
                                        median=median,
                                        extended=extended_disparity)
-
+        stereo_component.set_colormap(dai.Colormap.JET)
         self._stereo.stereo_component = stereo_component
 
     def get_component(self) -> Stereo:
