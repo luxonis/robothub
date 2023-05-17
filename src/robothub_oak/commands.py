@@ -75,8 +75,15 @@ class CreateNeuralNetworkCommand(Command):
         self._neural_network = neural_network
 
     def execute(self) -> None:
+        if isinstance(self._neural_network.input, Camera):
+            input_component = self._neural_network.input.camera_component
+        elif isinstance(self._neural_network.input, NeuralNetwork):
+            input_component = self._neural_network.input.nn_component
+        else:
+            raise ValueError(f'Invalid input component type: {type(self._neural_network.input)}')
+
         nn_component = self.hub_camera.create_nn(model=self._neural_network.name,
-                                                 input=self._neural_network.input.camera_component,
+                                                 input=input_component,
                                                  nn_type=self._neural_network.nn_type,
                                                  tracker=self._neural_network.tracker,
                                                  spatial=self._neural_network.spatial,
