@@ -106,7 +106,7 @@ class CreateNeuralNetworkCommand(Command):
 
         def __determine_packet_type(packet) -> Callable:
             packet_type = type(packet)
-            if packet_type is packets.DetectionPacket:
+            if packet_type is packets.DetectionPacket or packet_type is packets.TwoStagePacket:
                 return DetectionPacket
             elif packet_type is packets.TrackerPacket:
                 return TrackerPacket
