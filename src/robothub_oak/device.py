@@ -159,9 +159,6 @@ class Device:
         elif not input:
             raise ValueError('Neural network must have an input')
 
-        if isinstance(input, NeuralNetwork):
-            raise NotImplementedError('Neural networks cannot be used as input for other neural networks yet')
-
         neural_network = NeuralNetwork(name=name,
                                        input=input,
                                        nn_type=nn_type,
