@@ -2,10 +2,11 @@ import logging as log
 import warnings
 from abc import abstractmethod, ABC
 from dataclasses import asdict
-from typing import Callable
+from typing import Callable, Union
 
 import depthai as dai
 import depthai_sdk.classes.packets as packets
+from depthai_sdk.trigger_action import Trigger, Action
 
 from robothub_oak.components.camera import Camera
 from robothub_oak.components.neural_network import NeuralNetwork
@@ -17,6 +18,7 @@ __all__ = [
     'CreateCameraCommand',
     'CreateNeuralNetworkCommand',
     'CreateStereoCommand',
+    'CreateTriggerActionCommand',
     'StreamCommand',
     'CommandHistory'
 ]
@@ -186,6 +188,19 @@ class CreateStereoCommand(Command):
 
     def get_component(self) -> Stereo:
         return self._stereo
+
+
+class CreateTriggerActionCommand(Command):
+    def __init__(self,
+                 device: 'Device',
+                 trigger: Trigger,
+                 action: Union[Action, Callable]):
+        super().__init__(device=device)
+        self._trigger = trigger
+        self._action = action
+
+    def execute(self) -> None:
+        self.hub_camera.create_trigger(trigger=self._trigger, action=self._action)
 
 
 class StreamCommand(Command):

@@ -10,6 +10,7 @@ import depthai_sdk
 import robothub
 from depthai_sdk import OakCamera
 from depthai_sdk.components import CameraComponent, StereoComponent, NNComponent
+from depthai_sdk.trigger_action import Trigger, Action
 
 from robothub_oak.callbacks import get_default_color_callback, get_default_nn_callback, get_default_depth_callback
 from robothub_oak.utils import try_or_default
@@ -188,6 +189,9 @@ class HubCamera:
         :param enable_visualizer: Whether to enable the visualizer that provides metadata.
         """
         self.oak_camera.callback(output, callback=callback, enable_visualizer=enable_visualizer)
+
+    def trigger_action(self, trigger: Trigger, action: Union[Action, Callable]):
+        self.oak_camera.trigger_action(trigger, action)
 
     def poll(self) -> Optional[int]:
         """
