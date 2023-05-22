@@ -3,11 +3,10 @@ from typing import Optional, Tuple, Union
 
 import depthai as dai
 
-from robothub_oak.components.streamable import Streamable
+from robothub_oak.components._streamable import Streamable
+from robothub_oak.utils import _process_kwargs
 
 __all__ = ['Camera']
-
-from robothub_oak.utils import _process_kwargs
 
 
 @dataclass
@@ -83,3 +82,10 @@ class Camera(Streamable):
         :param fps: FPS to set as an integer.
         """
         self.fps = fps
+
+    def _get_sdk_component(self):
+        """
+        Returns the DepthAI SDK camera component.
+        :return:
+        """
+        return self.camera_component

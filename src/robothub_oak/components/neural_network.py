@@ -1,7 +1,7 @@
 from typing import Union, Callable, Optional
 
 from robothub_oak.components import Camera
-from robothub_oak.components.streamable import Streamable
+from robothub_oak.components._streamable import Streamable
 
 __all__ = ['NeuralNetwork']
 
@@ -30,3 +30,9 @@ class NeuralNetwork(Streamable):
 
     def configure(self, **kwargs) -> None:
         pass
+
+    def _get_sdk_component(self):
+        """
+        Returns the DepthAI SDK NN component.
+        """
+        return self.nn_component

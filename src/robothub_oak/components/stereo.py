@@ -4,11 +4,10 @@ from typing import Union, Optional
 
 import depthai as dai
 
-from robothub_oak.components.streamable import Streamable
+from robothub_oak.components._streamable import Streamable
+from robothub_oak.utils import _process_kwargs
 
 __all__ = ['Stereo', 'DepthQuality', 'DepthRange']
-
-from robothub_oak.utils import _process_kwargs
 
 
 class DepthQuality(IntEnum):
@@ -108,3 +107,9 @@ class Stereo(Streamable):
             return value
         else:
             raise ValueError(f'Invalid value: {value}')
+
+    def _get_sdk_component(self):
+        """
+        Returns the DepthAI SDK stereo component.
+        """
+        return self.stereo_component
