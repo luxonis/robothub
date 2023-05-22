@@ -67,7 +67,7 @@ class Command(ABC):
                 return HubPacket
 
         def callback_wrapper(packet):
-            callback(__determine_packet_type(packet)(device=self.device, packet=packet))
+            return callback(__determine_packet_type(packet)(device=self.device, packet=packet))
 
         return callback_wrapper
 
