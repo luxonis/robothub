@@ -210,17 +210,18 @@ class CreateTriggerActionCommand(Command):
         trigger = depthai_sdk.trigger_action.Trigger(input, condition, cooldown)
 
         # Convert action to depthai_sdk.trigger_action.Action
-        action_inputs = [i.get_component() for i in self._action.inputs]
-        action = None
-        if isinstance(self._action, Action):
-            action = depthai_sdk.trigger_action.Action(action_inputs)
-        elif isinstance(self._action, RecordAction):
-            action = depthai_sdk.trigger_action.RecordAction(
-                inputs=action_inputs,
-                dir_path=self._action.dir_path,
-                duration_after_trigger=self._action.duration_after_trigger,
-                duration_before_trigger=self._action.duration_before_trigger
-            )
+        action = self._action if isinstance(self._action, Callable) else None
+        if not action:
+            action_inputs = [i.get_component() for i in self._action.inputs]
+            if isinstance(self._action, Action):
+                action = depthai_sdk.trigger_action.Action(action_inputs)
+            elif isinstance(self._action, RecordAction):
+                action = depthai_sdk.trigger_action.RecordAction(
+                    inputs=action_inputs,
+                    dir_path=self._action.dir_path,
+                    duration_after_trigger=self._action.duration_after_trigger,
+                    duration_before_trigger=self._action.duration_before_trigger
+                )
 
         self.hub_camera.create_trigger(trigger=trigger, action=action)
 
