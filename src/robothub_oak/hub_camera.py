@@ -190,7 +190,7 @@ class HubCamera:
         """
         self.oak_camera.callback(output, callback=callback, enable_visualizer=enable_visualizer)
 
-    def trigger_action(self, trigger: Trigger, action: Union[Action, Callable]):
+    def create_trigger(self, trigger: Trigger, action: Union[Action, Callable]):
         self.oak_camera.trigger_action(trigger, action)
 
     def poll(self) -> Optional[int]:

@@ -6,7 +6,7 @@ from typing import Callable, Union
 
 import depthai as dai
 import depthai_sdk.classes.packets as packets
-from depthai_sdk.trigger_action import Trigger, Action
+import depthai_sdk.trigger_action
 
 from robothub_oak.components.camera import Camera
 from robothub_oak.components.neural_network import NeuralNetwork
@@ -22,6 +22,9 @@ __all__ = [
     'StreamCommand',
     'CommandHistory'
 ]
+
+from robothub_oak.trigger_action import Trigger, Action
+from robothub_oak.trigger_action.actions import RecordAction
 
 
 class Command(ABC):
@@ -42,6 +45,31 @@ class Command(ABC):
 
     def get_component(self):
         return None
+
+    def _packet_callback_wrapper(self, callback: Callable) -> Callable[[HubPacket], None]:
+        """
+        Wraps the callback to be called with a HubPacket.
+        :param callback: The callback to be wrapped.
+        :return: The wrapped callback.
+        """
+
+        def __determine_packet_type(packet) -> Callable:
+            packet_type = type(packet)
+            if packet_type is packets.DetectionPacket or packet_type is packets.TwoStagePacket:
+                return DetectionPacket
+            elif packet_type is packets.TrackerPacket:
+                return TrackerPacket
+            elif packet_type is packets.DepthPacket:
+                return DepthPacket
+            elif packet_type is packets.IMUPacket:
+                return IMUPacket
+            else:
+                return HubPacket
+
+        def callback_wrapper(packet):
+            callback(__determine_packet_type(packet)(device=self.device, packet=packet))
+
+        return callback_wrapper
 
 
 class CreateCameraCommand(Command):
@@ -92,37 +120,12 @@ class CreateNeuralNetworkCommand(Command):
                                                  decode_fn=self._neural_network.decode_fn)
 
         for callback in self._neural_network.callbacks:
-            self.hub_camera.callback(nn_component, self._callback_wrapper(callback), True)
+            self.hub_camera.callback(nn_component, self._packet_callback_wrapper(callback), True)
 
         self._neural_network.nn_component = nn_component
 
     def get_component(self) -> NeuralNetwork:
         return self._neural_network
-
-    def _callback_wrapper(self, callback: Callable) -> Callable[[HubPacket], None]:
-        """
-        Wraps the callback to be called with a HubPacket.
-        :param callback: The callback to be wrapped.
-        :return: The wrapped callback.
-        """
-
-        def __determine_packet_type(packet) -> Callable:
-            packet_type = type(packet)
-            if packet_type is packets.DetectionPacket or packet_type is packets.TwoStagePacket:
-                return DetectionPacket
-            elif packet_type is packets.TrackerPacket:
-                return TrackerPacket
-            elif packet_type is packets.DepthPacket:
-                return DepthPacket
-            elif packet_type is packets.IMUPacket:
-                return IMUPacket
-            else:
-                return HubPacket
-
-        def callback_wrapper(packet):
-            callback(__determine_packet_type(packet)(device=self.device, packet=packet))
-
-        return callback_wrapper
 
 
 class CreateStereoCommand(Command):
@@ -200,7 +203,26 @@ class CreateTriggerActionCommand(Command):
         self._action = action
 
     def execute(self) -> None:
-        self.hub_camera.create_trigger(trigger=self._trigger, action=self._action)
+        # Convert trigger to depthai_sdk.trigger_action.Trigger
+        input = self._trigger.component._get_sdk_component()
+        condition = self._packet_callback_wrapper(self._trigger.condition)
+        cooldown = self._trigger.cooldown
+        trigger = depthai_sdk.trigger_action.Trigger(input, condition, cooldown)
+
+        # Convert action to depthai_sdk.trigger_action.Action
+        action_inputs = [i.get_component() for i in self._action.inputs]
+        action = None
+        if isinstance(self._action, Action):
+            action = depthai_sdk.trigger_action.Action(action_inputs)
+        elif isinstance(self._action, RecordAction):
+            action = depthai_sdk.trigger_action.RecordAction(
+                inputs=action_inputs,
+                dir_path=self._action.dir_path,
+                duration_after_trigger=self._action.duration_after_trigger,
+                duration_before_trigger=self._action.duration_before_trigger
+            )
+
+        self.hub_camera.create_trigger(trigger=trigger, action=action)
 
 
 class StreamCommand(Command):

@@ -3,17 +3,17 @@ import warnings
 from typing import Callable, Any, Optional, Dict, Union
 
 from depthai import NNData
-from depthai_sdk.trigger_action import Trigger, Action
 
 from robothub_oak.commands import (
     CreateStereoCommand, CreateCameraCommand, CreateNeuralNetworkCommand,
     StreamCommand, CommandHistory, CreateTriggerActionCommand
 )
+from robothub_oak.components._streamable import Streamable
 from robothub_oak.components.camera import Camera
 from robothub_oak.components.neural_network import NeuralNetwork
 from robothub_oak.components.stereo import Stereo
-from robothub_oak.components.streamable import Streamable
 from robothub_oak.hub_camera import HubCamera
+from robothub_oak.trigger_action import Trigger, Action
 
 __all__ = ['Device']
 
