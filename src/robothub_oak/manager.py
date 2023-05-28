@@ -211,7 +211,8 @@ class DeviceManager:
         :param ip_address: The IP address of the device.
         :return: The device.
         """
-        assert id or name or mxid or ip_address, 'Must specify at least one of id, name, mxid or ip_address'
+        if not (id or name or mxid or ip_address):
+            raise ValueError('At least one of the following parameters must be specified: id, name, mxid, ip_address.')
 
         device = Device(id=id, name=name, mxid=mxid, ip_address=ip_address)
 
