@@ -1,5 +1,5 @@
 from datetime import timedelta
-from typing import Callable, Union, List
+from typing import Callable, Union, List, Any
 
 from robothub_oak.types import Component
 
@@ -7,7 +7,7 @@ __all__ = ['Action', 'RecordAction']
 
 
 class Action:
-    def __init__(self, inputs: List = None, action: Callable = None):
+    def __init__(self, inputs: Union[Component, List[Component]] = None, action: Callable = None):
         self.inputs = inputs
         self.action = action
 
