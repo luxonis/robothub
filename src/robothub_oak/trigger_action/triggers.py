@@ -2,10 +2,9 @@ from datetime import timedelta
 from typing import Union, Callable, Dict
 
 from robothub_oak.components import Stereo, NeuralNetwork, Camera
-
-__all__ = ['Trigger']
-
 from robothub_oak.packets import HubPacket
+
+__all__ = ['Trigger', 'DetectionTrigger']
 
 
 class Trigger:

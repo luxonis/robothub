@@ -3,7 +3,7 @@ from typing import Callable, Union, List
 
 from robothub_oak.types import Component
 
-__all__ = ['Action']
+__all__ = ['Action', 'RecordAction']
 
 
 class Action:
