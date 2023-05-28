@@ -10,8 +10,8 @@ import depthai_sdk
 import robothub
 from depthai_sdk import OakCamera
 from depthai_sdk.components import CameraComponent, StereoComponent, NNComponent
-from depthai_sdk.trigger_action import Trigger, Action
 
+import robothub_oak
 from robothub_oak.callbacks import get_default_color_callback, get_default_nn_callback, get_default_depth_callback
 from robothub_oak.utils import try_or_default
 
@@ -52,7 +52,11 @@ class HubCamera:
         start_time = time.time()
         while not self.stop_event.is_set():
             try:
-                camera = OakCamera(self.device_name, usb_speed=self.usb_speed, rotation=self.rotation)
+                camera = OakCamera(self.device_name, usb_speed=self.usb_speed,
+                                   rotation=self.rotation, replay=robothub_oak.REPLAY_PATH)
+                if camera.replay:
+                    camera.replay.set_loop(True)
+
                 self.available_sensors = camera.sensors
                 return camera
             except Exception:
@@ -124,6 +128,7 @@ class HubCamera:
             raise RuntimeError('Device does not have stereo cameras.')
 
         comp = self.oak_camera.create_stereo(resolution=resolution, fps=fps, left=left, right=right, encode='h264')
+        comp.set_colormap(dai.Colormap.STEREO_TURBO)
         return comp
 
     def create_stream(self,
