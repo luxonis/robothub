@@ -2,11 +2,14 @@ import logging as log
 import warnings
 from abc import abstractmethod, ABC
 from dataclasses import asdict
+from pathlib import Path
 from typing import Callable, Union
 
+import cv2
 import depthai as dai
 import depthai_sdk.classes.packets as packets
 import depthai_sdk.trigger_action
+import robothub
 
 from robothub_oak.components.camera import Camera
 from robothub_oak.components.neural_network import NeuralNetwork
@@ -220,10 +223,35 @@ class CreateTriggerActionCommand(Command):
                     inputs=action_inputs,
                     dir_path=self._action.dir_path,
                     duration_after_trigger=self._action.duration_after_trigger,
-                    duration_before_trigger=self._action.duration_before_trigger
+                    duration_before_trigger=self._action.duration_before_trigger,
+                    on_finish_callback=self.upload_recording_as_event
                 )
 
-        self.hub_camera.create_trigger(trigger=trigger, action=action)
+            self.hub_camera.create_trigger(trigger=trigger, action=action)
+
+    def upload_recording_as_event(self, path):
+        threads = []
+        video_paths = Path(path).glob('*.mp4')
+        for video_path in video_paths:
+            t = robothub.threading.Thread(target=self._upload_video, args=(video_path,))
+            threads.append(t)
+            t.start()
+
+        # Wait for all threads to finish
+        for t in threads:
+            t.join()
+
+    def _upload_video(self, path) -> None:
+        video_reader = cv2.VideoCapture(str(path))
+        video_bytes = b''
+        while video_reader.isOpened():
+            success, frame = video_reader.read()
+            if not success:
+                break
+
+            video_bytes += frame.tobytes()
+
+        robothub.DETECTIONS.send_video_detection(video=video_bytes, title='Trigger caused recording')
 
 
 class StreamCommand(Command):
