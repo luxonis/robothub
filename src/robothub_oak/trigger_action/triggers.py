@@ -23,9 +23,9 @@ class Trigger:
 
 class DetectionTrigger:
     def __init__(self,
-                 input: NeuralNetwork,
+                 component: NeuralNetwork,
                  min_detections: Dict[str, int],
                  cooldown: Union[timedelta, int]):
-        self.input = input
+        self.component = component
         self.min_detections = min_detections
         self.cooldown = cooldown
