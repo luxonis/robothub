@@ -10,6 +10,7 @@ import depthai_sdk
 import robothub
 from depthai_sdk import OakCamera
 from depthai_sdk.components import CameraComponent, StereoComponent, NNComponent
+from depthai_sdk.trigger_action import Trigger, Action
 
 import robothub_oak
 from robothub_oak.callbacks import get_default_color_callback, get_default_nn_callback, get_default_depth_callback
