@@ -28,6 +28,7 @@ __all__ = [
 
 from robothub_oak.trigger_action import Trigger, Action
 from robothub_oak.trigger_action.actions import RecordAction
+from robothub_oak.trigger_action.triggers import DetectionTrigger
 
 
 class Command(ABC):
@@ -206,12 +207,25 @@ class CreateTriggerActionCommand(Command):
         self._action = action
 
     def execute(self) -> None:
-        # Convert trigger to depthai_sdk.trigger_action.Trigger
-        input = self._trigger.component._get_sdk_component()
-        condition = self._packet_callback_wrapper(self._trigger.condition)
-        cooldown = self._trigger.cooldown
-        trigger = depthai_sdk.trigger_action.Trigger(input, condition, cooldown)
+        trigger = self._convert_trigger()
+        action = self._convert_action()
 
+        self.hub_camera.create_trigger(trigger=trigger, action=action)
+
+    def _convert_trigger(self) -> depthai_sdk.trigger_action.Trigger:
+        input = self._trigger.component._get_sdk_component()
+        cooldown = self._trigger.cooldown
+        trigger = None
+        if isinstance(self._trigger, Trigger):
+            condition = self._packet_callback_wrapper(self._trigger.condition)
+            trigger = depthai_sdk.trigger_action.Trigger(input, condition, cooldown)
+        elif isinstance(self._trigger, DetectionTrigger):
+            min_detections = self._trigger.min_detections
+            trigger = depthai_sdk.trigger_action.DetectionTrigger(input, min_detections, cooldown)
+
+        return trigger
+
+    def _convert_action(self) -> depthai_sdk.trigger_action.Action:
         # Convert action to depthai_sdk.trigger_action.Action
         action = self._action if isinstance(self._action, Callable) else None
         if not action:
@@ -227,7 +241,7 @@ class CreateTriggerActionCommand(Command):
                     on_finish_callback=self.upload_recording_as_event
                 )
 
-            self.hub_camera.create_trigger(trigger=trigger, action=action)
+        return action
 
     def upload_recording_as_event(self, path):
         threads = []
