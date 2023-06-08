@@ -63,7 +63,6 @@ def _default_nn_callback(stream_handle: StreamHandle, packet):
     metadata = None
     if visualizer:
         metadata = json.loads(visualizer.serialize())
-        visualizer.reset()
 
         # temp fix to replace None value that causes errors on frontend
         if not metadata['config']['detection']['color']:
