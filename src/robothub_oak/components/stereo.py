@@ -4,11 +4,11 @@ from typing import Union, Optional
 
 import depthai as dai
 
+from robothub_oak.components._component import Component
 from robothub_oak.components.streamable import Streamable
+from robothub_oak.utils import _process_kwargs
 
 __all__ = ['Stereo', 'DepthQuality', 'DepthRange']
-
-from robothub_oak.utils import _process_kwargs
 
 
 class DepthQuality(IntEnum):
@@ -40,7 +40,7 @@ class StereoConfig:
     lr_check_threshold: Optional[int] = None
 
 
-class Stereo(Streamable):
+class Stereo(Component, Streamable):
     def __init__(self,
                  resolution: Optional[str],
                  fps: Optional[int],

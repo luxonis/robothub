@@ -3,11 +3,11 @@ from typing import Optional, Tuple, Union
 
 import depthai as dai
 
+from robothub_oak.components._component import Component
 from robothub_oak.components.streamable import Streamable
+from robothub_oak.utils import _process_kwargs
 
 __all__ = ['Camera']
-
-from robothub_oak.utils import _process_kwargs
 
 
 @dataclass
@@ -29,7 +29,7 @@ class CameraConfig:
     chroma_denoise: Optional[int] = None
 
 
-class Camera(Streamable):
+class Camera(Component, Streamable):
     """
     This component represents a single camera on the OAK, either color or mono one.
     The API provides a way to configure the camera, but it is not required to do so.
