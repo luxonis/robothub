@@ -89,6 +89,9 @@ class CreateNeuralNetworkCommand(Command):
                                                  spatial=self._neural_network.spatial,
                                                  decode_fn=self._neural_network.decode_fn)
 
+        nn_component.config_nn(resize_mode=self._neural_network.nn_config.resize_mode,
+                               conf_threshold=self._neural_network.nn_config.conf_threshold)
+        
         for callback in self._neural_network.callbacks:
             self.hub_camera.callback(nn_component, self._callback_wrapper(callback), True)
 
