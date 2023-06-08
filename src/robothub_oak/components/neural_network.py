@@ -38,7 +38,8 @@ class NeuralNetwork(Component, Streamable):
                  decode_fn: Optional[Callable] = None,
                  tracker: bool = False,
                  spatial: Optional[bool] = None):
-        super().__init__()
+        Component.__init__(self)
+        Streamable.__init__(self)
         self.name = name
         self.input = input
         self.nn_type = nn_type

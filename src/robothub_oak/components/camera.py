@@ -36,7 +36,8 @@ class Camera(Component, Streamable):
     """
 
     def __init__(self, name: str, resolution: Optional[str], fps: Optional[int]) -> None:
-        super().__init__()
+        Component.__init__(self)
+        Streamable.__init__(self)
         self.name = name
         self.resolution = resolution
         self.fps = fps

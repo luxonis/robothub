@@ -54,7 +54,8 @@ class Stereo(Component, Streamable):
         :param left_camera: Left camera component.
         :param right_camera: Right camera component.
         """
-        super().__init__()
+        Component.__init__(self)
+        Streamable.__init__(self)
         self.resolution = resolution
         self.fps = fps
 
