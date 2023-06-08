@@ -3,11 +3,12 @@ from typing import Union, Callable, Optional, List
 
 import depthai as dai
 import depthai_sdk
+import depthai_sdk.components
 
 from robothub_oak.components import Camera
 from robothub_oak.components._component import Component
 from robothub_oak.components.streamable import Streamable
-from robothub_oak.utils import _process_kwargs
+from robothub_oak.utils import _process_kwargs, _get_methods_by_class
 
 __all__ = ['NeuralNetwork']
 
@@ -50,7 +51,7 @@ class NeuralNetwork(Component, Streamable):
         self.nn_config = NNConfig()
         self.tracker_config = TrackerConfig()
 
-        self.nn_component: depthai_sdk.components.NNComponent = None
+        self.nn_component: Optional[depthai_sdk.components.NNComponent] = None
 
     def configure(self,
                   conf_threshold: Optional[float] = None,
@@ -75,3 +76,6 @@ class NeuralNetwork(Component, Streamable):
 
         if len(kwargs) > 0:
             self.tracker_config = replace(self.tracker_config, **kwargs)
+
+    def set_valid_output_types(self) -> None:
+        self._valid_output_types = _get_methods_by_class(depthai_sdk.components.NNComponent.Out)

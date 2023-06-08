@@ -3,10 +3,11 @@ from enum import IntEnum
 from typing import Union, Optional
 
 import depthai as dai
+import depthai_sdk.components
 
 from robothub_oak.components._component import Component
 from robothub_oak.components.streamable import Streamable
-from robothub_oak.utils import _process_kwargs
+from robothub_oak.utils import _process_kwargs, _get_methods_by_class
 
 __all__ = ['Stereo', 'DepthQuality', 'DepthRange']
 
@@ -63,7 +64,7 @@ class Stereo(Component, Streamable):
         self.right_camera = right_camera
 
         self.stereo_config = StereoConfig()
-        self.stereo_component = None  # type: depthai_sdk.components.StereoComponent
+        self.stereo_component: Optional[depthai_sdk.components.StereoComponent] = None
 
     def configure(self,
                   depth_quality: Union[str, DepthQuality] = None,
@@ -100,6 +101,9 @@ class Stereo(Component, Streamable):
 
         if len(kwargs) > 0:
             self.stereo_config = replace(self.stereo_config, **kwargs)
+
+    def set_valid_output_types(self) -> None:
+        self._valid_output_types = _get_methods_by_class(depthai_sdk.components.StereoComponent.Out)
 
     @staticmethod
     def _set_enum_value(enum, value):

@@ -2,10 +2,11 @@ from dataclasses import dataclass, replace
 from typing import Optional, Tuple, Union
 
 import depthai as dai
+import depthai_sdk.components
 
 from robothub_oak.components._component import Component
 from robothub_oak.components.streamable import Streamable
-from robothub_oak.utils import _process_kwargs
+from robothub_oak.utils import _process_kwargs, _get_methods_by_class
 
 __all__ = ['Camera']
 
@@ -42,7 +43,7 @@ class Camera(Component, Streamable):
         self.resolution = resolution
         self.fps = fps
 
-        self.camera_component = None  # type: depthai_sdk.components.CameraComponent
+        self.camera_component: Optional[depthai_sdk.components.CameraComponent] = None
         self.camera_config = CameraConfig()
 
     def configure(self,
@@ -84,3 +85,6 @@ class Camera(Component, Streamable):
         :param fps: FPS to set as an integer.
         """
         self.fps = fps
+
+    def set_valid_output_types(self) -> None:
+        self._valid_output_types = _get_methods_by_class(depthai_sdk.components.CameraComponent.Out)
