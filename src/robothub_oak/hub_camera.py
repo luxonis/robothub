@@ -1,5 +1,7 @@
+import logging
 import logging as log
 import time
+import traceback
 import warnings
 from pathlib import Path
 from typing import Union, Optional, Callable, Dict, Any
@@ -109,6 +111,7 @@ class HubCamera:
                                          tracker=tracker, spatial=spatial, decode_fn=decode_fn)
         return comp
 
+
     def create_stereo(self,
                       resolution: Union[None, str, dai.MonoCameraProperties.SensorResolution] = None,
                       fps: Optional[float] = None,
@@ -213,6 +216,7 @@ class HubCamera:
                 self.state = robothub.DeviceState.CONNECTED
                 return
             except Exception as e:
+                logging.debug(traceback.print_exc())
                 warnings.warn(f'Camera: could not start with exception {e}.')
 
             self.stop_event.wait(1)
