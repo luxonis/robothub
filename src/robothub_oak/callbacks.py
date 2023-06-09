@@ -64,10 +64,6 @@ def _default_nn_callback(stream_handle: StreamHandle, packet):
     if visualizer:
         metadata = json.loads(visualizer.serialize())
 
-        # temp fix to replace None value that causes errors on frontend
-        if not metadata['config']['detection']['color']:
-            metadata['config']['detection']['color'] = [255, 0, 0]
-
     timestamp = int(time.time() * 1_000)
     frame_bytes = bytes(packet.msg.getData())
     stream_handle.publish_video_data(frame_bytes, timestamp, metadata)
