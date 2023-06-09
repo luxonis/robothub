@@ -10,7 +10,6 @@ class Application(robothub.RobotHubApplication):
             color = device.get_camera('color', resolution='1080p', fps=30)
             color.stream_to_hub(name=f'Color stream {device.id}')
 
-    def start_execution(self):
         DEVICE_MANAGER.start()
 
     def on_stop(self):

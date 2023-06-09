@@ -2,9 +2,12 @@ from dataclasses import dataclass, replace
 from typing import Optional, Tuple, Union
 
 import depthai as dai
+import depthai_sdk.components
 
+
+from robothub_oak.components._component import Component
 from robothub_oak.components._streamable import Streamable
-from robothub_oak.utils import _process_kwargs
+from robothub_oak.utils import _process_kwargs, _get_methods_by_class
 
 __all__ = ['Camera']
 
@@ -28,19 +31,20 @@ class CameraConfig:
     chroma_denoise: Optional[int] = None
 
 
-class Camera(Streamable):
+class Camera(Component, Streamable):
     """
     This component represents a single camera on the OAK, either color or mono one.
     The API provides a way to configure the camera, but it is not required to do so.
     """
 
     def __init__(self, name: str, resolution: Optional[str], fps: Optional[int]) -> None:
-        super().__init__()
+        Component.__init__(self)
+        Streamable.__init__(self)
         self.name = name
         self.resolution = resolution
         self.fps = fps
 
-        self.camera_component = None  # type: depthai_sdk.components.CameraComponent
+        self.camera_component: Optional[depthai_sdk.components.CameraComponent] = None
         self.camera_config = CameraConfig()
 
     def configure(self,
@@ -82,6 +86,9 @@ class Camera(Streamable):
         :param fps: FPS to set as an integer.
         """
         self.fps = fps
+
+    def set_valid_output_types(self) -> None:
+        self._valid_output_types = _get_methods_by_class(depthai_sdk.components.CameraComponent.Out)
 
     def _get_sdk_component(self):
         """

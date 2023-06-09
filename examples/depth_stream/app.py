@@ -10,7 +10,6 @@ class Application(robothub.RobotHubApplication):
             stereo = device.get_stereo_camera(resolution='800p', fps=30)
             stereo.stream_to_hub(name=f'Stereo stream {device.id}')
 
-    def start_execution(self):
         DEVICE_MANAGER.start()
 
     def on_stop(self):

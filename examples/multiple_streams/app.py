@@ -16,7 +16,6 @@ class Application(robothub.RobotHubApplication):
             nn = device.create_neural_network('person-detection-retail-0013', color)
             nn.stream_to_hub(name=f'NN stream {device.id}')
 
-    def start_execution(self):
         DEVICE_MANAGER.start()
 
     def on_stop(self):

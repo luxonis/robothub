@@ -2,6 +2,7 @@ import contextlib
 import logging
 import logging as log
 import os
+import time
 from collections import defaultdict
 from typing import Optional, List
 
@@ -133,7 +134,7 @@ class DeviceManager:
                     self._disconnect_camera(camera)
                     continue
 
-            self.stop_event.wait(self.POLL_FREQUENCY)
+            time.sleep(self.POLL_FREQUENCY)
 
     def _connect(self) -> None:
         """
