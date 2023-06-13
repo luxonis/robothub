@@ -248,7 +248,7 @@ class CreateTriggerActionCommand(Command):
                     dir_path=self._action.dir_path,
                     duration_after_trigger=self._action.duration_after_trigger,
                     duration_before_trigger=self._action.duration_before_trigger,
-                    on_finish_callback=self.upload_recording_as_event
+                    on_finish_callback=self.upload_recording_as_event if self._action.upload_as_event else None
                 )
             elif isinstance(self._action, Action):
                 action = depthai_sdk.trigger_action.Action(action_inputs)

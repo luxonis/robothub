@@ -18,10 +18,10 @@ class RecordAction(Action):
                  dir_path: str,
                  duration_before_trigger: Union[int, timedelta],
                  duration_after_trigger: Union[timedelta, int],
-                 upload_to_hub: bool = True):
+                 upload_as_event: bool = True):
         super().__init__(inputs=inputs)
 
         self.dir_path = dir_path
         self.duration_before_trigger = duration_before_trigger
         self.duration_after_trigger = duration_after_trigger
-        self.upload_to_hub = upload_to_hub
+        self.upload_as_event = upload_as_event
