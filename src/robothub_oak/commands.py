@@ -277,7 +277,7 @@ class CreateTriggerActionCommand(Command):
 
             video_bytes += frame.tobytes()
 
-        robothub.DETECTIONS.send_video_detection(video=video_bytes, title='Trigger caused recording')
+        robothub.DETECTIONS.send_video_event(video=video_bytes, title='Trigger caused recording')
 
 
 class StreamCommand(Command):
