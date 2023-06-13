@@ -16,6 +16,9 @@ from robothub_oak.components.neural_network import NeuralNetwork
 from robothub_oak.components.stereo import Stereo, DepthQuality, DepthRange
 from robothub_oak.hub_camera import HubCamera
 from robothub_oak.packets import HubPacket, DetectionPacket, TrackerPacket, DepthPacket, IMUPacket
+from robothub_oak.trigger_action import Trigger, Action
+from robothub_oak.trigger_action.actions import RecordAction
+from robothub_oak.trigger_action.triggers import DetectionTrigger
 
 __all__ = [
     'CreateCameraCommand',
@@ -25,10 +28,6 @@ __all__ = [
     'StreamCommand',
     'CommandHistory'
 ]
-
-from robothub_oak.trigger_action import Trigger, Action
-from robothub_oak.trigger_action.actions import RecordAction
-from robothub_oak.trigger_action.triggers import DetectionTrigger
 
 
 class Command(ABC):
@@ -239,12 +238,11 @@ class CreateTriggerActionCommand(Command):
         # Convert action to depthai_sdk.trigger_action.Action
         action = self._action if isinstance(self._action, Callable) else None
         if not action:
-            action_inputs = [i.get_component() for i in self._action.inputs] \
-                if isinstance(self._action.inputs, list) else self._action.inputs
+            action_inputs = [i._get_sdk_component() for i in self._action.inputs] \
+                if isinstance(self._action.inputs, list) \
+                else self._action.inputs._get_sdk_component()
 
-            if isinstance(self._action, Action):
-                action = depthai_sdk.trigger_action.Action(action_inputs)
-            elif isinstance(self._action, RecordAction):
+            if isinstance(self._action, RecordAction):
                 action = depthai_sdk.trigger_action.RecordAction(
                     inputs=action_inputs,
                     dir_path=self._action.dir_path,
@@ -252,6 +250,8 @@ class CreateTriggerActionCommand(Command):
                     duration_before_trigger=self._action.duration_before_trigger,
                     on_finish_callback=self.upload_recording_as_event
                 )
+            elif isinstance(self._action, Action):
+                action = depthai_sdk.trigger_action.Action(action_inputs)
 
         return action
 
