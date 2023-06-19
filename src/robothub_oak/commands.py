@@ -256,28 +256,12 @@ class CreateTriggerActionCommand(Command):
         return action
 
     def upload_recording_as_event(self, path):
+        print('uploading', path)
         threads = []
         video_paths = Path(path).glob('*.mp4')
         for video_path in video_paths:
-            t = robothub.threading.Thread(target=self._upload_video, args=(video_path,))
-            threads.append(t)
-            t.start()
-
-        # Wait for all threads to finish
-        for t in threads:
-            t.join()
-
-    def _upload_video(self, path) -> None:
-        video_reader = cv2.VideoCapture(str(path))
-        video_bytes = b''
-        while video_reader.isOpened():
-            success, frame = video_reader.read()
-            if not success:
-                break
-
-            video_bytes += frame.tobytes()
-
-        robothub.DETECTIONS.send_video_event(video=video_bytes, title='Trigger caused recording')
+            with open(str(video_path), 'rb') as f:
+                robothub.DETECTIONS.send_video_event(video=f.read(), title='Trigger caused recording')
 
 
 class StreamCommand(Command):
