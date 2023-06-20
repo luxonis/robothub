@@ -20,6 +20,7 @@ class HubPacket:
         self.depthai_sdk_packet = packet
 
         self.frame = self.depthai_sdk_packet.frame
+        self.msg = self.depthai_sdk_packet.msg
         self.visualizer = self.depthai_sdk_packet.visualizer
 
     def upload_as_event(self, title: str):
