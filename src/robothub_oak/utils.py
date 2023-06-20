@@ -39,7 +39,7 @@ def _get_methods_by_class(cls: Any) -> list:
     return [x for x in dir(cls) if callable(getattr(cls, x)) and not x.startswith('_')]
 
 
-def _convert_to_enum(cls: Any, name: Any) -> Any:
+def _convert_to_enum(name: Any, cls: Any) -> Any:
     """
     Get an enum by name.
 
