@@ -87,7 +87,8 @@ class Camera(Component, Streamable):
             self.camera_config = replace(self.camera_config, **kwargs)
 
     def configure_encoder(self,
-                          h26x_rate_control_mode: Optional[Union[dai.VideoEncoderProperties.RateControlMode, str]] = None,
+                          h26x_rate_control_mode: Optional[
+                              Union[dai.VideoEncoderProperties.RateControlMode, str]] = None,
                           h26x_keyframe_freq: Optional[int] = None,
                           h26x_bitrate_kbps: Optional[int] = None,
                           h26x_num_b_frames: Optional[int] = None,
@@ -99,7 +100,9 @@ class Camera(Component, Streamable):
         """
         kwargs = _process_kwargs(locals())
 
-        h26x_rate_control_mode = _convert_to_enum(h26x_rate_control_mode, dai.VideoEncoderProperties.RateControlMode)
+        if h26x_rate_control_mode is not None:
+            h26x_rate_control_mode = _convert_to_enum(h26x_rate_control_mode,
+                                                      dai.VideoEncoderProperties.RateControlMode)
 
         if len(kwargs) > 0:
             self.encoder_config = replace(self.encoder_config, **kwargs)
