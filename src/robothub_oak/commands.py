@@ -92,6 +92,16 @@ class CreateCameraCommand(Command):
         if camera_component.is_color():
             camera_component.config_color_camera(**asdict(self._camera.camera_config))
 
+        for callback in self._camera.callbacks:
+            fn = callback['callback']
+            output_type = callback['output_type']
+
+            # Check if the output type is valid, if not, throw an error
+            if output_type not in self._camera.get_valid_output_types():
+                raise ValueError(f'Invalid output type: {output_type}')
+
+            self.hub_camera.callback(getattr(camera_component.out, output_type), self._packet_callback_wrapper(fn), True)
+
         self._camera.camera_component = camera_component
 
     def get_component(self) -> Camera:
