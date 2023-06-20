@@ -5,11 +5,11 @@ from dataclasses import asdict
 from pathlib import Path
 from typing import Callable, Union
 
-import cv2
 import depthai as dai
 import depthai_sdk.classes.packets as packets
 import depthai_sdk.trigger_action
 import robothub
+from depthai_sdk.components.parser import parse_encode
 
 from robothub_oak.components.camera import Camera
 from robothub_oak.components.neural_network import NeuralNetwork
@@ -92,6 +92,8 @@ class CreateCameraCommand(Command):
         if camera_component.is_color():
             camera_component.config_color_camera(**asdict(self._camera.camera_config))
 
+        self._configure_encoder(camera_component, self._camera.encoder_config)
+
         for callback in self._camera.callbacks:
             fn = callback['callback']
             output_type = callback['output_type']
@@ -100,9 +102,24 @@ class CreateCameraCommand(Command):
             if output_type not in self._camera.get_valid_output_types():
                 raise ValueError(f'Invalid output type: {output_type}')
 
-            self.hub_camera.callback(getattr(camera_component.out, output_type), self._packet_callback_wrapper(fn), True)
+            self.hub_camera.callback(getattr(camera_component.out, output_type), self._packet_callback_wrapper(fn),
+                                     True)
 
         self._camera.camera_component = camera_component
+
+    @staticmethod
+    def _configure_encoder(camera_component, encoder_config):
+        encoder_profile = camera_component._encoder_profile
+        if encoder_profile in [parse_encode('h264'), parse_encode('h265')]:
+            config_h26x = {'rate_control_mode': encoder_config.h26x_rate_control_mode,
+                           'keyframe_freq': encoder_config.h26x_keyframe_freq,
+                           'bitrate_kbps': encoder_config.h26x_bitrate_kbps,
+                           'num_b_frames': encoder_config.h26x_num_b_frames}
+            camera_component.config_encoder_h26x(**config_h26x)
+        elif encoder_profile == parse_encode('mjpeg'):
+            config_mjpeg = {'quality': encoder_config.mjpeg_quality,
+                            'lossless': encoder_config.mjpeg_lossless}
+            camera_component.config_encoder_mjpeg(**config_mjpeg)
 
     def get_component(self) -> Camera:
         return self._camera

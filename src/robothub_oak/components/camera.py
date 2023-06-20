@@ -4,10 +4,9 @@ from typing import Optional, Tuple, Union
 import depthai as dai
 import depthai_sdk.components
 
-
 from robothub_oak.components._component import Component
 from robothub_oak.components._streamable import Streamable
-from robothub_oak.utils import _process_kwargs, _get_methods_by_class
+from robothub_oak.utils import _process_kwargs, _get_methods_by_class, _convert_to_enum
 
 __all__ = ['Camera']
 
@@ -31,6 +30,21 @@ class CameraConfig:
     chroma_denoise: Optional[int] = None
 
 
+@dataclass
+class EncoderConfig:
+    h26x_rate_control_mode: Optional[str] = None  # dai.VideoEncoderProperties.RateControlMode
+    h26x_keyframe_freq: Optional[int] = None
+    h26x_bitrate_kbps: Optional[int] = None
+    h26x_num_b_frames: Optional[int] = None
+    mjpeg_quality: Optional[int] = None
+    mjpeg_lossless: bool = False
+
+    def get_h26x_config(self):
+        return {
+            'rate_control_mode': self.h26x_rate_control_mode,
+        }
+
+
 class Camera(Component, Streamable):
     """
     This component represents a single camera on the OAK, either color or mono one.
@@ -46,6 +60,7 @@ class Camera(Component, Streamable):
 
         self.camera_component: Optional[depthai_sdk.components.CameraComponent] = None
         self.camera_config = CameraConfig()
+        self.encoder_config = EncoderConfig()
 
     def configure(self,
                   interleaved: Optional[bool] = None,
@@ -70,6 +85,24 @@ class Camera(Component, Streamable):
 
         if len(kwargs) > 0:
             self.camera_config = replace(self.camera_config, **kwargs)
+
+    def configure_encoder(self,
+                          h26x_rate_control_mode: Optional[Union[dai.VideoEncoderProperties.RateControlMode, str]] = None,
+                          h26x_keyframe_freq: Optional[int] = None,
+                          h26x_bitrate_kbps: Optional[int] = None,
+                          h26x_num_b_frames: Optional[int] = None,
+                          mjpeg_quality: Optional[int] = None,
+                          mjpeg_lossless: Optional[bool] = None
+                          ) -> None:
+        """
+        Configures the video encoder.
+        """
+        kwargs = _process_kwargs(locals())
+
+        h26x_rate_control_mode = _convert_to_enum(h26x_rate_control_mode, dai.VideoEncoderProperties.RateControlMode)
+
+        if len(kwargs) > 0:
+            self.encoder_config = replace(self.encoder_config, **kwargs)
 
     def set_resolution(self, resolution: str) -> None:
         """

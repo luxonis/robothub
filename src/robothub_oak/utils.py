@@ -37,3 +37,20 @@ def _get_methods_by_class(cls: Any) -> list:
     :return: A list of methods.
     """
     return [x for x in dir(cls) if callable(getattr(cls, x)) and not x.startswith('_')]
+
+
+def _convert_to_enum(cls: Any, name: Any) -> Any:
+    """
+    Get an enum by name.
+
+    :param cls: The enum class.
+    :param name: The name of the enum.
+    :return: The enum.
+    """
+    if isinstance(name, cls):
+        return name
+
+    try:
+        return getattr(cls, name)
+    except AttributeError:
+        return None
