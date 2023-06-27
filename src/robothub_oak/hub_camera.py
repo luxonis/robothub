@@ -1,5 +1,7 @@
+import logging
 import logging as log
 import time
+import traceback
 import warnings
 from pathlib import Path
 from typing import Union, Optional, Callable, Dict, Any
@@ -10,6 +12,7 @@ import depthai_sdk
 import robothub
 from depthai_sdk import OakCamera
 from depthai_sdk.components import CameraComponent, StereoComponent, NNComponent
+from depthai_sdk.trigger_action import Trigger, Action
 
 import robothub_oak
 from robothub_oak.callbacks import get_default_color_callback, get_default_nn_callback, get_default_depth_callback
@@ -109,6 +112,7 @@ class HubCamera:
                                          tracker=tracker, spatial=spatial, decode_fn=decode_fn)
         return comp
 
+
     def create_stereo(self,
                       resolution: Union[None, str, dai.MonoCameraProperties.SensorResolution] = None,
                       fps: Optional[float] = None,
@@ -194,6 +198,9 @@ class HubCamera:
         """
         self.oak_camera.callback(output, callback=callback, enable_visualizer=enable_visualizer)
 
+    def create_trigger(self, trigger: Trigger, action: Union[Action, Callable]):
+        self.oak_camera.trigger_action(trigger, action)
+
     def poll(self) -> Optional[int]:
         """
         Polls the device for new data.
@@ -213,6 +220,7 @@ class HubCamera:
                 self.state = robothub.DeviceState.CONNECTED
                 return
             except Exception as e:
+                logging.debug(traceback.print_exc())
                 warnings.warn(f'Camera: could not start with exception {e}.')
 
             self.stop_event.wait(1)

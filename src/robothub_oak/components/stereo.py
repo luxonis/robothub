@@ -3,12 +3,13 @@ from enum import IntEnum
 from typing import Union, Optional
 
 import depthai as dai
+import depthai_sdk.components
 
-from robothub_oak.components.streamable import Streamable
+from robothub_oak.components._component import Component
+from robothub_oak.components._streamable import Streamable
+from robothub_oak.utils import _process_kwargs, _get_methods_by_class
 
 __all__ = ['Stereo', 'DepthQuality', 'DepthRange']
-
-from robothub_oak.utils import _process_kwargs
 
 
 class DepthQuality(IntEnum):
@@ -40,7 +41,7 @@ class StereoConfig:
     lr_check_threshold: Optional[int] = None
 
 
-class Stereo(Streamable):
+class Stereo(Component, Streamable):
     def __init__(self,
                  resolution: Optional[str],
                  fps: Optional[int],
@@ -54,7 +55,8 @@ class Stereo(Streamable):
         :param left_camera: Left camera component.
         :param right_camera: Right camera component.
         """
-        super().__init__()
+        Component.__init__(self)
+        Streamable.__init__(self)
         self.resolution = resolution
         self.fps = fps
 
@@ -62,7 +64,7 @@ class Stereo(Streamable):
         self.right_camera = right_camera
 
         self.stereo_config = StereoConfig()
-        self.stereo_component = None  # type: depthai_sdk.components.StereoComponent
+        self.stereo_component: Optional[depthai_sdk.components.StereoComponent] = None
 
     def configure(self,
                   depth_quality: Union[str, DepthQuality] = None,
@@ -100,6 +102,15 @@ class Stereo(Streamable):
         if len(kwargs) > 0:
             self.stereo_config = replace(self.stereo_config, **kwargs)
 
+    def set_valid_output_types(self) -> None:
+        self._valid_output_types = _get_methods_by_class(depthai_sdk.components.StereoComponent.Out)
+
+    def _get_sdk_component(self):
+        """
+        Returns the DepthAI SDK stereo component.
+        """
+        return self.stereo_component
+
     @staticmethod
     def _set_enum_value(enum, value):
         if isinstance(value, str):
@@ -108,3 +119,5 @@ class Stereo(Streamable):
             return value
         else:
             raise ValueError(f'Invalid value: {value}')
+
+

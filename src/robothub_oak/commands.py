@@ -2,21 +2,29 @@ import logging as log
 import warnings
 from abc import abstractmethod, ABC
 from dataclasses import asdict
-from typing import Callable
+from pathlib import Path
+from typing import Callable, Union
 
 import depthai as dai
 import depthai_sdk.classes.packets as packets
+import depthai_sdk.trigger_action
+import robothub
+from depthai_sdk.components.parser import parse_encode
 
 from robothub_oak.components.camera import Camera
 from robothub_oak.components.neural_network import NeuralNetwork
 from robothub_oak.components.stereo import Stereo, DepthQuality, DepthRange
 from robothub_oak.hub_camera import HubCamera
 from robothub_oak.packets import HubPacket, DetectionPacket, TrackerPacket, DepthPacket, IMUPacket
+from robothub_oak.trigger_action import Trigger, Action
+from robothub_oak.trigger_action.actions import RecordAction
+from robothub_oak.trigger_action.triggers import DetectionTrigger
 
 __all__ = [
     'CreateCameraCommand',
     'CreateNeuralNetworkCommand',
     'CreateStereoCommand',
+    'CreateTriggerActionCommand',
     'StreamCommand',
     'CommandHistory'
 ]
@@ -41,6 +49,31 @@ class Command(ABC):
     def get_component(self):
         return None
 
+    def _packet_callback_wrapper(self, callback: Callable) -> Callable[[HubPacket], None]:
+        """
+        Wraps the callback to be called with a HubPacket.
+        :param callback: The callback to be wrapped.
+        :return: The wrapped callback.
+        """
+
+        def __determine_packet_type(packet) -> Callable:
+            packet_type = type(packet)
+            if packet_type is packets.DetectionPacket or packet_type is packets.TwoStagePacket:
+                return DetectionPacket
+            elif packet_type is packets.TrackerPacket:
+                return TrackerPacket
+            elif packet_type is packets.DepthPacket:
+                return DepthPacket
+            elif packet_type is packets.IMUPacket:
+                return IMUPacket
+            else:
+                return HubPacket
+
+        def callback_wrapper(packet):
+            return callback(__determine_packet_type(packet)(device=self.device, packet=packet))
+
+        return callback_wrapper
+
 
 class CreateCameraCommand(Command):
     """
@@ -59,7 +92,34 @@ class CreateCameraCommand(Command):
         if camera_component.is_color():
             camera_component.config_color_camera(**asdict(self._camera.camera_config))
 
+        self._configure_encoder(camera_component, self._camera.encoder_config)
+
+        for callback in self._camera.callbacks:
+            fn = callback['callback']
+            output_type = callback['output_type']
+
+            # Check if the output type is valid, if not, throw an error
+            if output_type not in self._camera.get_valid_output_types():
+                raise ValueError(f'Invalid output type: {output_type}')
+
+            self.hub_camera.callback(getattr(camera_component.out, output_type), self._packet_callback_wrapper(fn),
+                                     True)
+
         self._camera.camera_component = camera_component
+
+    @staticmethod
+    def _configure_encoder(camera_component, encoder_config):
+        encoder_profile = camera_component._encoder_profile
+        if encoder_profile in [parse_encode('h264'), parse_encode('h265')]:
+            config_h26x = {'rate_control_mode': encoder_config.h26x_rate_control_mode,
+                           'keyframe_freq': encoder_config.h26x_keyframe_freq,
+                           'bitrate_kbps': encoder_config.h26x_bitrate_kbps,
+                           'num_b_frames': encoder_config.h26x_num_b_frames}
+            camera_component.config_encoder_h26x(**config_h26x)
+        elif encoder_profile == parse_encode('mjpeg'):
+            config_mjpeg = {'quality': encoder_config.mjpeg_quality,
+                            'lossless': encoder_config.mjpeg_lossless}
+            camera_component.config_encoder_mjpeg(**config_mjpeg)
 
     def get_component(self) -> Camera:
         return self._camera
@@ -89,38 +149,23 @@ class CreateNeuralNetworkCommand(Command):
                                                  spatial=self._neural_network.spatial,
                                                  decode_fn=self._neural_network.decode_fn)
 
+        nn_component.config_nn(resize_mode=self._neural_network.nn_config.resize_mode,
+                               conf_threshold=self._neural_network.nn_config.conf_threshold)
+
         for callback in self._neural_network.callbacks:
-            self.hub_camera.callback(nn_component, self._callback_wrapper(callback), True)
+            fn = callback['callback']
+            output_type = callback['output_type']
+
+            # Check if the output type is valid, if not, throw an error
+            if output_type not in self._neural_network.get_valid_output_types():
+                raise ValueError(f'Invalid output type: {output_type}')
+
+            self.hub_camera.callback(getattr(nn_component.out, output_type), self._packet_callback_wrapper(fn), True)
 
         self._neural_network.nn_component = nn_component
 
     def get_component(self) -> NeuralNetwork:
         return self._neural_network
-
-    def _callback_wrapper(self, callback: Callable) -> Callable[[HubPacket], None]:
-        """
-        Wraps the callback to be called with a HubPacket.
-        :param callback: The callback to be wrapped.
-        :return: The wrapped callback.
-        """
-
-        def __determine_packet_type(packet) -> Callable:
-            packet_type = type(packet)
-            if packet_type is packets.DetectionPacket or packet_type is packets.TwoStagePacket:
-                return DetectionPacket
-            elif packet_type is packets.TrackerPacket:
-                return TrackerPacket
-            elif packet_type is packets.DepthPacket:
-                return DepthPacket
-            elif packet_type is packets.IMUPacket:
-                return IMUPacket
-            else:
-                return HubPacket
-
-        def callback_wrapper(packet):
-            callback(__determine_packet_type(packet)(device=self.device, packet=packet))
-
-        return callback_wrapper
 
 
 class CreateStereoCommand(Command):
@@ -176,6 +221,16 @@ class CreateStereoCommand(Command):
         if extended_disparity:  # Cannot use subpixel with extended disparity
             subpixel = False
 
+        for callback in self._stereo.callbacks:
+            fn = callback['callback']
+            output_type = callback['output_type']
+
+            # Check if the output type is valid, if not, throw an error
+            if output_type not in self._stereo.get_valid_output_types():
+                raise ValueError(f'Invalid output type: {output_type}')
+
+            self.hub_camera.callback(getattr(stereo_component.out, output_type), self._packet_callback_wrapper(fn), True)
+
         stereo_component.config_stereo(align=align,
                                        lr_check=lr_check,
                                        subpixel=subpixel,
@@ -186,6 +241,64 @@ class CreateStereoCommand(Command):
 
     def get_component(self) -> Stereo:
         return self._stereo
+
+
+class CreateTriggerActionCommand(Command):
+    def __init__(self,
+                 device: 'Device',
+                 trigger: Trigger,
+                 action: Union[Action, Callable]):
+        super().__init__(device=device)
+        self._trigger = trigger
+        self._action = action
+
+    def execute(self) -> None:
+        trigger = self._convert_trigger()
+        action = self._convert_action()
+
+        self.hub_camera.create_trigger(trigger=trigger, action=action)
+
+    def _convert_trigger(self) -> depthai_sdk.trigger_action.Trigger:
+        input = self._trigger.component._get_sdk_component()
+        cooldown = self._trigger.cooldown
+        trigger = None
+        if isinstance(self._trigger, Trigger):
+            condition = self._packet_callback_wrapper(self._trigger.condition)
+            trigger = depthai_sdk.trigger_action.Trigger(input, condition, cooldown)
+        elif isinstance(self._trigger, DetectionTrigger):
+            min_detections = self._trigger.min_detections
+            trigger = depthai_sdk.trigger_action.DetectionTrigger(input, min_detections, cooldown)
+
+        return trigger
+
+    def _convert_action(self) -> depthai_sdk.trigger_action.Action:
+        # Convert action to depthai_sdk.trigger_action.Action
+        action = self._action if isinstance(self._action, Callable) else None
+        if not action:
+            action_inputs = [i._get_sdk_component() for i in self._action.inputs] \
+                if isinstance(self._action.inputs, list) \
+                else self._action.inputs._get_sdk_component()
+
+            if isinstance(self._action, RecordAction):
+                action = depthai_sdk.trigger_action.RecordAction(
+                    inputs=action_inputs,
+                    dir_path=self._action.dir_path,
+                    duration_after_trigger=self._action.duration_after_trigger,
+                    duration_before_trigger=self._action.duration_before_trigger,
+                    on_finish_callback=self.upload_recording_as_event if self._action.upload_as_event else None
+                )
+            elif isinstance(self._action, Action):
+                action = depthai_sdk.trigger_action.Action(action_inputs)
+
+        return action
+
+    def upload_recording_as_event(self, path):
+        print('uploading', path)
+        threads = []
+        video_paths = Path(path).glob('*.mp4')
+        for video_path in video_paths:
+            with open(str(video_path), 'rb') as f:
+                robothub.DETECTIONS.send_video_event(video=f.read(), title='Trigger caused recording')
 
 
 class StreamCommand(Command):

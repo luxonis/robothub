@@ -1,18 +1,19 @@
 import traceback
 import warnings
-from typing import Callable, Any, Optional, Dict
+from typing import Callable, Any, Optional, Dict, Union
 
 from depthai import NNData
 
 from robothub_oak.commands import (
     CreateStereoCommand, CreateCameraCommand, CreateNeuralNetworkCommand,
-    StreamCommand, CommandHistory
+    StreamCommand, CommandHistory, CreateTriggerActionCommand
 )
+from robothub_oak.components._streamable import Streamable
 from robothub_oak.components.camera import Camera
 from robothub_oak.components.neural_network import NeuralNetwork
 from robothub_oak.components.stereo import Stereo
-from robothub_oak.components.streamable import Streamable
 from robothub_oak.hub_camera import HubCamera
+from robothub_oak.trigger_action import Trigger, Action
 
 __all__ = ['Device']
 
@@ -193,6 +194,10 @@ class Device:
         command = CreateStereoCommand(self, self.stereo)
         self._command_history.push(command)
         return self.stereo
+
+    def add_trigger(self, trigger: Trigger, action: Union[Action, Callable]) -> None:
+        command = CreateTriggerActionCommand(self, trigger, action)
+        self._command_history.push(command)
 
     def set_connect_callback(self, callback: Callable[[HubCamera], None]) -> None:
         """

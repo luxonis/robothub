@@ -2,6 +2,7 @@ import contextlib
 import logging
 import logging as log
 import os
+import time
 from collections import defaultdict
 from typing import Optional, List
 
@@ -133,7 +134,7 @@ class DeviceManager:
                     self._disconnect_camera(camera)
                     continue
 
-            self.stop_event.wait(self.POLL_FREQUENCY)
+            time.sleep(self.POLL_FREQUENCY)
 
     def _connect(self) -> None:
         """
@@ -155,7 +156,7 @@ class DeviceManager:
         """
         Connect a device to the app.
         """
-        hub_camera = HubCamera(device_name=device.get_device_name())
+        hub_camera = HubCamera(device_name=device.ip_address or device.mxid)
         if not device._start(hub_camera):  # Initialize the device (create streams, etc.)
             hub_camera.stop()
             return
@@ -211,7 +212,8 @@ class DeviceManager:
         :param ip_address: The IP address of the device.
         :return: The device.
         """
-        assert id or name or mxid or ip_address, 'Must specify at least one of id, name, mxid or ip_address'
+        if not (id or name or mxid or ip_address):
+            raise ValueError('At least one of the following parameters must be specified: id, name, mxid, ip_address.')
 
         device = Device(id=id, name=name, mxid=mxid, ip_address=ip_address)
 
