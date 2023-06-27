@@ -66,7 +66,7 @@ class DetectionPacket(HubPacket):
 class TrackerPacket(DetectionPacket):
     def __init__(self, device: 'Device', packet):
         super().__init__(device, packet)
-        self.tracklets = packet.tracklets
+        self.tracklets = packet.daiTracklets
 
     def upload_as_event(self, title):
         raise NotImplementedError('Not implemented yet')
