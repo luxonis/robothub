@@ -221,6 +221,16 @@ class CreateStereoCommand(Command):
         if extended_disparity:  # Cannot use subpixel with extended disparity
             subpixel = False
 
+        for callback in self._stereo.callbacks:
+            fn = callback['callback']
+            output_type = callback['output_type']
+
+            # Check if the output type is valid, if not, throw an error
+            if output_type not in self._stereo.get_valid_output_types():
+                raise ValueError(f'Invalid output type: {output_type}')
+
+            self.hub_camera.callback(getattr(stereo_component.out, output_type), self._packet_callback_wrapper(fn), True)
+
         stereo_component.config_stereo(align=align,
                                        lr_check=lr_check,
                                        subpixel=subpixel,
