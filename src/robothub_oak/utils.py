@@ -6,7 +6,8 @@ __all__ = [
     'try_or_default',
     'set_logging_level',
     '_process_kwargs',
-    '_get_methods_by_class'
+    '_get_methods_by_class',
+    '_convert_to_enum'
 ]
 
 
