@@ -19,7 +19,11 @@ def try_or_default(func, default=None):
 
 
 def set_logging_level(level):
-    logging.basicConfig()
+    if level != 'DEBUG' or level != logging.DEBUG:
+        logging.basicConfig(format='%(levelname)s | %(message)s')
+    else:
+        logging.basicConfig()
+
     logging.getLogger().setLevel(level)
 
 

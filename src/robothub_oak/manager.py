@@ -48,13 +48,15 @@ class DeviceManager:
             self.stop_event.wait(5)
 
         self.connection_thread.start()
-        log.info('Device connection thread: started successfully.')
+        log.debug('Device connection thread: started successfully.')
 
         self.reporting_thread.start()
-        log.info('Reporting thread: started successfully.')
+        log.debug('Reporting thread: started successfully.')
 
         self.polling_thread.start()
-        log.info('Polling thread: started successfully.')
+        log.debug('Polling thread: started successfully.')
+
+        log.info('App: started successfully.')
 
         # Endless loop to prevent app from exiting, keeps the main thread alive
         while not self.stop_event.is_set():
