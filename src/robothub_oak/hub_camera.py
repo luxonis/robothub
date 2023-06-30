@@ -1,4 +1,3 @@
-import logging
 import logging as log
 import time
 import traceback
@@ -6,7 +5,6 @@ import warnings
 from pathlib import Path
 from typing import Union, Optional, Callable, Dict, Any
 
-import depthai
 import depthai as dai
 import depthai_sdk
 import robothub
@@ -220,7 +218,7 @@ class HubCamera:
                 self.state = robothub.DeviceState.CONNECTED
                 return
             except Exception as e:
-                logging.debug(traceback.print_exc())
+                log.debug(traceback.print_exc())
                 warnings.warn(f'Camera: could not start with exception {e}.')
 
             self.stop_event.wait(1)
@@ -239,8 +237,6 @@ class HubCamera:
 
         self.streams.clear()
         self.state = robothub.DeviceState.DISCONNECTED
-
-        self.streams.clear()
 
         if self.oak_camera:
             self.oak_camera.device.close()
@@ -330,7 +326,7 @@ class HubCamera:
         Returns whether the device has a color camera.
         :return: True if the device has a color camera, False otherwise.
         """
-        return depthai.CameraBoardSocket.RGB in self.available_sensors
+        return dai.CameraBoardSocket.RGB in self.available_sensors
 
     @property
     def has_left(self) -> bool:
@@ -338,7 +334,7 @@ class HubCamera:
         Returns whether the device has a left camera.
         :return: True if the device has a left camera, False otherwise.
         """
-        return depthai.CameraBoardSocket.LEFT in self.available_sensors
+        return dai.CameraBoardSocket.LEFT in self.available_sensors
 
     @property
     def has_right(self) -> bool:
@@ -346,7 +342,7 @@ class HubCamera:
         Returns whether the device has a right camera.
         :return: True if the device has a right camera, False otherwise.
         """
-        return depthai.CameraBoardSocket.RIGHT in self.available_sensors
+        return dai.CameraBoardSocket.RIGHT in self.available_sensors
 
     @property
     def has_stereo(self) -> bool:
