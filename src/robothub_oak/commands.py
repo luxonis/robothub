@@ -189,9 +189,10 @@ class CreateStereoCommand(Command):
         self._stereo = stereo
 
     def execute(self) -> None:
+        resolution = self._stereo.resolution or self._get_default_resolution(self.device.name)
         left = self._stereo.left_camera.camera_component if self._stereo.left_camera else None
         right = self._stereo.right_camera.camera_component if self._stereo.right_camera else None
-        stereo_component = self.hub_camera.create_stereo(resolution=self._stereo.resolution,
+        stereo_component = self.hub_camera.create_stereo(resolution,
                                                          fps=self._stereo.fps,
                                                          left=left,
                                                          right=right)
@@ -253,6 +254,18 @@ class CreateStereoCommand(Command):
 
     def get_component(self) -> Stereo:
         return self._stereo
+
+    @staticmethod
+    def _get_default_resolution(product_name):
+        product_name = product_name.upper()
+        if product_name == 'OAK-D-LR':
+            return '1200p'
+        elif product_name == 'OAK-D-SR':
+            return '800p'
+        elif product_name == 'OAK-D-LITE':
+            return '480p'
+        else:
+            return '400p'
 
 
 class CreateTriggerActionCommand(Command):
