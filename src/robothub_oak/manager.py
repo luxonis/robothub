@@ -163,7 +163,9 @@ class DeviceManager:
             hub_camera.stop()
             return
 
-        hub_camera.start()  # Start the pipeline
+        if not hub_camera.start():  # Start the pipeline
+            hub_camera.stop()
+            return
 
         device.connect_callback(hub_camera)
         self._hub_cameras.append(hub_camera)
