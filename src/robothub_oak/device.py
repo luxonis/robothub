@@ -71,6 +71,7 @@ class Device:
             return False
 
         self.hub_camera = hub_camera
+        self._set_product_name()  # Set product name if not set
 
         try:
             for command in self._command_history:
@@ -220,3 +221,10 @@ class Device:
         Returns the name of the device.
         """
         return self.id or self.name or self.ip_address or self.mxid
+
+    def _set_product_name(self):
+        """
+        Sets the product name of the device.
+        """
+        if self.hub_camera and not self.name:
+            self.name = self.hub_camera.info_report().get('product_name', None)
