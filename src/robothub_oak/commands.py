@@ -85,7 +85,7 @@ class CreateCameraCommand(Command):
         self._camera = camera
 
     def execute(self) -> None:
-        resolution = self._camera.resolution or self._get_default_resolution(self.device.name)
+        resolution = self._camera.resolution
         camera_component = self.hub_camera.create_camera(source=self._camera.name,
                                                          resolution=resolution,
                                                          fps=self._camera.fps)
@@ -121,16 +121,6 @@ class CreateCameraCommand(Command):
             config_mjpeg = {'quality': encoder_config.mjpeg_quality,
                             'lossless': encoder_config.mjpeg_lossless}
             camera_component.config_encoder_mjpeg(**config_mjpeg)
-
-    @staticmethod
-    def _get_default_resolution(product_name):
-        product_name = product_name.upper()
-        if product_name == 'OAK-D-LR':
-            return '1200p'
-        elif product_name == 'OAK-D-SR':
-            return '800p'
-        else:
-            return '1080p'
 
     def get_component(self) -> Camera:
         return self._camera
@@ -189,7 +179,7 @@ class CreateStereoCommand(Command):
         self._stereo = stereo
 
     def execute(self) -> None:
-        resolution = self._stereo.resolution or self._get_default_resolution(self.device.name)
+        resolution = self._stereo.resolution
         left = self._stereo.left_camera.camera_component if self._stereo.left_camera else None
         right = self._stereo.right_camera.camera_component if self._stereo.right_camera else None
         stereo_component = self.hub_camera.create_stereo(resolution,
@@ -254,18 +244,6 @@ class CreateStereoCommand(Command):
 
     def get_component(self) -> Stereo:
         return self._stereo
-
-    @staticmethod
-    def _get_default_resolution(product_name):
-        product_name = product_name.upper()
-        if product_name == 'OAK-D-LR':
-            return '1200p'
-        elif product_name == 'OAK-D-SR':
-            return '800p'
-        elif product_name == 'OAK-D-LITE':
-            return '480p'
-        else:
-            return '400p'
 
 
 class CreateTriggerActionCommand(Command):
