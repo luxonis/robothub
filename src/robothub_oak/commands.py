@@ -85,8 +85,9 @@ class CreateCameraCommand(Command):
         self._camera = camera
 
     def execute(self) -> None:
+        resolution = self._camera.resolution or self._get_default_resolution(self.device.name)
         camera_component = self.hub_camera.create_camera(source=self._camera.name,
-                                                         resolution=self._camera.resolution,
+                                                         resolution=resolution,
                                                          fps=self._camera.fps)
 
         if camera_component.is_color():
@@ -120,6 +121,16 @@ class CreateCameraCommand(Command):
             config_mjpeg = {'quality': encoder_config.mjpeg_quality,
                             'lossless': encoder_config.mjpeg_lossless}
             camera_component.config_encoder_mjpeg(**config_mjpeg)
+
+    @staticmethod
+    def _get_default_resolution(product_name):
+        product_name = product_name.upper()
+        if product_name == 'OAK-D-LR':
+            return '1200p'
+        elif product_name == 'OAK-D-SR':
+            return '800p'
+        else:
+            return '1080p'
 
     def get_component(self) -> Camera:
         return self._camera
@@ -229,7 +240,8 @@ class CreateStereoCommand(Command):
             if output_type not in self._stereo.get_valid_output_types():
                 raise ValueError(f'Invalid output type: {output_type}')
 
-            self.hub_camera.callback(getattr(stereo_component.out, output_type), self._packet_callback_wrapper(fn), True)
+            self.hub_camera.callback(getattr(stereo_component.out, output_type), self._packet_callback_wrapper(fn),
+                                     True)
 
         stereo_component.config_stereo(align=align,
                                        lr_check=lr_check,
