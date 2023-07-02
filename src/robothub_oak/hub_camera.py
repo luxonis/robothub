@@ -213,19 +213,23 @@ class HubCamera:
         """
         return self.oak_camera.poll()
 
-    def start(self) -> None:
+    def start(self) -> bool:
         """
         Starts the device and sets the state to connected.
         """
         if self.state == robothub.DeviceState.CONNECTED:
-            return
+            return True
 
+        start_time = time.monotonic()
         while not self.stop_event.is_set():
             try:
                 self.oak_camera.start()
                 self.state = robothub.DeviceState.CONNECTED
-                return
+                return True
             except Exception as e:
+                if time.monotonic() - start_time > 10:
+                    return False
+
                 log.debug(traceback.print_exc())
                 warnings.warn(f'Camera: could not start with exception {e}.')
 
