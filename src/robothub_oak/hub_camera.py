@@ -110,7 +110,6 @@ class HubCamera:
                                          tracker=tracker, spatial=spatial, decode_fn=decode_fn)
         return comp
 
-
     def create_stereo(self,
                       resolution: Union[None, str, dai.MonoCameraProperties.SensorResolution] = None,
                       fps: Optional[float] = None,
@@ -154,12 +153,21 @@ class HubCamera:
         if unique_key in robothub.STREAMS.streams.keys():
             stream_handle = robothub.STREAMS.streams[unique_key]
         else:
-            stream_handle = robothub.STREAMS.create_video(camera_serial=self.device_name,
-                                                          unique_key=unique_key,
-                                                          description=name)
-        self.streams[unique_key] = stream_handle
+            stream_handle = self._create_stream(unique_key=unique_key, name=name)
 
+        self.streams[unique_key] = stream_handle
         self._add_stream_callback(stream_handle=stream_handle, component=component, callback=callback)
+
+    def _create_stream(self, unique_key: str, name: str) -> robothub.StreamHandle:
+        try:
+            return robothub.STREAMS.create_video(camera_serial=self.device_name,
+                                                 unique_key=unique_key,
+                                                 description=name)
+        except Exception:
+            robothub.STREAMS.destroy_streams_by_id([unique_key])
+            return robothub.STREAMS.create_video(camera_serial=self.device_name,
+                                                 unique_key=unique_key,
+                                                 description=name)
 
     def _add_stream_callback(self,
                              stream_handle: robothub.StreamHandle,
