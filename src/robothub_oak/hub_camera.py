@@ -135,7 +135,8 @@ class HubCamera:
                       component: Union[CameraComponent, NNComponent, StereoComponent],
                       unique_key: str,
                       name: str,
-                      callback: Callable = None
+                      callback: Callable = None,
+                      visualizer_callback: Callable = None,
                       ) -> None:
         """
         Creates a stream for the given component.
@@ -144,7 +145,13 @@ class HubCamera:
         :param unique_key: Unique key for the stream.
         :param name: Name of the stream that will be used in Live View.
         :param callback: Callback function to be called when a new frame is received.
+        :param visualizer_callback: Callback function to be called inside the default callback function. Mutually exclusive with callback.
         """
+        if visualizer_callback and callback:
+            warnings.warn(
+                'visualizer_callback and callback are mutually exclusive. visualizer_callback will be ignored.'
+            )
+
         log.debug(f'Stream: creating stream {name} for component {component}.')
 
         if unique_key is None:
@@ -156,7 +163,10 @@ class HubCamera:
             stream_handle = self._create_stream(unique_key=unique_key, name=name)
 
         self.streams[unique_key] = stream_handle
-        self._add_stream_callback(stream_handle=stream_handle, component=component, callback=callback)
+        self._add_stream_callback(stream_handle=stream_handle,
+                                  component=component,
+                                  callback=callback,
+                                  visualizer_callback=visualizer_callback)
 
     def _create_stream(self, unique_key: str, name: str) -> robothub.StreamHandle:
         try:
@@ -172,7 +182,8 @@ class HubCamera:
     def _add_stream_callback(self,
                              stream_handle: robothub.StreamHandle,
                              component: Union[CameraComponent, NNComponent, StereoComponent],
-                             callback: Callable
+                             callback: Callable,
+                             visualizer_callback: Callable
                              ) -> None:
         """
         Selects the correct callback function for the given component and adds it to the stream.
@@ -180,16 +191,17 @@ class HubCamera:
         :param stream_handle: Stream handle to add the callback to.
         :param component: Component to create a callback for.
         :param callback: User-defined callback function to be called when a new frame is received.
+        :param visualizer_callback: User-defined callback function to be called inside the default callback function. Mutually exclusive with callback.
         """
         fn = None
         enable_visualizer = False
         if isinstance(component, CameraComponent):
-            fn = callback or get_default_color_callback(stream_handle)
+            fn = callback or get_default_color_callback(stream_handle, visualizer_callback=visualizer_callback)
         elif isinstance(component, NNComponent):
-            fn = callback or get_default_nn_callback(stream_handle)
+            fn = callback or get_default_nn_callback(stream_handle, visualizer_callback=visualizer_callback)
             enable_visualizer = True
         elif isinstance(component, StereoComponent):
-            fn = callback or get_default_depth_callback(stream_handle)
+            fn = callback or get_default_depth_callback(stream_handle, visualizer_callback=visualizer_callback)
 
         if fn:
             self.oak_camera.callback(component.out.encoded, callback=fn, enable_visualizer=enable_visualizer)

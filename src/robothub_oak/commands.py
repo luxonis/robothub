@@ -241,8 +241,11 @@ class CreateStereoCommand(Command):
             if output_type not in self._stereo.get_valid_output_types():
                 raise ValueError(f'Invalid output type: {output_type}')
 
-            self.hub_camera.callback(getattr(stereo_component.out, output_type), self._packet_callback_wrapper(fn),
-                                     True)
+            self.hub_camera.callback(
+                getattr(stereo_component.out, output_type),
+                self._packet_callback_wrapper(fn),
+                True
+            )
 
         stereo_component.config_stereo(align=align,
                                        lr_check=lr_check,
@@ -346,10 +349,10 @@ class StreamCommand(Command):
             stream_component = component.stereo_component
         else:
             raise Exception('Component not supported for streaming, only Camera and NeuralNetwork are supported.')
-
         self.hub_camera.create_stream(component=stream_component,
                                       unique_key=component.stream_key,
-                                      name=component.stream_name)
+                                      name=component.stream_name,
+                                      visualizer_callback=component.visualizer_callback)
 
 
 class CommandHistory:
