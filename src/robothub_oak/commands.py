@@ -3,7 +3,7 @@ import warnings
 from abc import abstractmethod, ABC
 from dataclasses import asdict
 from pathlib import Path
-from typing import Callable, Union
+from typing import Callable, Union, Optional
 
 import depthai as dai
 import depthai_sdk.classes.packets as packets
@@ -49,12 +49,15 @@ class Command(ABC):
     def get_component(self):
         return None
 
-    def _packet_callback_wrapper(self, callback: Callable) -> Callable[[HubPacket], None]:
+    def _packet_callback_wrapper(self, callback: Callable) -> Optional[Callable[[HubPacket], None]]:
         """
         Wraps the callback to be called with a HubPacket.
         :param callback: The callback to be wrapped.
         :return: The wrapped callback.
         """
+
+        if callback is None:
+            return None
 
         def __determine_packet_type(packet) -> Callable:
             packet_type = type(packet)
