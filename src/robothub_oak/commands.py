@@ -318,8 +318,6 @@ class CreateTriggerActionCommand(Command):
         return action
 
     def upload_recording_as_event(self, path):
-        print('uploading', path)
-        threads = []
         video_paths = Path(path).glob('*.mp4')
         for video_path in video_paths:
             with open(str(video_path), 'rb') as f:
