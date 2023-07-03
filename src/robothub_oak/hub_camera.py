@@ -13,7 +13,7 @@ from depthai_sdk.components import CameraComponent, StereoComponent, NNComponent
 from depthai_sdk.trigger_action import Trigger, Action
 
 import robothub_oak
-from robothub_oak.callbacks import get_default_color_callback, get_default_nn_callback, get_default_depth_callback
+from robothub_oak.callbacks import get_default_callback
 from robothub_oak.utils import try_or_default
 
 __all__ = ['HubCamera']
@@ -193,15 +193,8 @@ class HubCamera:
         :param callback: User-defined callback function to be called when a new frame is received.
         :param visualizer_callback: User-defined callback function to be called inside the default callback function. Mutually exclusive with callback.
         """
-        fn = None
-        enable_visualizer = False
-        if isinstance(component, CameraComponent):
-            fn = callback or get_default_color_callback(stream_handle, visualizer_callback=visualizer_callback)
-        elif isinstance(component, NNComponent):
-            fn = callback or get_default_nn_callback(stream_handle, visualizer_callback=visualizer_callback)
-            enable_visualizer = True
-        elif isinstance(component, StereoComponent):
-            fn = callback or get_default_depth_callback(stream_handle, visualizer_callback=visualizer_callback)
+        fn = callback or get_default_callback(stream_handle, visualizer_callback=visualizer_callback)
+        enable_visualizer = True if callback or visualizer_callback else None
 
         if fn:
             self.oak_camera.callback(component.out.encoded, callback=fn, enable_visualizer=enable_visualizer)
