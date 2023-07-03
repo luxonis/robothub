@@ -1,13 +1,16 @@
 import logging
+from pathlib import Path
+from typing import Dict, Any, Union
 
-from typing import Dict, Any
+import robothub_oak
 
 __all__ = [
     'try_or_default',
     'set_logging_level',
     '_process_kwargs',
     '_get_methods_by_class',
-    '_convert_to_enum'
+    '_convert_to_enum',
+    'set_replay_path'
 ]
 
 
@@ -59,3 +62,12 @@ def _convert_to_enum(name: Any, cls: Any) -> Any:
         return getattr(cls, name)
     except AttributeError:
         return None
+
+
+def set_replay_path(path: Union[Path, str]) -> None:
+    """
+    Use the replay functionality to use a recorded video instead of the live camera feed.
+
+    :param path: Path to the video file or folder.
+    """
+    robothub_oak.REPLAY_PATH = str(path)
