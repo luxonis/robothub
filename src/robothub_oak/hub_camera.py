@@ -194,7 +194,7 @@ class HubCamera:
         :param visualizer_callback: User-defined callback function to be called inside the default callback function. Mutually exclusive with callback.
         """
         fn = callback or get_default_callback(stream_handle, visualizer_callback=visualizer_callback)
-        enable_visualizer = True if callback or visualizer_callback else None
+        enable_visualizer = True if visualizer_callback else False
 
         if fn:
             self.oak_camera.callback(component.out.encoded, callback=fn, enable_visualizer=enable_visualizer)
