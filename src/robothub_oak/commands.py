@@ -46,7 +46,6 @@ class Command(ABC):
     def set_camera(self, hub_camera: HubCamera) -> None:
         self.hub_camera = hub_camera
 
-    @abstractmethod
     def get_component(self):
         pass
 
@@ -80,6 +79,9 @@ class Command(ABC):
 
     def assign_callbacks(self, depthai_sdk_component):
         component = self.get_component()
+        if component is None:
+            return
+
         for callback in component.callbacks:
             fn = callback['callback']
             output_type = callback['output_type']
