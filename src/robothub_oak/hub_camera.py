@@ -135,6 +135,7 @@ class HubCamera:
                       component: Union[CameraComponent, NNComponent, StereoComponent],
                       unique_key: str,
                       name: str,
+                      output_type: str = None,
                       callback: Callable = None,
                       visualizer_callback: Callable = None,
                       ) -> None:
@@ -162,9 +163,12 @@ class HubCamera:
         else:
             stream_handle = self._create_stream(unique_key=unique_key, name=name)
 
+        output_type = output_type or 'encoded'
+
         self.streams[unique_key] = stream_handle
         self._add_stream_callback(stream_handle=stream_handle,
                                   component=component,
+                                  output_type=output_type,
                                   callback=callback,
                                   visualizer_callback=visualizer_callback)
 
@@ -182,6 +186,7 @@ class HubCamera:
     def _add_stream_callback(self,
                              stream_handle: robothub.StreamHandle,
                              component: Union[CameraComponent, NNComponent, StereoComponent],
+                             output_type: str,
                              callback: Callable,
                              visualizer_callback: Callable
                              ) -> None:
@@ -195,9 +200,8 @@ class HubCamera:
         """
         fn = callback or get_default_callback(stream_handle, visualizer_callback=visualizer_callback)
         enable_visualizer = True if visualizer_callback else False
-
-        if fn:
-            self.oak_camera.callback(component.out.encoded, callback=fn, enable_visualizer=enable_visualizer)
+        component_output = getattr(component.out, output_type)
+        self.oak_camera.callback(component_output, callback=fn, enable_visualizer=enable_visualizer)
 
     def callback(self, output: Any, callback: Callable, enable_visualizer: bool = False) -> None:
         """

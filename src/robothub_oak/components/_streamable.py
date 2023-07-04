@@ -12,11 +12,13 @@ class Streamable:
         self.stream_enabled = False
         self.stream_name = None
         self.stream_key = None
+        self.output_type = None
         self.visualizer_callback = None
 
     def stream_to_hub(self,
                       name: str,
                       unique_key: str = None,
+                      output_type: str = None,
                       visualizer_callback: Callable[[HubPacket], None] = None
                       ) -> None:
         """
@@ -24,10 +26,12 @@ class Streamable:
 
         :param name: Name of the stream to be displayed on the RobotHub.
         :param unique_key: Unique key of the stream. If not provided, it will be generated automatically.
+        :param output_type: The type of the output to add the callback to. Defaults to 'main'.
         :param visualizer_callback: Callback that will be called when a new packet is received. The main intention of
             this callback is to allow the user to visualize the data in a custom way.
         """
         self.stream_enabled = True
         self.stream_name = name
         self.stream_key = unique_key
+        self.output_type = output_type
         self.visualizer_callback = visualizer_callback

@@ -353,6 +353,7 @@ class StreamCommand(Command):
         self.hub_camera.create_stream(component=stream_component,
                                       unique_key=component.stream_key,
                                       name=component.stream_name,
+                                      output_type=component.output_type,
                                       visualizer_callback=self._packet_callback_wrapper(component.visualizer_callback))
 
 
