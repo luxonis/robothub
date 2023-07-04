@@ -46,8 +46,9 @@ class Command(ABC):
     def set_camera(self, hub_camera: HubCamera) -> None:
         self.hub_camera = hub_camera
 
+    @abstractmethod
     def get_component(self):
-        return None
+        pass
 
     def _packet_callback_wrapper(self, callback: Callable) -> Optional[Callable[[HubPacket], None]]:
         """
@@ -77,6 +78,18 @@ class Command(ABC):
 
         return callback_wrapper
 
+    def assign_callbacks(self, depthai_sdk_component):
+        component = self.get_component()
+        for callback in component.callbacks:
+            fn = callback['callback']
+            output_type = callback['output_type']
+
+            # Check if the output type is valid, if not, throw an error
+            if output_type not in component.get_valid_output_types():
+                raise ValueError(f'Invalid output type: {output_type}')
+            output = getattr(depthai_sdk_component.out, output_type)
+            self.hub_camera.callback(output, self._packet_callback_wrapper(fn), True)
+
 
 class CreateCameraCommand(Command):
     """
@@ -98,16 +111,7 @@ class CreateCameraCommand(Command):
 
         self._configure_encoder(camera_component, self._camera.encoder_config)
 
-        for callback in self._camera.callbacks:
-            fn = callback['callback']
-            output_type = callback['output_type']
-
-            # Check if the output type is valid, if not, throw an error
-            if output_type not in self._camera.get_valid_output_types():
-                raise ValueError(f'Invalid output type: {output_type}')
-
-            self.hub_camera.callback(getattr(camera_component.out, output_type), self._packet_callback_wrapper(fn),
-                                     True)
+        self.assign_callbacks(camera_component)
 
         self._camera.camera_component = camera_component
 
@@ -163,18 +167,14 @@ class CreateNeuralNetworkCommand(Command):
                                                  spatial=self._neural_network.spatial,
                                                  decode_fn=self._neural_network.decode_fn)
 
+        # Configure the neural network
         nn_component.config_nn(resize_mode=self._neural_network.nn_config.resize_mode,
                                conf_threshold=self._neural_network.nn_config.conf_threshold)
 
-        for callback in self._neural_network.callbacks:
-            fn = callback['callback']
-            output_type = callback['output_type']
+        # Configure the tracker
+        nn_component.config_tracker(**asdict(self._neural_network.tracker_config))
 
-            # Check if the output type is valid, if not, throw an error
-            if output_type not in self._neural_network.get_valid_output_types():
-                raise ValueError(f'Invalid output type: {output_type}')
-
-            self.hub_camera.callback(getattr(nn_component.out, output_type), self._packet_callback_wrapper(fn), True)
+        self.assign_callbacks(nn_component)
 
         self._neural_network.nn_component = nn_component
 
@@ -200,7 +200,28 @@ class CreateStereoCommand(Command):
                                                          left=left,
                                                          right=right)
 
-        # Configure stereo component
+        self._apply_configuration(stereo_component)
+        self.assign_callbacks(stereo_component)
+
+        stereo_component.set_colormap(dai.Colormap.JET)
+        self._stereo.stereo_component = stereo_component
+
+    def get_component(self) -> Stereo:
+        return self._stereo
+
+    @staticmethod
+    def _get_default_resolution(product_name):
+        product_name = product_name.upper()
+        if product_name == 'OAK-D-LR':
+            return '1200p'
+        elif product_name == 'OAK-D-SR':
+            return '800p'
+        elif product_name == 'OAK-D-LITE':
+            return '480p'
+        else:
+            return '400p'
+
+    def _apply_configuration(self, depthai_sdk_component):
         stereo_config = self._stereo.stereo_config
         stereo_quality = stereo_config.depth_quality
         stereo_range = stereo_config.depth_range
@@ -236,42 +257,11 @@ class CreateStereoCommand(Command):
         if extended_disparity:  # Cannot use subpixel with extended disparity
             subpixel = False
 
-        for callback in self._stereo.callbacks:
-            fn = callback['callback']
-            output_type = callback['output_type']
-
-            # Check if the output type is valid, if not, throw an error
-            if output_type not in self._stereo.get_valid_output_types():
-                raise ValueError(f'Invalid output type: {output_type}')
-
-            self.hub_camera.callback(
-                getattr(stereo_component.out, output_type),
-                self._packet_callback_wrapper(fn),
-                True
-            )
-
-        stereo_component.config_stereo(align=align,
-                                       lr_check=lr_check,
-                                       subpixel=subpixel,
-                                       median=median,
-                                       extended=extended_disparity)
-        stereo_component.set_colormap(dai.Colormap.JET)
-        self._stereo.stereo_component = stereo_component
-
-    def get_component(self) -> Stereo:
-        return self._stereo
-
-    @staticmethod
-    def _get_default_resolution(product_name):
-        product_name = product_name.upper()
-        if product_name == 'OAK-D-LR':
-            return '1200p'
-        elif product_name == 'OAK-D-SR':
-            return '800p'
-        elif product_name == 'OAK-D-LITE':
-            return '480p'
-        else:
-            return '400p'
+        depthai_sdk_component.config_stereo(align=align,
+                                            lr_check=lr_check,
+                                            subpixel=subpixel,
+                                            median=median,
+                                            extended=extended_disparity)
 
 
 class CreateTriggerActionCommand(Command):
