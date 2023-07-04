@@ -4,8 +4,8 @@ try:
     import blobconverter
 
     blobconverter.set_defaults(silent=True)
-except:
-    pass
+except ImportError:
+    blobconverter = None
 
 from .device import *
 from .hub_camera import *
