@@ -1,5 +1,4 @@
 import contextlib
-import logging
 import logging as log
 import os
 import time
@@ -76,7 +75,7 @@ class DeviceManager:
         try:
             robothub.STREAMS.destroy_all_streams()
         except BaseException as e:
-            logging.debug(f'Destroy all streams excepted with: {e}.')
+            log.debug(f'Destroy all streams excepted with: {e}.')
 
         for camera in self._hub_cameras:
             try:
@@ -85,7 +84,7 @@ class DeviceManager:
                         with contextlib.redirect_stdout(devnull):
                             camera.stop()
             except BaseException as e:
-                logging.debug(f'Device {camera.device_name}: could not exit with exception: {e}.')
+                log.debug(f'Device {camera.device_name}: could not exit with exception: {e}.')
 
         log.info('App: stopped successfully.')
 
@@ -170,7 +169,7 @@ class DeviceManager:
         device.connect_callback(hub_camera)
         self._hub_cameras.append(hub_camera)
 
-        logging.info(f'Device {device.get_device_name()}: started successfully.')
+        log.info(f'Device {device.get_device_name()}: started successfully.')
 
     def _disconnect_camera(self, camera: HubCamera) -> None:
         """

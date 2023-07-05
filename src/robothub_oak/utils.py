@@ -1,4 +1,4 @@
-import logging
+import logging as log
 from pathlib import Path
 from typing import Dict, Any, Union
 
@@ -22,12 +22,12 @@ def try_or_default(func, default=None):
 
 
 def set_logging_level(level):
-    if level != 'DEBUG' or level != logging.DEBUG:
-        logging.basicConfig(format='%(levelname)s | %(message)s')
+    if level != 'DEBUG' or level != log.DEBUG:
+        log.basicConfig(format='%(levelname)s | %(message)s')
     else:
-        logging.basicConfig()
+        log.basicConfig()
 
-    logging.getLogger().setLevel(level)
+    log.getLogger().setLevel(level)
 
 
 def _process_kwargs(kwargs: Dict[str, Any]) -> Dict[str, Any]:
