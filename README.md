@@ -19,7 +19,7 @@ $ python3 -m pip install robothub-oak
 
 ## Examples
 
-There are several examples in the [examples](examples) folder.
+You can find examples in the [robothub-examples](https://github.com/luxonis/robothub-examples) repository.
 
 ## License
 
