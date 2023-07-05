@@ -1,6 +1,5 @@
 import logging as log
 import time
-import traceback
 import warnings
 from pathlib import Path
 from typing import Union, Optional, Callable, Dict, Any
@@ -239,7 +238,6 @@ class HubCamera:
                 if time.monotonic() - start_time > 10:
                     return False
 
-                log.debug(traceback.print_exc())
                 warnings.warn(f'Camera: could not start with exception {e}.')
 
             self.stop_event.wait(1)

@@ -1,4 +1,3 @@
-import traceback
 import warnings
 from typing import Callable, Any, Optional, Dict, Union
 
@@ -83,7 +82,6 @@ class Device:
                 command.execute()
         except Exception as e:
             warnings.warn(f'Failed to start device {self.get_device_name()} with error: {e}')
-            traceback.print_exc()
             return False
 
         # Create streams
@@ -115,7 +113,6 @@ class Device:
                 self._start(hub_camera=self.hub_camera)
         except Exception as e:
             warnings.warn(f'Failed to restart device {self.get_device_name()} with error: {e}')
-            traceback.print_exc()
             return False
 
         return True
