@@ -1,4 +1,4 @@
-import warnings
+import logging as log
 
 try:
     import cv2
@@ -29,7 +29,7 @@ class HubPacket:
             frame_bytes = cv2.imencode('.jpg', self.depthai_sdk_packet.frame)[1].tobytes()
             robothub.DETECTIONS.send_frame_detection(imagedata=frame_bytes, title=title, camera_serial=self.device.mxid)
         except Exception as e:
-            warnings.warn(f'Could not upload detection with error: {e}')
+            log.error(f'Could not upload detection with error: {e}')
 
 
 class DepthPacket(HubPacket):
@@ -57,7 +57,7 @@ class DetectionPacket(HubPacket):
             # TODO add metadata
             robothub.DETECTIONS.send_frame_detection(imagedata=frame_bytes, title=title, camera_serial=self.device.mxid)
         except Exception as e:
-            warnings.warn(f'Could not upload detection with error: {e}')
+            log.error(f'Could not upload detection with error: {e}')
 
     def upload_as_event(self, title):
         raise NotImplementedError('Not implemented yet')

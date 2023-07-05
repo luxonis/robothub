@@ -238,7 +238,7 @@ class HubCamera:
                 if time.monotonic() - start_time > 10:
                     return False
 
-                warnings.warn(f'Camera: could not start with exception {e}.')
+                log.error(f'Camera: could not start with exception {e}.')
 
             self.stop_event.wait(1)
 

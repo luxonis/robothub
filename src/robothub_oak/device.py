@@ -1,4 +1,4 @@
-import warnings
+import logging as log
 from typing import Callable, Any, Optional, Dict, Union
 
 from depthai import NNData
@@ -75,13 +75,13 @@ class Device:
         try:
             for command in self._command_history:
                 if isinstance(command, CreateStereoCommand) and not hub_camera.has_stereo:
-                    warnings.warn(f'Device {self.get_device_name()} does not support stereo, skipping stereo creation.')
+                    log.warning(f'Device {self.get_device_name()} does not support stereo, skipping stereo creation.')
                     continue
 
                 command.set_camera(hub_camera)
                 command.execute()
         except Exception as e:
-            warnings.warn(f'Failed to start device {self.get_device_name()} with error: {e}')
+            log.error(f'Failed to start device {self.get_device_name()} with error: {e}')
             return False
 
         # Create streams
@@ -112,7 +112,7 @@ class Device:
                 self.hub_camera.oak_camera = self.hub_camera.init_oak_camera()
                 self._start(hub_camera=self.hub_camera)
         except Exception as e:
-            warnings.warn(f'Failed to restart device {self.get_device_name()} with error: {e}')
+            log.error(f'Failed to restart device {self.get_device_name()} with error: {e}')
             return False
 
         return True
