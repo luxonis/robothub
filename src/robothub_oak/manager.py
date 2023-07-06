@@ -27,6 +27,7 @@ class DeviceManager:
 
         self.connecting_to_device = False  # Used to prevent multiple threads from connecting to the same device
         self.stop_event = robothub.threading.Event()
+        self.lock = robothub.threading.Lock()
 
         self.reporting_thread = robothub.threading.Thread(target=self._report, name='ReportingThread', daemon=False)
         self.polling_thread = robothub.threading.Thread(target=self._poll, name='PollingThread', daemon=False)
@@ -133,7 +134,8 @@ class DeviceManager:
         while not self.stop_event.is_set():
             for camera in self._hub_cameras:
                 if not camera.poll():
-                    self._disconnect_camera(camera)
+                    with self.lock:
+                        self._disconnect_camera(camera)
                     continue
 
             time.sleep(self.POLL_FREQUENCY)
@@ -150,9 +152,8 @@ class DeviceManager:
             mxids = [camera.device_name for camera in self._hub_cameras]
             for device in self._devices:
                 if device.mxid not in mxids:
-                    self.connecting_to_device = True
-                    self._connect_device(device)
-                    self.connecting_to_device = False
+                    with self.lock:
+                        self._connect_device(device)
 
     def _connect_device(self, device: 'Device') -> None:
         """
