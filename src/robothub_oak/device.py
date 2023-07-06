@@ -217,7 +217,9 @@ class Device:
         """
         Returns the name of the device.
         """
-        return self.id or self.name or self.ip_address or self.mxid
+        if self.id != self.mxid:
+            return self.id
+        return self.name or self.ip_address or self.mxid
 
     def _set_product_name(self):
         """
