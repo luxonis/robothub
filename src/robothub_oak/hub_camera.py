@@ -26,6 +26,7 @@ class HubCamera:
 
     def __init__(self,
                  device_name: str,
+                 product_name: Optional[str] = None,
                  usb_speed: Union[None, str, dai.UsbSpeed] = None,
                  rotation: int = 0):
         """
@@ -35,6 +36,7 @@ class HubCamera:
         """
         self.state = robothub.DeviceState.UNKNOWN
         self.device_name = device_name
+        self.product_name = product_name
         self.usb_speed = usb_speed
         self.rotation = rotation
 

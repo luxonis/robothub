@@ -164,6 +164,9 @@ class DeviceManager:
             hub_camera.stop()
             return
 
+        # Set the product name
+        hub_camera.product_name = device.name
+
         if not hub_camera.start():  # Start the pipeline
             hub_camera.stop()
             return
@@ -177,7 +180,7 @@ class DeviceManager:
         """
         Disconnect a device from the app.
         """
-        log.info(f'Device {camera.device_name}: disconnected.')
+        log.info(f'Device {camera.product_name}: disconnected.')
         camera.stop()
         self._hub_cameras.remove(camera)
 
