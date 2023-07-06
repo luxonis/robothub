@@ -245,7 +245,7 @@ class HubCamera:
             try:
                 robothub.STREAMS.destroy(stream)
             except ValueError:
-                pass
+                log.error(f'Could not destroy stream {stream}.')
 
         self.streams.clear()
         self.state = robothub.DeviceState.DISCONNECTED
