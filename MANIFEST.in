@@ -1,1 +1,1 @@
-recursive-include src/robothub_oak *.py
+recursive-include src/robothub_camera *.py
