@@ -6,6 +6,7 @@ from application import BaseCameraDataProcessor, CameraDataProcessors, RobothubC
 
 
 class PeopleCounter(BaseCameraDataProcessor):
+    """Just a class that is used to fetch the camera data, ie oak.callback or oak.sync will use one of the methods of this class as the callback."""
 
     def camera_data_callback(self, packets: dict):
         # its quite unclear what the dictionary keys are. This is probably confusing but should be fixed on the depthai_sdk side
