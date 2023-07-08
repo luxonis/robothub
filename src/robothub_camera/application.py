@@ -16,16 +16,6 @@ from time import time
 from typing import Dict, List, Optional
 
 
-class BaseCameraDataProcessor(ABC):
-
-    @abstractmethod
-    def camera_data_callback(self, packets: dict):
-        pass
-
-
-CameraDataProcessors: Optional[Dict[str, BaseCameraDataProcessor]]
-
-
 class RobothubCameraApplication(RobotHubApplication, ABC):
     
     def __init__(self):
@@ -46,11 +36,11 @@ class RobothubCameraApplication(RobotHubApplication, ABC):
             self.__oaks[device.oak["serialNumber"]] = None
 
     @abstractmethod
-    def create_camera_data_processors(self) -> CameraDataProcessors:
+    def on_application_start(self) -> None:
         pass
             
     @abstractmethod
-    def create_pipeline(self, oak: OakCamera, camera_data_processors: CameraDataProcessors):
+    def create_pipeline(self, oak: OakCamera):
         pass
 
     def after_pipeline_starts(self, oak: OakCamera):
@@ -73,8 +63,7 @@ class RobothubCameraApplication(RobotHubApplication, ABC):
         log.info(f"Camera: {device_mxid} thread started...")
         log.info(f"Creating camera data processors for {device_mxid}...")
         # must be created only once
-        camera_data_processors: CameraDataProcessors = self.create_camera_data_processors()
-        log.info(f"Created camera data processors: {camera_data_processors.keys() if camera_data_processors is not None else 'No processors created'} ...")
+        self.on_application_start()
         while self.running:
             # if device is not connected
             if self.__oaks[device_mxid] is None or not self.__oaks[device_mxid].running():
@@ -85,7 +74,7 @@ class RobothubCameraApplication(RobotHubApplication, ABC):
                 # device did connect
                 if self.__oaks[device_mxid] is not None:
                     log.info(f"Creating pipeline for {device_mxid}...")
-                    self.create_pipeline(oak=self.__oaks[device_mxid], camera_data_processors=camera_data_processors)
+                    self.create_pipeline(oak=self.__oaks[device_mxid])
                     self.__oaks[device_mxid].start(blocking=False)
                     log.info(f"Pipeline/Camera: {device_mxid} started...")
                     # optionally implemented by the user
