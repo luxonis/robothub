@@ -2,9 +2,10 @@
 from depthai_sdk import OakCamera
 from depthai_sdk.components import CameraComponent, NNComponent
 
-from application import RobothubCameraApplication, LiveView, send_robothub_image_event
+from robothub_framework_v2 import RobothubCameraApplication, LiveView, send_robothub_image_event
 
 
+# advanced user
 class PeopleCounter:
     """Just a class that is used to fetch the camera data, ie oak.callback or oak.sync will use one of the methods of this class as the callback."""
 
@@ -40,7 +41,7 @@ class MyApp(RobothubCameraApplication):
         rgb: CameraComponent = oak.create_camera(source="color", fps=self.config["fps"], resolution="1080p", encode="mjpeg")
         nn: NNComponent = oak.create_nn(model='mobilenet-ssd', input=rgb)
 
-        self.create_live_view(oak=oak, component=rgb, title="rgb stream")  # oak would be redundant if CameraComponent would save the pipline in a class variable
+        LiveView.create_live_view(oak=oak, component=rgb, title="rgb stream")  # oak would be redundant if CameraComponent would save the pipline in a class variable
 
         # advanced user will use this
         oak.sync([rgb.out.main, nn.out.main], self.people_counter.camera_data_callback)

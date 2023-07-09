@@ -46,16 +46,6 @@ class RobothubCameraApplication(RobotHubApplication, ABC):
     def after_pipeline_starts(self, oak: OakCamera):
         pass
 
-    def create_live_view(self, oak: OakCamera, component: Component, title: str, fps: int = -1) -> None:
-        if isinstance(component, CameraComponent):
-            if component.encoder.getProfile() not in (dai.VideoEncoderProperties.Profile.H265_MAIN, dai.VideoEncoderProperties.Profile.H264_MAIN):
-                h264_component = self.create_camera_h264_component(oak=oak, component=component, fps=fps)
-                live_view = LiveView(frame_width=1920, frame_height=1080, camera_serial=oak.device.getMxId(), unique_key="some_key", title=title)
-                oak.callback(h264_component, live_view.h264_callback)
-                live_view.LIVE_VIEWS[title] = live_view
-        if isinstance(component, StereoComponent):
-            raise NotImplementedError
-
     def __manage_device(self, device: RobotHubDevice):
         """Handle the life cycle of one device."""
         
@@ -135,35 +125,3 @@ class RobothubCameraApplication(RobotHubApplication, ABC):
 
     def on_stop(self) -> None:
         pass
-
-    @staticmethod
-    def create_camera_h264_component(oak: OakCamera, component: CameraComponent, fps: int):
-        if fps == -1:
-            fps = component.get_fps()
-        rh_encoder = oak.pipeline.createVideoEncoder()
-        rh_encoder_profile = dai.VideoEncoderProperties.Profile.H264_MAIN
-        rh_encoder.setDefaultProfilePreset(fps, rh_encoder_profile)
-        rh_encoder.input.setQueueSize(1)
-        rh_encoder.input.setBlocking(False)
-        rh_encoder.setKeyframeFrequency(fps)
-        rh_encoder.setBitrate(1500 * 1000)
-        rh_encoder.setRateControlMode(dai.VideoEncoderProperties.RateControlMode.CBR)
-        rh_encoder.setNumFramesPool(3)
-
-        component.node.video.link(rh_encoder.input)
-
-        def rh_encoded_output(pipeline, device):
-            rh_encoder_xout = XoutH26x(
-                frames=StreamXout(rh_encoder.id, rh_encoder.bitstream),
-                color=True,
-                profile=rh_encoder_profile,
-                fps=rh_encoder.getFrameRate(),
-                frame_shape=sensorResolutions[component.node.getResolution()]
-            )
-            rh_encoder_xout.name = component._source
-            return component._create_xout(pipeline, rh_encoder_xout)
-
-        return rh_encoded_output
-    
-    
-

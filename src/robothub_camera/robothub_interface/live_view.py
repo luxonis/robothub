@@ -1,5 +1,11 @@
 import time
 
+import depthai as dai
+from depthai_sdk import OakCamera
+from depthai_sdk.components.camera_helper import sensorResolutions
+from depthai_sdk.oak_outputs.xout.xout_h26x import XoutH26x
+from depthai_sdk.oak_outputs.xout.xout_base import StreamXout
+from depthai_sdk.components import Component, CameraComponent, StereoComponent
 from robothub import STREAMS
 from typing import List, Optional
 
@@ -88,6 +94,17 @@ class LiveView:
         self.labels: List[str] = []
 
     @staticmethod
+    def create_live_view(oak: OakCamera, component: Component, title: str, fps: int = -1) -> None:
+            if isinstance(component, CameraComponent):
+                if component.encoder.getProfile() not in (dai.VideoEncoderProperties.Profile.H265_MAIN, dai.VideoEncoderProperties.Profile.H264_MAIN):
+                    h264_component = LiveView.create_camera_h264_component(oak=oak, component=component, fps=fps)
+                    live_view = LiveView(frame_width=1920, frame_height=1080, camera_serial=oak.device.getMxId(), unique_key="some_key", title=title)
+                    oak.callback(h264_component, live_view.h264_callback)
+                    live_view.LIVE_VIEWS[title] = live_view
+            if isinstance(component, StereoComponent):
+                raise NotImplementedError
+
+    @staticmethod
     def get_live_view(name: str) -> Optional['LiveView']:
         return LiveView.LIVE_VIEWS.get(name)
 
@@ -106,3 +123,32 @@ class LiveView:
     def _reset_overlays(self):
         self.rectangles = []
         self.labels = []
+
+    @staticmethod
+    def create_camera_h264_component(oak: OakCamera, component: CameraComponent, fps: int):
+        if fps == -1:
+            fps = component.get_fps()
+        rh_encoder = oak.pipeline.createVideoEncoder()
+        rh_encoder_profile = dai.VideoEncoderProperties.Profile.H264_MAIN
+        rh_encoder.setDefaultProfilePreset(fps, rh_encoder_profile)
+        rh_encoder.input.setQueueSize(1)
+        rh_encoder.input.setBlocking(False)
+        rh_encoder.setKeyframeFrequency(fps)
+        rh_encoder.setBitrate(1500 * 1000)
+        rh_encoder.setRateControlMode(dai.VideoEncoderProperties.RateControlMode.CBR)
+        rh_encoder.setNumFramesPool(3)
+
+        component.node.video.link(rh_encoder.input)
+
+        def rh_encoded_output(pipeline, device):
+            rh_encoder_xout = XoutH26x(
+                frames=StreamXout(rh_encoder.id, rh_encoder.bitstream),
+                color=True,
+                profile=rh_encoder_profile,
+                fps=rh_encoder.getFrameRate(),
+                frame_shape=sensorResolutions[component.node.getResolution()]
+            )
+            rh_encoder_xout.name = component._source
+            return component._create_xout(pipeline, rh_encoder_xout)
+
+        return rh_encoded_output
