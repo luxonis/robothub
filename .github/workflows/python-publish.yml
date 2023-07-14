@@ -56,6 +56,6 @@ jobs:
       uses: peter-evans/repository-dispatch@v2
       with:
         token: ${{ secrets.REPO_ACCESS_TOKEN }}
-        event-type: robothub_core-oak-release
-        repository: luxonis/robothub_core-images
+        event-type: robothub-oak-release
+        repository: luxonis/robothub-images
         client-payload: '{"ref": "${{ github.ref }}"}'
