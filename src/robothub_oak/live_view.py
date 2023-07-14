@@ -182,7 +182,7 @@ class LiveView:
     # TODO: add_line, add_text
     def add_text(self,
                  text: str,
-                 coords: Tuple[int, int] = None,
+                 coords: Tuple[int, int],
                  size: int = None,
                  color: Tuple[int, int, int] = None,
                  thickness: int = None,
