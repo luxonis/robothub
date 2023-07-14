@@ -163,10 +163,12 @@ class LiveView:
 
     @staticmethod
     def get_stream_size(component) -> Tuple[int, int]:
-        if isinstance(component, CameraComponent) or isinstance(component, StereoComponent):
-            return component.encoder.getSize()
+        if isinstance(component, CameraComponent):
+            return component.stream_size
+        elif isinstance(component, StereoComponent):
+            return component.left.stream_size
         elif isinstance(component, NNComponent):
-            return component._input.encoder.getSize()
+            return component._input.stream_size
 
     @staticmethod
     def get_by_name(name: str) -> Optional['LiveView']:
