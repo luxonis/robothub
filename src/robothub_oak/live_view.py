@@ -115,8 +115,6 @@ class LiveView:
         self.labels: List[str] = []
         self.lines: List[VisLine] = []
 
-        self.live_views = {}
-
     @staticmethod
     def create(device: OakCamera,
                component: Component,
