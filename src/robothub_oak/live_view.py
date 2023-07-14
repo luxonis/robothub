@@ -1,12 +1,14 @@
+import time
+from typing import List, Optional, Union, Dict, Tuple
+
 import depthai as dai
 import numpy as np
 import robothub_core
-import time
 from depthai_sdk import OakCamera
 from depthai_sdk.components import Component, CameraComponent, StereoComponent, NNComponent
-from typing import List, Optional, Union, Dict, Tuple
+from depthai_sdk.visualize.objects import VisText, VisLine
 
-from robothub_oak.types import BoundingBox, Line
+from robothub_oak.types import BoundingBox
 
 __all__ = ['LiveView', 'LIVE_VIEWS']
 
@@ -23,12 +25,13 @@ def _publish_data(stream_handle: robothub_core.StreamHandle,
                   h264_frame,
                   rectangles: List[BoundingBox],
                   rectangle_labels: List[str],
-                  texts: List[str],
+                  texts: List[VisText],
+                  lines: List[VisLine],
                   frame_width: int,
                   frame_height: int):
     timestamp = int(time.perf_counter_ns() / 1e6)
     metadata = {
-        "platform": "robothub_core",
+        "platform": "robothub",
         "frame_shape": [frame_height, frame_width],
         "config": {
             "output": {
@@ -65,16 +68,22 @@ def _publish_data(stream_handle: robothub_core.StreamHandle,
         ]
     }
 
+    # Bounding boxes
     for roi, label in zip(rectangles, rectangle_labels):
         xmin, ymin, xmax, ymax = roi
         metadata['objects'][0]['detections'].append(
             {'bbox': [xmin, ymin, xmax, ymax], 'label': label, 'color': [0, 255, 255]}
         )
 
-    for idx, text in enumerate(texts):
-        x_coordinate = idx * frame_width // len(texts) + 30  # plus offset
-        metadata["objects"].append({'type': 'text', 'coords': [x_coordinate, 40], 'text': text})
+    # Texts
+    for text in texts:
+        metadata["objects"].append(text.prepare().serialize())
 
+    # Lines
+    for line in lines:
+        metadata["objects"].append(line.prepare().serialize())
+
+    # Publish
     stream_handle.publish_video_data(bytes(h264_frame), timestamp, metadata)
 
 
@@ -101,10 +110,10 @@ class LiveView:
         self.stream_handle = _create_stream_handle(camera_serial=device_mxid, unique_key=unique_key, title=title)
 
         # Objects
-        self.texts: List[str] = []
+        self.texts: List[VisText] = []
         self.rectangles: List[BoundingBox] = []
         self.labels: List[str] = []
-        self.lines: List[Line] = []
+        self.lines: List[VisLine] = []
 
         self.live_views = {}
 
@@ -171,11 +180,26 @@ class LiveView:
         self.add_rectangle(bbox, label)
 
     # TODO: add_line, add_text
-    def add_text(self, text: str) -> None:
-        pass
+    def add_text(self,
+                 text: str,
+                 coords: Tuple[int, int] = None,
+                 size: int = None,
+                 color: Tuple[int, int, int] = None,
+                 thickness: int = None,
+                 outline: bool = True,
+                 background_color: Tuple[int, int, int] = None,
+                 background_transparency: float = 0.5) -> None:
+        obj = VisText(text, coords, size, color, thickness, outline, background_color, background_transparency)
+        self.texts.append(obj)
 
-    def add_line(self, line: BoundingBox, label: str) -> None:
-        pass
+    def add_line(self,
+                 pt1: Tuple[int, int],
+                 pt2: Tuple[int, int],
+                 color: Tuple[int, int, int] = None,
+                 thickness: int = None
+                 ) -> None:
+        obj = VisLine(pt1, pt2, color, thickness)
+        self.lines.append(obj)
 
     def publish(self, h264_frame: Union[np.array, List]) -> None:
         _publish_data(stream_handle=self.stream_handle,
