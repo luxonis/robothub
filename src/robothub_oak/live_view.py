@@ -231,8 +231,10 @@ class LiveView:
         self.publish(h264_frame=h264_packet.frame)
 
     def _reset_overlays(self):
-        self.rectangles = []
-        self.labels = []
+        self.rectangles.clear()
+        self.labels.clear()
+        self.lines.clear()
+        self.texts.clear()
 
 
 LIVE_VIEWS: Dict[str, LiveView] = dict()
