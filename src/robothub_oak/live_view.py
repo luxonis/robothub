@@ -181,7 +181,6 @@ class LiveView:
     def add_bbox(self, bbox: BoundingBox, label: str) -> None:
         self.add_rectangle(bbox, label)
 
-    # TODO: add_line, add_text
     def add_text(self,
                  text: str,
                  coords: Tuple[int, int],
