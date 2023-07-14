@@ -102,7 +102,6 @@ class RobotHubApplication(robothub_core.RobotHubApplication, ABC):
     def __poll_device(self, device: OakCamera):
         while self.running:
             if not device.poll():
-                self.__close_oak(device.device.getMxId())
                 return
 
             time.sleep(0.0025)

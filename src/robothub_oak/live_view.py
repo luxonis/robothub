@@ -14,8 +14,8 @@ __all__ = ['LiveView', 'LIVE_VIEWS']
 
 
 def _create_stream_handle(camera_serial: str, unique_key: str, title: str):
-    if title not in robothub_core.STREAMS.streams:
-        color_stream_handle = robothub_core.STREAMS.create_video(camera_serial, title, title)
+    if unique_key not in robothub_core.STREAMS.streams:
+        color_stream_handle = robothub_core.STREAMS.create_video(camera_serial, unique_key, title)
     else:
         color_stream_handle = robothub_core.STREAMS.streams[unique_key]
     return color_stream_handle
