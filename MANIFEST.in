@@ -1,1 +1,2 @@
 recursive-include src/robothub_oak *.py
+recursive-include src/robothub_oak/data_processors *.py
