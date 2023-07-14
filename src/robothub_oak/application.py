@@ -1,10 +1,11 @@
 import logging as log
-import robothub_core
 import time
 from abc import ABC, abstractmethod
-from depthai_sdk import OakCamera
 from threading import Thread
 from typing import Dict, Optional
+
+import robothub_core
+from depthai_sdk import OakCamera
 
 from robothub_oak.utils import stats_report, info_report
 
@@ -134,7 +135,7 @@ class RobotHubApplication(robothub_core.RobotHubApplication, ABC):
                 oak = OakCamera(device_mxid)
                 self.__devices[device_mxid] = oak
                 self.__device_states[device_mxid] = robothub_core.DeviceState.CONNECTED
-                log.info(f'Device {device_mxid}: successfully connected.')
+                log.debug(f'Device {device_mxid}: successfully connected.')
                 return
             except Exception as e:
                 # If device can't be connected to on first try, wait 5 seconds and try again.

@@ -1,7 +1,27 @@
-from typing import Dict, Any
+import logging as log
+from typing import Dict, Any, Union
 
 import depthai
 import robothub_core
+
+
+def set_logging_level(level: Union[str, int]) -> None:
+    """
+    Set the logging level for the application.
+
+    :param level: Either a string or an integer. If a string, it must be one of the following: 'DEBUG', 'INFO',
+     'WARNING', 'ERROR', 'CRITICAL'. If an integer, it must be one of the following: log.DEBUG, log.INFO, log.WARNING,
+      log.ERROR, log.CRITICAL.
+    """
+    if isinstance(level, str):
+        level = level.upper()
+
+    if level != 'DEBUG' or level != log.DEBUG:
+        log.basicConfig(format='%(levelname)s | %(message)s')
+    else:
+        log.basicConfig()
+
+    log.getLogger().setLevel(level)
 
 
 def stats_report(device: depthai.Device) -> Dict[str, Any]:
