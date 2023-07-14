@@ -171,6 +171,15 @@ class LiveView:
             return component._input.stream_size
 
     @staticmethod
+    def get(name: str = None, unique_key: str = None):
+        if name is not None:
+            return LiveView.get_by_name(name)
+        elif unique_key is not None:
+            return LiveView.get_by_unique_key(unique_key)
+        else:
+            raise ValueError('Either name or unique_key must be specified.')
+
+    @staticmethod
     def get_by_name(name: str) -> Optional['LiveView']:
         return LIVE_VIEWS.get(name, None)
 
