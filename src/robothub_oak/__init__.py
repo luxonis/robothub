@@ -1,5 +1,6 @@
 import os
 
+from robothub_oak.application import *
 from robothub_oak.live_view import *
 
 try:
