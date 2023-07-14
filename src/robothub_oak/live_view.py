@@ -4,7 +4,7 @@ import robothub_core
 import time
 from depthai_sdk import OakCamera
 from depthai_sdk.components import Component, CameraComponent, StereoComponent, NNComponent
-from typing import List, Optional, Union, Dict
+from typing import List, Optional, Union, Dict, Tuple
 
 from robothub_oak.types import BoundingBox, Line
 
