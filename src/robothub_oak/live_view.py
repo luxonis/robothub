@@ -118,7 +118,7 @@ class LiveView:
         self.live_views = {}
 
     @staticmethod
-    def create(oak: OakCamera,
+    def create(device: OakCamera,
                component: Component,
                title: str,
                unique_key: str = None,
@@ -127,7 +127,7 @@ class LiveView:
         """
         Creates a Live View for a given component.
 
-        :param oak: OakCamera instance.
+        :param device: OakCamera instance.
         :param component: Component to create a Live View for. Either a CameraComponent, StereoComponent or NNComponent.
         :param title: Name of the Live View.
         :param unique_key: Live View identifier.
@@ -136,7 +136,7 @@ class LiveView:
         LiveView.verify_encoder_profile(component)
 
         w, h = LiveView.get_stream_size(component)
-        device_mxid = oak.device.getMxId()
+        device_mxid = device.device.getMxId()
         unique_key = unique_key or f'{device_mxid}_{component.__class__.__name__.lower()}_encoded'
 
         live_view = LiveView(title=title,
@@ -146,7 +146,7 @@ class LiveView:
                              frame_height=h)
 
         if not manual_publish:
-            oak.callback(component.out.encoded, live_view.h264_callback)
+            device.callback(component.out.encoded, live_view.h264_callback)
 
         LIVE_VIEWS[title] = live_view
         return live_view
