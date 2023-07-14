@@ -1,6 +1,6 @@
 import os
 
-from robothub.live_view import *
+from robothub_oak.live_view import *
 
 try:
     import blobconverter

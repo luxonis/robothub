@@ -7,7 +7,7 @@ from typing import Dict, Optional
 import robothub_core
 from depthai_sdk import OakCamera
 
-from robothub.utils import stats_report, info_report
+from robothub_oak.utils import stats_report, info_report
 
 __all__ = ['RobotHubApplication']
 

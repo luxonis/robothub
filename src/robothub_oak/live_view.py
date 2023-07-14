@@ -7,7 +7,7 @@ import robothub_core
 from depthai_sdk import OakCamera
 from depthai_sdk.components import Component, CameraComponent, StereoComponent, NNComponent
 
-from robothub.types import BoundingBox, Line
+from robothub_oak.types import BoundingBox, Line
 
 __all__ = ['LiveView', 'LIVE_VIEWS']
 
