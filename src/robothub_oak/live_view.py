@@ -185,10 +185,10 @@ class LiveView:
                       texts=[],
                       frame_width=self.frame_width,
                       frame_height=self.frame_height)
+        self._reset_overlays()
 
     def h264_callback(self, h264_packet):
         self.publish(h264_frame=h264_packet.frame)
-        self._reset_overlays()
 
     def _reset_overlays(self):
         self.rectangles = []
