@@ -1,11 +1,10 @@
 import logging as log
+import robothub_core
 import time
 from abc import ABC, abstractmethod
+from depthai_sdk import OakCamera
 from threading import Thread
 from typing import Dict, Optional
-
-import robothub_core
-from depthai_sdk import OakCamera
 
 from robothub_oak.utils import stats_report, info_report
 
@@ -14,7 +13,8 @@ __all__ = ['RobotHubApplication']
 
 class RobotHubApplication(robothub_core.RobotHubApplication, ABC):
     def __init__(self):
-        super().__init__()
+        robothub_core.RobotHubApplication.__init__(self)
+        ABC.__init__(self)
 
         self.__polling_threads = []
         self.__reporting_threads = []
