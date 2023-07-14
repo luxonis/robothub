@@ -1,11 +1,10 @@
-import time
-from typing import List, Optional, Union, Dict
-
 import depthai as dai
 import numpy as np
 import robothub_core
+import time
 from depthai_sdk import OakCamera
 from depthai_sdk.components import Component, CameraComponent, StereoComponent, NNComponent
+from typing import List, Optional, Union, Dict
 
 from robothub_oak.types import BoundingBox, Line
 
@@ -110,18 +109,38 @@ class LiveView:
         self.live_views = {}
 
     @staticmethod
-    def create(oak: OakCamera, component: Component, title: str) -> None:
-        """Creates a Live View for a component."""
+    def create(oak: OakCamera,
+               component: Component,
+               title: str,
+               unique_key: str = None,
+               manual_publish: bool = False
+               ) -> 'LiveView':
+        """
+        Creates a Live View for a given component.
+
+        :param oak: OakCamera instance.
+        :param component: Component to create a Live View for. Either a CameraComponent, StereoComponent or NNComponent.
+        :param title: Name of the Live View.
+        :param unique_key: Live View identifier.
+        :param manual_publish: If True, the Live View will not be automatically published. Use LiveView.publish() to publish the Live View.
+        """
         LiveView.verify_encoder_profile(component)
 
-        live_view = LiveView(title=title,
-                             unique_key="some_key",
-                             device_mxid=oak.device.getMxId(),
-                             frame_width=1920,
-                             frame_height=1080)
+        w, h = LiveView.get_stream_size(component)
+        device_mxid = oak.device.getMxId()
+        unique_key = unique_key or f'{device_mxid}_{component.__class__.__name__.lower()}_encoded'
 
-        oak.callback(component.out.encoded, live_view.h264_callback)
+        live_view = LiveView(title=title,
+                             unique_key=unique_key,
+                             device_mxid=device_mxid,
+                             frame_width=w,
+                             frame_height=h)
+
+        if not manual_publish:
+            oak.callback(component.out.encoded, live_view.h264_callback)
+
         LIVE_VIEWS[title] = live_view
+        return live_view
 
     @staticmethod
     def verify_encoder_profile(component: Component) -> None:
@@ -132,6 +151,13 @@ class LiveView:
             encoder = component._input.encoder
         if encoder.getProfile() != dai.VideoEncoderProperties.Profile.H264_MAIN:
             raise ValueError('Live View component must be configured with H264 encoding.')
+
+    @staticmethod
+    def get_stream_size(component) -> Tuple[int, int]:
+        if isinstance(component, CameraComponent) or isinstance(component, StereoComponent):
+            return component.encoder.getSize()
+        elif isinstance(component, NNComponent):
+            return component._input.encoder.getSize()
 
     @staticmethod
     def get_by_name(name: str) -> Optional['LiveView']:
@@ -161,7 +187,7 @@ class LiveView:
                       frame_height=self.frame_height)
 
     def h264_callback(self, h264_packet):
-        self.publish(h264_frame=h264_packet)
+        self.publish(h264_frame=h264_packet.frame)
         self._reset_overlays()
 
     def _reset_overlays(self):
