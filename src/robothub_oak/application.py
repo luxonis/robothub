@@ -40,7 +40,7 @@ class RobotHubApplication(robothub_core.RobotHubApplication, ABC):
         pass
 
     def start_execution(self) -> None:
-        self.wait()  # Keep main thread alive
+        self.stop_event.wait()  # Keep main thread alive
 
     @abstractmethod
     def setup_pipeline(self, device: OakCamera):
