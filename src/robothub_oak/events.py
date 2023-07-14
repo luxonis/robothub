@@ -7,7 +7,7 @@ import cv2
 import numpy as np
 import robothub_core
 
-__all__ = ['send_robothub_image_event', 'send_frame_event_with_zipped_images']
+__all__ = ['send_image_event', 'send_frame_event_with_zipped_images']
 
 
 def _log_event_status(result: bool, event_id):
@@ -17,18 +17,16 @@ def _log_event_status(result: bool, event_id):
         log.info(f'Event {event_id}: failed to send.')
 
 
-def send_robothub_image_event(image: Union[np.ndarray, bytes],
-                              device_id: str,
-                              title: str,
-                              metadata: Optional[dict] = None,
-                              tags: List[str] = None,
-                              mjpeg_quality=98,
-                              encode=False
-                              ) -> Optional[str]:
+def send_image_event(image: Union[np.ndarray, bytes],
+                     device_id: str,
+                     title: str,
+                     metadata: Optional[dict] = None,
+                     tags: List[str] = None,
+                     mjpeg_quality=98,
+                     encode=False
+                     ) -> Optional[str]:
     """Send a single image frame event to RH."""
-
-    if tags is None:
-        tags = []
+    tags = tags or []
     try:
         if encode:
             _, image = cv2.imencode(".jpg", image, [int(cv2.IMWRITE_JPEG_QUALITY), mjpeg_quality])
