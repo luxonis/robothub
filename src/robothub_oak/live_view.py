@@ -174,6 +174,13 @@ class LiveView:
     def get_by_name(name: str) -> Optional['LiveView']:
         return LIVE_VIEWS.get(name, None)
 
+    @staticmethod
+    def get_by_unique_key(unique_key: str) -> Optional['LiveView']:
+        for live_view in LIVE_VIEWS.values():
+            if live_view.unique_key == unique_key:
+                return live_view
+        return None
+
     def add_rectangle(self, rectangle: BoundingBox, label: str) -> None:
         self.rectangles.append(rectangle)
         self.labels.append(label)
