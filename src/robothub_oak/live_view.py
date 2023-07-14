@@ -206,7 +206,8 @@ class LiveView:
                       h264_frame=h264_frame,
                       rectangles=self.rectangles,
                       rectangle_labels=self.labels,
-                      texts=[],
+                      texts=self.texts,
+                      lines=self.lines,
                       frame_width=self.frame_width,
                       frame_height=self.frame_height)
         self._reset_overlays()
