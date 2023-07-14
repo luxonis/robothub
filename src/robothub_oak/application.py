@@ -86,7 +86,7 @@ class RobotHubApplication(robothub_core.RobotHubApplication, ABC):
                     self.__polling_threads.append(polling_thread)
 
                     reporting_thread = Thread(target=self.__device_stats_reporting,
-                                              args=(self.__devices[device_mxid],),
+                                              args=(device_mxid,),
                                               daemon=True,
                                               name=f'stats_reporting_{device_mxid}')
                     reporting_thread.start()
