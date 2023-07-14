@@ -21,10 +21,10 @@ def _create_stream_handle(camera_serial: str, unique_key: str, title: str):
 
 
 def _publish_data(stream_handle: robothub_core.StreamHandle,
+                  h264_frame,
                   rectangles: List[BoundingBox],
                   rectangle_labels: List[str],
                   texts: List[str],
-                  h264_encoded,
                   frame_width: int,
                   frame_height: int):
     timestamp = int(time.perf_counter_ns() / 1e6)
@@ -76,7 +76,7 @@ def _publish_data(stream_handle: robothub_core.StreamHandle,
         x_coordinate = idx * frame_width // len(texts) + 30  # plus offset
         metadata["objects"].append({'type': 'text', 'coords': [x_coordinate, 40], 'text': text})
 
-    stream_handle.publish_video_data(bytes(h264_encoded), timestamp, metadata)
+    stream_handle.publish_video_data(bytes(h264_frame), timestamp, metadata)
 
 
 class LiveView:
@@ -153,9 +153,9 @@ class LiveView:
 
     def publish(self, h264_frame: Union[np.array, List]) -> None:
         _publish_data(stream_handle=self.stream_handle,
+                      h264_frame=h264_frame,
                       rectangles=self.rectangles,
                       rectangle_labels=self.labels,
-                      h264_encoded=h264_frame,
                       texts=[],
                       frame_width=self.frame_width,
                       frame_height=self.frame_height)
