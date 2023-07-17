@@ -170,7 +170,7 @@ class LiveView:
         encoder.setDefaultProfilePreset(fps, encoder_profile)
         encoder.input.setQueueSize(1)
         encoder.input.setBlocking(False)
-        encoder.setKeyframeFrequency(fps)
+        encoder.setKeyframeFrequency(int(fps))
         encoder.setBitrate(1500 * 1000)
         encoder.setRateControlMode(dai.VideoEncoderProperties.RateControlMode.CBR)
         encoder.setNumFramesPool(3)
