@@ -2,6 +2,8 @@ from abc import abstractmethod, ABC
 
 __all__ = ['BaseDataProcessor']
 
+from typing import Any
+
 
 class BaseDataProcessor(ABC):
     """
@@ -9,8 +11,7 @@ class BaseDataProcessor(ABC):
     and are called when new data is available.
     """
 
-    @abstractmethod
-    def process_packets(self, packets: dict):
+    def process_packets(self, packets: Any):
         pass
 
     def __call__(self, *args, **kwargs):

@@ -18,15 +18,14 @@ def _log_event_status(result: bool, event_id):
 
 
 def send_image_event(image: Union[np.ndarray, bytes],
-                     device_id: str,
                      title: str,
+                     device_id: str = None,
                      metadata: Optional[dict] = None,
                      tags: List[str] = None,
                      mjpeg_quality=98,
                      encode=False
                      ) -> Optional[str]:
     """Send a single image frame event to RH."""
-    tags = tags or []
     try:
         if encode:
             _, image = cv2.imencode(".jpg", image, [int(cv2.IMWRITE_JPEG_QUALITY), mjpeg_quality])
@@ -34,8 +33,10 @@ def send_image_event(image: Union[np.ndarray, bytes],
         event = robothub_core.EVENTS.prepare()
         event.add_frame(bytes(image), device_id)
         event.set_title(title)
-        event.set_metadata(metadata)
-        event.add_tags(tags)
+        if metadata:
+            event.set_metadata(metadata)
+        if tags:
+            event.add_tags(tags)
         robothub_core.EVENTS.upload(event)
         _log_event_status(True, event.id)
         return event.id
@@ -63,8 +64,10 @@ def send_frame_event_with_zipped_images(cv_frame,
         event = robothub_core.EVENTS.prepare()
         event.add_frame(bytes(cv_frame), device_id)
         event.set_title(title)
-        event.set_tags(tags)
-        event.set_metadata(metadata)
+        if tags:
+            event.set_tags(tags)
+        if metadata:
+            event.set_metadata(metadata)
         log.debug(f'Total files: {len(files)}')
         with BytesIO() as zip_buffer:
             with zipfile.ZipFile(zip_buffer, 'w') as zip_file:

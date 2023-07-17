@@ -4,6 +4,9 @@ from robothub_oak.application import *
 from robothub_oak.live_view import *
 from robothub_oak.utils import set_logging_level
 
+# backward compatibility
+from robothub_core import *
+
 try:
     import blobconverter
 
