@@ -135,8 +135,8 @@ class LiveView:
         """
         output = None
         is_h264 = LiveView.is_h264(component)
-        if is_h264 and manual_publish:
-            output = LiveView.h264_output(oak, component)
+        if is_h264:
+            output = LiveView.h264_output(device, component)
         elif not isinstance(component, CameraComponent):
             raise ValueError(f'Component {component.__class__.__name__} must have h264 encoding '
                              f'enabled to be used with LiveView.')
