@@ -6,6 +6,8 @@ import numpy as np
 import robothub_core
 from depthai_sdk import OakCamera
 from depthai_sdk.components import Component, CameraComponent, StereoComponent, NNComponent
+from depthai_sdk.oak_outputs.xout.xout_base import StreamXout
+from depthai_sdk.oak_outputs.xout.xout_h26x import XoutH26x
 from depthai_sdk.visualize.objects import VisText, VisLine
 
 from robothub_oak.types import BoundingBox
@@ -133,7 +135,13 @@ class LiveView:
         :param unique_key: Live View identifier.
         :param manual_publish: If True, the Live View will not be automatically published. Use LiveView.publish() to publish the Live View.
         """
-        LiveView.verify_encoder_profile(component)
+        output = None
+        is_h264 = LiveView.is_h264(component)
+        if is_h264 and manual_publish:
+            output = LiveView.h264_output(oak, component)
+        elif not isinstance(component, CameraComponent):
+            raise ValueError(f'Component {component.__class__.__name__} must have h264 encoding '
+                             f'enabled to be used with LiveView.')
 
         w, h = LiveView.get_stream_size(component)
         device_mxid = oak.device.getMxId()
@@ -146,20 +154,54 @@ class LiveView:
                              frame_height=h)
 
         if not manual_publish:
-            oak.callback(component.out.encoded, live_view.h264_callback)
+            oak.callback(output or component.out.encoded, live_view.h264_callback)
 
         LIVE_VIEWS[title] = live_view
         return live_view
 
     @staticmethod
-    def verify_encoder_profile(component: Component) -> None:
+    def h264_output(device: OakCamera, component: CameraComponent):
+        fps = component.get_fps()
+        encoder = device.pipeline.createVideoEncoder()
+        encoder_profile = dai.VideoEncoderProperties.Profile.H264_MAIN
+        encoder.setDefaultProfilePreset(fps, encoder_profile)
+        encoder.input.setQueueSize(1)
+        encoder.input.setBlocking(False)
+        encoder.setKeyframeFrequency(fps)
+        encoder.setBitrate(1500 * 1000)
+        encoder.setRateControlMode(dai.VideoEncoderProperties.RateControlMode.CBR)
+        encoder.setNumFramesPool(3)
+
+        component.node.video.link(encoder.input)
+
+        def encoded(pipeline, device):
+            xout = XoutH26x(
+                frames=StreamXout(encoder.id, encoder.bitstream),
+                color=True,
+                profile=encoder_profile,
+                fps=encoder.getFrameRate(),
+                frame_shape=component.node.getResolution()
+            )
+            xout.name = component._source
+            return component._create_xout(pipeline, xout)
+
+        return encoded
+
+    @staticmethod
+    def is_h264(component: Component) -> bool:
         encoder = None
         if isinstance(component, CameraComponent) or isinstance(component, StereoComponent):
             encoder = component.encoder
         elif isinstance(component, NNComponent):
             encoder = component._input.encoder
+
+        if not encoder:
+            raise ValueError('This component does not have an encoder.')
+
         if encoder.getProfile() != dai.VideoEncoderProperties.Profile.H264_MAIN:
-            raise ValueError('Live View component must be configured with H264 encoding.')
+            return False
+
+        return True
 
     @staticmethod
     def get_stream_size(component) -> Tuple[int, int]:
