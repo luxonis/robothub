@@ -117,10 +117,8 @@ class LiveView:
         self.labels: List[str] = []
         self.lines: List[VisLine] = []
 
-        self.live_views = {}
-
     @staticmethod
-    def create(oak: OakCamera,
+    def create(device: OakCamera,
                component: Component,
                title: str,
                unique_key: str = None,
@@ -129,7 +127,7 @@ class LiveView:
         """
         Creates a Live View for a given component.
 
-        :param oak: OakCamera instance.
+        :param device: OakCamera instance.
         :param component: Component to create a Live View for. Either a CameraComponent, StereoComponent or NNComponent.
         :param title: Name of the Live View.
         :param unique_key: Live View identifier.
@@ -144,7 +142,7 @@ class LiveView:
                              f'enabled to be used with LiveView.')
 
         w, h = LiveView.get_stream_size(component)
-        device_mxid = oak.device.getMxId()
+        device_mxid = device.device.getMxId()
         unique_key = unique_key or f'{device_mxid}_{component.__class__.__name__.lower()}_encoded'
 
         live_view = LiveView(title=title,
@@ -154,7 +152,7 @@ class LiveView:
                              frame_height=h)
 
         if not manual_publish:
-            oak.callback(output or component.out.encoded, live_view.h264_callback)
+            device.callback(output or component.out.encoded, live_view.h264_callback)
 
         LIVE_VIEWS[title] = live_view
         return live_view
@@ -275,8 +273,10 @@ class LiveView:
         self.publish(h264_frame=h264_packet.frame)
 
     def _reset_overlays(self):
-        self.rectangles = []
-        self.labels = []
+        self.rectangles.clear()
+        self.labels.clear()
+        self.lines.clear()
+        self.texts.clear()
 
 
 LIVE_VIEWS: Dict[str, LiveView] = dict()
