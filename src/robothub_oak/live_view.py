@@ -159,7 +159,12 @@ class LiveView:
 
     @staticmethod
     def h264_output(device: OakCamera, component: CameraComponent):
-        fps = component.get_fps()
+        fps = 30
+        if isinstance(component, StereoComponent):
+            fps = component._fps
+        elif isinstance(component, CameraComponent):
+            fps = component.get_fps()
+
         encoder = device.pipeline.createVideoEncoder()
         encoder_profile = dai.VideoEncoderProperties.Profile.H264_MAIN
         encoder.setDefaultProfilePreset(fps, encoder_profile)
