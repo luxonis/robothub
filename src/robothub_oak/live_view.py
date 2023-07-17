@@ -146,7 +146,7 @@ class LiveView:
         if not manual_publish:
             device.callback(component.out.encoded, live_view.h264_callback)
 
-        LIVE_VIEWS[title] = live_view
+        LIVE_VIEWS[unique_key] = live_view
         return live_view
 
     @staticmethod
@@ -169,24 +169,27 @@ class LiveView:
             return component._input.stream_size
 
     @staticmethod
-    def get(name: str = None, unique_key: str = None):
-        if name is not None:
-            return LiveView.get_by_name(name)
+    def get(unique_key: str = None, title: str = None):
+        if title is not None:
+            return LiveView.get_by_name(title)
         elif unique_key is not None:
             return LiveView.get_by_unique_key(unique_key)
         else:
             raise ValueError('Either name or unique_key must be specified.')
 
     @staticmethod
-    def get_by_name(name: str) -> Optional['LiveView']:
-        return LIVE_VIEWS.get(name, None)
+    def get_by_title(title: str) -> Optional['LiveView']:
+        for live_view in LIVE_VIEWS.values():
+            if live_view.title == title:
+                return live_view
+        return None
 
     @staticmethod
     def get_by_unique_key(unique_key: str) -> Optional['LiveView']:
-        for live_view in LIVE_VIEWS.values():
-            if live_view.unique_key == unique_key:
-                return live_view
-        return None
+        if unique_key not in LIVE_VIEWS:
+            raise ValueError(f'Live View with unique_key {unique_key} does not exist.')
+
+        return LIVE_VIEWS[unique_key]
 
     def add_rectangle(self, rectangle: BoundingBox, label: str) -> None:
         self.rectangles.append(rectangle)
