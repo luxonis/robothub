@@ -18,8 +18,8 @@ def _log_event_status(result: bool, event_id):
 
 
 def send_image_event(image: Union[np.ndarray, bytes],
-                     device_id: str,
                      title: str,
+                     device_id: str = None,
                      metadata: Optional[dict] = None,
                      tags: List[str] = None,
                      mjpeg_quality=98,
