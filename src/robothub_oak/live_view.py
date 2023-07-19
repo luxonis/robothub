@@ -119,7 +119,7 @@ class LiveView:
 
     @staticmethod
     def create(device: OakCamera,
-               component: Component,
+               component: Union[CameraComponent, StereoComponent],
                name: str,
                unique_key: str = None,
                manual_publish: bool = False
