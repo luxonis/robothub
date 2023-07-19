@@ -15,9 +15,9 @@ from robothub_oak.types import BoundingBox
 __all__ = ['LiveView', 'LIVE_VIEWS']
 
 
-def _create_stream_handle(camera_serial: str, unique_key: str, title: str):
+def _create_stream_handle(camera_serial: str, unique_key: str, name: str):
     if unique_key not in robothub_core.STREAMS.streams:
-        color_stream_handle = robothub_core.STREAMS.create_video(camera_serial, unique_key, title)
+        color_stream_handle = robothub_core.STREAMS.create_video(camera_serial, unique_key, name)
     else:
         color_stream_handle = robothub_core.STREAMS.streams[unique_key]
     return color_stream_handle
@@ -91,13 +91,13 @@ def _publish_data(stream_handle: robothub_core.StreamHandle,
 
 class LiveView:
     def __init__(self,
-                 title: str,
+                 name: str,
                  unique_key: str,
                  device_mxid: str,
                  frame_width: int,
                  frame_height: int):
         """
-        :param title: Name of the Live View.
+        :param name: Name of the Live View.
         :param unique_key: Live View identifier.
         :param device_mxid: MXID of the device that is streaming the Live View.
         :param frame_width: Frame width.
@@ -107,9 +107,9 @@ class LiveView:
         self.frame_height = frame_height
         self.device_mxid = device_mxid
         self.unique_key = unique_key
-        self.title = title
+        self.name = name
 
-        self.stream_handle = _create_stream_handle(camera_serial=device_mxid, unique_key=unique_key, title=title)
+        self.stream_handle = _create_stream_handle(camera_serial=device_mxid, unique_key=unique_key, name=name)
 
         # Objects
         self.texts: List[VisText] = []
@@ -120,7 +120,7 @@ class LiveView:
     @staticmethod
     def create(device: OakCamera,
                component: Component,
-               title: str,
+               name: str,
                unique_key: str = None,
                manual_publish: bool = False
                ) -> 'LiveView':
@@ -129,7 +129,7 @@ class LiveView:
 
         :param device: OakCamera instance.
         :param component: Component to create a Live View for. Either a CameraComponent, StereoComponent or NNComponent.
-        :param title: Name of the Live View.
+        :param name: Name of the Live View.
         :param unique_key: Live View identifier.
         :param manual_publish: If True, the Live View will not be automatically published. Use LiveView.publish() to publish the Live View.
         """
@@ -145,7 +145,7 @@ class LiveView:
         device_mxid = device.device.getMxId()
         unique_key = unique_key or f'{device_mxid}_{component.__class__.__name__.lower()}_encoded'
 
-        live_view = LiveView(title=title,
+        live_view = LiveView(name=name,
                              unique_key=unique_key,
                              device_mxid=device_mxid,
                              frame_width=w,
@@ -216,18 +216,18 @@ class LiveView:
             return component._input.stream_size
 
     @staticmethod
-    def get(unique_key: str = None, title: str = None):
-        if title is not None:
-            return LiveView.get_by_name(title)
+    def get(unique_key: str = None, name: str = None):
+        if name is not None:
+            return LiveView.get_by_name(name)
         elif unique_key is not None:
             return LiveView.get_by_unique_key(unique_key)
         else:
             raise ValueError('Either name or unique_key must be specified.')
 
     @staticmethod
-    def get_by_title(title: str) -> Optional['LiveView']:
+    def get_by_name(name: str) -> Optional['LiveView']:
         for live_view in LIVE_VIEWS.values():
-            if live_view.title == title:
+            if live_view.name == name:
                 return live_view
         return None
 
