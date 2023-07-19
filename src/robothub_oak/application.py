@@ -38,7 +38,23 @@ class Application(robothub_core.RobotHubApplication, ABC):
             self.__camera_threads.append(device_thread)
 
     def on_stop(self) -> None:
-        pass
+        for device_mxid in self.__devices:
+            self.__close_oak(device_mxid)
+
+        for thread in self.__camera_threads:
+            thread.join()
+
+        for thread in self.__polling_threads:
+            thread.join()
+
+        for thread in self.__reporting_threads:
+            thread.join()
+
+        self.__camera_threads.clear()
+        self.__polling_threads.clear()
+        self.__reporting_threads.clear()
+        self.__devices.clear()
+        self.__device_states.clear()
 
     def start_execution(self) -> None:
         self.stop_event.wait()  # Keep main thread alive
