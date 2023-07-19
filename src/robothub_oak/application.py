@@ -9,10 +9,10 @@ from depthai_sdk import OakCamera
 
 from robothub_oak.utils import stats_report, info_report
 
-__all__ = ['RobotHubApplication']
+__all__ = ['Application']
 
 
-class RobotHubApplication(robothub_core.RobotHubApplication, ABC):
+class Application(robothub_core.RobotHubApplication, ABC):
     def __init__(self):
         robothub_core.RobotHubApplication.__init__(self)
         ABC.__init__(self)
