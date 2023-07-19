@@ -47,12 +47,6 @@ class RobotHubApplication(robothub_core.RobotHubApplication, ABC):
     def setup_pipeline(self, device: OakCamera):
         pass
 
-    def on_before_pipeline_setup(self, device: OakCamera):
-        pass
-
-    def on_after_pipeline_setup(self, device: OakCamera):
-        pass
-
     def __manage_device(self, device: robothub_core.RobotHubDevice):
         """Handle the life cycle of one device."""
         device_mxid = device.oak['serialNumber']
@@ -71,10 +65,7 @@ class RobotHubApplication(robothub_core.RobotHubApplication, ABC):
                 if self.__devices[device_mxid]:
                     log.debug(f'Device {device_mxid}: creating pipeline...')
 
-                    self.on_before_pipeline_setup(device=self.__devices[device_mxid])
                     self.setup_pipeline(device=self.__devices[device_mxid])
-                    self.on_after_pipeline_setup(device=self.__devices[device_mxid])
-
                     self.__devices[device_mxid].start(blocking=False)
                     log.info(f'Device {device_mxid}: started successfully.')
 
