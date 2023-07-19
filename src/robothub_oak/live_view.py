@@ -242,9 +242,6 @@ class LiveView:
         self.rectangles.append(rectangle)
         self.labels.append(label)
 
-    def add_bbox(self, bbox: BoundingBox, label: str) -> None:
-        self.add_rectangle(bbox, label)
-
     def add_text(self,
                  text: str,
                  coords: Tuple[int, int],
