@@ -7,7 +7,7 @@ from typing import Dict, Optional
 import robothub_core
 from depthai_sdk import OakCamera
 
-from robothub_oak.utils import stats_report, info_report
+from robothub_oak.utils import get_device_performance_metrics, get_device_details
 
 __all__ = ['Application']
 
@@ -119,8 +119,8 @@ class Application(robothub_core.RobotHubApplication, ABC):
         state = self.__device_states[device_mxid]
         while self.running:
             try:
-                device_info = info_report(dai_device, state)
-                device_stats = stats_report(dai_device)
+                device_info = get_device_details(dai_device, state)
+                device_stats = get_device_performance_metrics(dai_device)
 
                 robothub_core.AGENT.publish_device_info(device_info)
                 robothub_core.AGENT.publish_device_stats(device_stats)

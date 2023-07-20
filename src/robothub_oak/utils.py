@@ -24,7 +24,7 @@ def set_logging_level(level: Union[str, int]) -> None:
     log.getLogger().setLevel(level)
 
 
-def stats_report(device: depthai.Device) -> Dict[str, Any]:
+def get_device_performance_metrics(device: depthai.Device) -> Dict[str, Any]:
     """
     Returns a dictionary with statistics about the device.
     """
@@ -51,7 +51,7 @@ def stats_report(device: depthai.Device) -> Dict[str, Any]:
     return stats
 
 
-def info_report(device: depthai.Device, state: robothub_core.DeviceState) -> Dict[str, Any]:
+def get_device_details(device: depthai.Device, state: robothub_core.DeviceState) -> Dict[str, Any]:
     """
     Returns a dictionary with information about the device.
     """
