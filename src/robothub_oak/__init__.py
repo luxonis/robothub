@@ -14,7 +14,7 @@ try:
 except:
     pass
 
-__version__ = '1.0.0'
+__version__ = '2.0.0'
 
 REPLAY_PATH = os.environ.get('RH_OAK_REPLAY_PATH', None) or os.environ.get('RH_REPLAY_PATH', None)
 
