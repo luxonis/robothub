@@ -1,4 +1,4 @@
-# Releasing RobotHub-OAK
+# Releasing RobotHub
 
 ## Preparation
 1. Update version in `setup.py` and `src/robothub/__init__.py`.

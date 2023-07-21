@@ -1,5 +1,4 @@
-from typing import Union
+from typing import Tuple
 
-from robothub_oak.components import Camera, Stereo, NeuralNetwork
-
-Component = Union[Camera, NeuralNetwork, Stereo]
+BoundingBox = Tuple[int, int, int, int]
+Line = Tuple[Tuple[int, int], Tuple[int, int]]
