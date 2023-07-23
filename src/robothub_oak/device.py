@@ -1,3 +1,4 @@
+import logging
 import traceback
 import warnings
 from typing import Callable, Any, Optional, Dict, Union
@@ -76,7 +77,7 @@ class Device:
         try:
             for command in self._command_history:
                 if isinstance(command, CreateStereoCommand) and not hub_camera.has_stereo:
-                    warnings.warn(f'Device {self.get_device_name()} does not support stereo, skipping stereo creation.')
+                    logging.info(f'Device {self.get_device_name()} does not support stereo, skipping stereo creation.')
                     continue
 
                 command.set_camera(hub_camera)
