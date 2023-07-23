@@ -130,6 +130,7 @@ class HubCamera:
             raise RuntimeError('Device does not have stereo cameras.')
 
         comp = self.oak_camera.create_stereo(resolution=resolution, fps=fps, left=left, right=right, encode='h264')
+        comp.set_auto_ir(auto_mode=True, continuous_mode=True)
         return comp
 
     def create_stream(self,
