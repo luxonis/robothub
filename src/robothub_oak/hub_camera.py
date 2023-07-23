@@ -1,3 +1,4 @@
+import logging
 import logging as log
 import time
 from pathlib import Path
@@ -154,20 +155,26 @@ class HubCamera:
             stream_handle = robothub.STREAMS.streams[unique_key]
         else:
             stream_handle = self._create_stream(unique_key=unique_key, name=name)
+            if stream_handle is None:
+                logging.error(f'Stream: could not create stream {name} for component {component}.')
+                return
 
         self.streams[unique_key] = stream_handle
         self._add_stream_callback(stream_handle=stream_handle, component=component, callback=callback)
 
-    def _create_stream(self, unique_key: str, name: str) -> robothub.StreamHandle:
+    def _create_stream(self, unique_key: str, name: str) -> Optional[robothub.StreamHandle]:
         try:
             return robothub.STREAMS.create_video(camera_serial=self.device_name,
                                                  unique_key=unique_key,
                                                  description=name)
         except Exception:
-            robothub.STREAMS.destroy_streams_by_id([unique_key])
-            return robothub.STREAMS.create_video(camera_serial=self.device_name,
-                                                 unique_key=unique_key,
-                                                 description=name)
+            try:
+                robothub.STREAMS.destroy_streams_by_id([unique_key])
+                return robothub.STREAMS.create_video(camera_serial=self.device_name,
+                                                     unique_key=unique_key,
+                                                     description=name)
+            except ValueError:
+                return None
 
     def _add_stream_callback(self,
                              stream_handle: robothub.StreamHandle,
@@ -244,7 +251,7 @@ class HubCamera:
             try:
                 robothub.STREAMS.destroy(stream)
             except ValueError:
-                log.error(f'Could not destroy stream {stream}.')
+                pass
 
         self.streams.clear()
         self.state = robothub.DeviceState.DISCONNECTED
