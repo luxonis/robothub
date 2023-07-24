@@ -11,7 +11,12 @@ class BaseDataProcessor(ABC):
     and are called when new data is available.
     """
 
-    def process_packets(self, packets: Any):
+    def process_packets(self, packets: Any) -> None:
+        """
+        This method is called every time pipeline outputs new data.
+
+        :param packets: Either a single packet or a dictionary of packets.
+        """
         pass
 
     def __call__(self, *args, **kwargs):
