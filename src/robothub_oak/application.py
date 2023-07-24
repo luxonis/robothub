@@ -39,7 +39,7 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
 
     def on_stop(self) -> None:
         for device_mxid in self.__devices:
-            self.__close_oak(device_mxid)
+            self.close_device(device_mxid)
 
         for thread in self.__camera_threads:
             thread.join()
@@ -72,7 +72,7 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
             # if device is not connected
             if self.__devices[device_mxid] is None or not self.__devices[device_mxid].running():
                 # Make sure it is properly closed in case it disconnected during runtime
-                self.__close_oak(device_mxid)
+                self.close_device(device_mxid)
 
                 # Connect to the device
                 self.__connect(device_mxid)
@@ -104,7 +104,7 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
 
             self.wait(5)
 
-        self.__close_oak(mxid=device_mxid)
+        self.close_device(mxid=device_mxid)
         log.debug(f'Device {device_mxid}: thread stopped.')
 
     def __poll_device(self, device: OakCamera):
@@ -154,9 +154,25 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
         self.__device_states[device_mxid] = robothub_core.DeviceState.DISCONNECTED
         return
 
-    def __close_oak(self, mxid: str):
-        """Close device gracefully and reset oak to None."""
-        if self.__devices[mxid]:
+    def get_device(self, mxid: str) -> Optional[OakCamera]:
+        """
+        Get a device by its mxid. If the device is not running, this method returns None.
+
+        :param mxid: The mxid of the device to get.
+        :return: The device with the given mxid.
+        """
+        if mxid in self.__devices:
+            return self.__devices[mxid]
+
+        return None
+
+    def close_device(self, mxid: str):
+        """
+        Close the device gracefully. If the device is not running, this method does nothing.
+
+        :param mxid: The mxid of the device to close.
+        """
+        if mxid in self.__devices and self.__devices[mxid]:
             self.__devices[mxid].__exit__(1, 2, 3)
             self.__devices[mxid] = None
             log.info(f'Device {mxid}: closed gracefully.')
