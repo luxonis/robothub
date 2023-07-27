@@ -24,9 +24,6 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
         robothub_core.RobotHubApplication.__init__(self)
         ABC.__init__(self)
 
-        self.__polling_threads = []
-        self.__reporting_threads = []
-        self.__camera_threads = []
         self.__devices: Dict[str, Optional[OakCamera]] = {}
         self.__device_states: Dict[str, robothub_core.DeviceState] = {}
 
@@ -42,24 +39,13 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
                                    kwargs={'device': device},
                                    name=f'connection_{device_mxid}')
             device_thread.start()
-            self.__camera_threads.append(device_thread)
 
     def on_stop(self) -> None:
+        self.stop_event.set()
+
         for device_mxid in self.__devices:
             self.close_device(device_mxid)
 
-        for thread in self.__camera_threads:
-            thread.join()
-
-        for thread in self.__polling_threads:
-            thread.join()
-
-        for thread in self.__reporting_threads:
-            thread.join()
-
-        self.__camera_threads.clear()
-        self.__polling_threads.clear()
-        self.__reporting_threads.clear()
         self.__devices.clear()
         self.__device_states.clear()
 
@@ -126,14 +112,12 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
                                             daemon=True,
                                             name=f'poll_{device_mxid}')
                     polling_thread.start()
-                    self.__polling_threads.append(polling_thread)
 
                     reporting_thread = Thread(target=self.__device_stats_reporting,
                                               args=(device_mxid,),
                                               daemon=True,
                                               name=f'stats_reporting_{device_mxid}')
                     reporting_thread.start()
-                    self.__reporting_threads.append(reporting_thread)
                 else:
                     self.wait(25)
 
