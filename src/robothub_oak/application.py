@@ -25,6 +25,7 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
         ABC.__init__(self)
 
         self.__devices: Dict[str, Optional[OakCamera]] = {}
+        self.__device_product_names: Dict[str, str] = {}
         self.__device_states: Dict[str, robothub_core.DeviceState] = {}
 
         self.config = robothub_core.CONFIGURATION
@@ -34,7 +35,7 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
             device_mxid = device.oak['serialNumber']
             self.__devices[device_mxid] = None
             self.__device_states[device_mxid] = robothub_core.DeviceState.DISCONNECTED
-
+            self.__device_product_names[device_mxid] = device.oak.get('productName', None) or device_mxid
             device_thread = Thread(target=self.__manage_device,
                                    kwargs={'device': device},
                                    name=f'connection_{device_mxid}')
@@ -80,7 +81,8 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
         :param device: The device to manage.
         """
         device_mxid = device.oak['serialNumber']
-        log.debug(f'Device {device_mxid}: management thread started.')
+        product_name = self.__device_product_names[device_mxid]
+        log.debug(f'Device {product_name}: management thread started.')
 
         while self.running:
             # if device is not connected
@@ -96,11 +98,11 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
 
                 # If device is connected
                 if self.__devices[device_mxid]:
-                    log.debug(f'Device {device_mxid}: creating pipeline...')
+                    log.debug(f'Device {product_name}: creating pipeline...')
 
                     self.setup_pipeline(device=self.__devices[device_mxid])
                     self.__devices[device_mxid].start(blocking=False)
-                    log.info(f'Device {device_mxid}: started successfully.')
+                    log.info(f'Device {product_name}: started successfully.')
 
                     # Threads for polling and reporting
                     polling_thread = Thread(target=self.__poll_device,
@@ -120,7 +122,7 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
             self.wait(5)
 
         self.close_device(mxid=device_mxid)
-        log.debug(f'Device {device_mxid}: thread stopped.')
+        log.debug(f'Device {product_name}: thread stopped.')
 
     def __poll_device(self, device: OakCamera) -> None:
         """
@@ -150,7 +152,8 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
                 robothub_core.AGENT.publish_device_info(device_info)
                 robothub_core.AGENT.publish_device_stats(device_stats)
             except Exception as e:
-                log.debug(f'Device {dai_device.getMxId()}: could not report info/stats with error: {e}.')
+                product_name = self.__device_product_names[dai_device.getMxId()]
+                log.debug(f'Device {product_name}: could not report info/stats with error: {e}.')
 
             self.wait(30)
 
@@ -164,21 +167,21 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
         give_up_time = start_time + 30
 
         self.__device_states[device_mxid] = robothub_core.DeviceState.CONNECTING
-
+        product_name = self.__device_product_names[device_mxid]
         while time.time() < give_up_time and self.running:
-            log.debug(f'Device {device_mxid}: remaining time to connect - {give_up_time - time.time()} seconds.')
+            log.debug(f'Device {product_name}: remaining time to connect - {give_up_time - time.time()} seconds.')
             try:
                 oak = OakCamera(device_mxid)
                 self.__devices[device_mxid] = oak
                 self.__device_states[device_mxid] = robothub_core.DeviceState.CONNECTED
-                log.debug(f'Device {device_mxid}: successfully connected.')
+                log.debug(f'Device {product_name}: successfully connected.')
                 return
             except Exception as e:
                 # If device can't be connected to on first try, wait 5 seconds and try again.
-                log.debug(f'Device {device_mxid}: error while trying to connect - {e}.')
+                log.debug(f'Device {product_name}: error while trying to connect - {e}.')
                 self.wait(5)
 
-        log.info(f'Device {device_mxid}: could not manage to connect within 30s timeout.')
+        log.info(f'Device {product_name}: could not manage to connect within 30s timeout.')
         self.__devices[device_mxid] = None
         self.__device_states[device_mxid] = robothub_core.DeviceState.DISCONNECTED
         return
@@ -204,4 +207,5 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
         if mxid in self.__devices and self.__devices[mxid]:
             self.__devices[mxid].__exit__(1, 2, 3)
             self.__devices[mxid] = None
-            log.info(f'Device {mxid}: closed gracefully.')
+            product_name = self.__device_product_names[mxid]
+            log.info(f'Device {product_name}: closed gracefully.')
