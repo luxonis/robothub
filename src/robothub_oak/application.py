@@ -35,7 +35,10 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
             device_mxid = device.oak['serialNumber']
             self.__devices[device_mxid] = None
             self.__device_states[device_mxid] = robothub_core.DeviceState.DISCONNECTED
-            self.__device_product_names[device_mxid] = device.oak.get('productName', None) or device_mxid
+
+            name = device.oak.get('name', None) or device.oak.get('productName', None) or device_mxid
+            self.__device_product_names[device_mxid] = name
+
             device_thread = Thread(target=self.__manage_device,
                                    kwargs={'device': device},
                                    name=f'connection_{device_mxid}')
