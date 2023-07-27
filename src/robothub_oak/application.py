@@ -13,6 +13,13 @@ __all__ = ['BaseApplication']
 
 
 class BaseApplication(robothub_core.RobotHubApplication, ABC):
+    """
+    Base class for applications.
+    The application is the main entry point for the user. It is responsible for managing the devices and
+    creating the pipelines. The application is also responsible for polling the devices for new data.
+    Derived classes must implement the `setup_pipeline` method.
+    """
+
     def __init__(self):
         robothub_core.RobotHubApplication.__init__(self)
         ABC.__init__(self)
@@ -60,11 +67,36 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
         self.stop_event.wait()  # Keep main thread alive
 
     @abstractmethod
-    def setup_pipeline(self, device: OakCamera):
+    def setup_pipeline(self, device: OakCamera) -> None:
+        """
+        The entry point for the application. This method is called when a device is connected and ready to be used.
+
+        :param device: The device that is ready to be used.
+        """
         pass
 
-    def __manage_device(self, device: robothub_core.RobotHubDevice):
-        """Handle the life cycle of one device."""
+    def on_device_connected(self, mxid: str) -> None:
+        """
+        Called when a camera is connected.
+
+        :param mxid: The mxid of the camera that was connected.
+        """
+        pass
+
+    def on_device_disconnected(self, mxid: str) -> None:
+        """
+        Called when a camera is disconnected. Opposite of on_device_connected.
+
+        :param mxid: The mxid of the camera that was disconnected.
+        """
+        pass
+
+    def __manage_device(self, device: robothub_core.RobotHubDevice) -> None:
+        """
+        Handle the life cycle of one device.
+
+        :param device: The device to manage.
+        """
         device_mxid = device.oak['serialNumber']
         log.debug(f'Device {device_mxid}: management thread started.')
 
@@ -74,8 +106,11 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
                 # Make sure it is properly closed in case it disconnected during runtime
                 self.close_device(device_mxid)
 
+                self.on_device_connected(device_mxid)
                 # Connect to the device
                 self.__connect(device_mxid)
+
+                self.on_device_disconnected(device_mxid)
 
                 # If device is connected
                 if self.__devices[device_mxid]:
@@ -107,14 +142,24 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
         self.close_device(mxid=device_mxid)
         log.debug(f'Device {device_mxid}: thread stopped.')
 
-    def __poll_device(self, device: OakCamera):
+    def __poll_device(self, device: OakCamera) -> None:
+        """
+        Poll the device for new data. This method is called in a separate thread.
+
+        :param device: The device to poll.
+        """
         while self.running:
             if not device.poll():
                 return
 
             time.sleep(0.0025)
 
-    def __device_stats_reporting(self, device_mxid: str):
+    def __device_stats_reporting(self, device_mxid: str) -> None:
+        """
+        Report device info and stats every 30 seconds.
+
+        :param device_mxid: The mxid of the device to report info/stats for.
+        """
         dai_device = self.__devices[device_mxid].device
         state = self.__device_states[device_mxid]
         while self.running:
@@ -130,7 +175,11 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
             self.wait(30)
 
     def __connect(self, device_mxid: str) -> None:
-        """If connect is succesfull -> self.oak = OakCamera, else self.oak = None"""
+        """
+        Connect to the device. This method is called in a separate thread.
+
+        :param device_mxid: The mxid of the device to connect to.
+        """
         start_time = time.time()
         give_up_time = start_time + 30
 
