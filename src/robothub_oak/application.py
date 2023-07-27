@@ -42,10 +42,6 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
 
     def on_stop(self) -> None:
         self.stop_event.set()
-
-        for device_mxid in self.__devices:
-            self.close_device(device_mxid)
-
         self.__devices.clear()
         self.__device_states.clear()
 
