@@ -27,6 +27,7 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
         self.__devices: Dict[str, Optional[OakCamera]] = {}
         self.__device_product_names: Dict[str, str] = {}
         self.__device_states: Dict[str, robothub_core.DeviceState] = {}
+        self.__device_threads = []
 
         self.config = robothub_core.CONFIGURATION
 
@@ -41,11 +42,16 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
 
             device_thread = Thread(target=self.__manage_device,
                                    kwargs={'device': device},
-                                   name=f'connection_{device_mxid}')
+                                   name=f'connection_{device_mxid}', daemon=False)
             device_thread.start()
+            self.__device_threads.append(device_thread)
 
     def on_stop(self) -> None:
         self.stop_event.set()
+
+        for device_thread in self.__device_threads:
+            device_thread.join()
+
         self.__devices.clear()
         self.__device_states.clear()
 
