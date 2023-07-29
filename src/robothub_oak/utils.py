@@ -16,12 +16,20 @@ def set_logging_level(level: Union[str, int]) -> None:
     if isinstance(level, str):
         level = level.upper()
 
-    if level != 'DEBUG' or level != log.DEBUG:
-        log.basicConfig(format='%(levelname)s | %(message)s')
-    else:
-        log.basicConfig()
+    handler = log.StreamHandler()
+    handler.setLevel(level)
 
-    log.getLogger().setLevel(level)
+    if level != 'DEBUG' or level != log.DEBUG:
+        formatter = log.Formatter('%(levelname)s | %(message)s')
+        handler.setFormatter(formatter)
+
+    logger = log.getLogger('robothub_oak')
+    logger.propagate = False
+
+    if logger.hasHandlers():
+        logger.handlers.clear()
+
+    logger.addHandler(handler)
 
 
 def get_device_performance_metrics(device: depthai.Device) -> Dict[str, Any]:

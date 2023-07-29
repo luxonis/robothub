@@ -1,4 +1,4 @@
-import logging as log
+import logging
 import zipfile
 from io import BytesIO
 from typing import Union, Optional, List
@@ -8,6 +8,8 @@ import numpy as np
 import robothub_core
 
 __all__ = ['send_image_event', 'send_frame_event_with_zipped_images']
+
+log = logging.getLogger('robothub_oak')
 
 
 def _log_event_status(result: bool, event_id):
