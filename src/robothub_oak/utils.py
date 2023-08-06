@@ -10,8 +10,8 @@ def set_logging_level(level: Union[str, int]) -> None:
     Set the logging level for the application.
 
     :param level: Either a string or an integer. If a string, it must be one of the following: 'DEBUG', 'INFO',
-     'WARNING', 'ERROR', 'CRITICAL'. If an integer, it must be one of the following: log.DEBUG, log.INFO, log.WARNING,
-      log.ERROR, log.CRITICAL.
+    'WARNING', 'ERROR', 'CRITICAL'. If an integer, it must be one of the following: log.DEBUG, log.INFO, log.WARNING,
+    log.ERROR, log.CRITICAL.
     """
     if isinstance(level, str):
         level = level.upper()
