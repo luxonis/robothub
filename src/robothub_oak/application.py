@@ -1,4 +1,5 @@
 import logging as log
+import threading
 import time
 from abc import ABC, abstractmethod
 from threading import Thread
@@ -29,6 +30,7 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
         self.__device_states: Dict[str, robothub_core.DeviceState] = {}
         self.__device_threads = []
 
+        self.__manage_condition = threading.Condition()
         self.config = robothub_core.CONFIGURATION
 
     def on_start(self) -> None:
@@ -94,23 +96,24 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
         log.debug(f'Device {product_name}: management thread started.')
 
         while self.running:
+            self.__manage_condition.acquire()
             # if device is not connected
             if self.__devices[device_mxid] is None or not self.__devices[device_mxid].running():
                 # Make sure it is properly closed in case it disconnected during runtime
-                self.close_device(device_mxid)
+                self.__close_device(device_mxid)
+                self.on_device_disconnected(device_mxid)
 
-                self.on_device_connected(device_mxid)
                 # Connect to the device
                 self.__connect(device_mxid)
-
-                self.on_device_disconnected(device_mxid)
 
                 # If device is connected
                 if self.__devices[device_mxid]:
                     log.debug(f'Device {product_name}: creating pipeline...')
 
-                    self.setup_pipeline(device=self.__devices[device_mxid])
+                    self.setup_pipeline(oak=self.__devices[device_mxid])
                     self.__devices[device_mxid].start(blocking=False)
+                    self.on_device_connected(self.__devices[device_mxid])
+
                     log.info(f'Device {product_name}: started successfully.')
 
                     # Threads for polling and reporting
@@ -126,11 +129,14 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
                                               name=f'stats_reporting_{device_mxid}')
                     reporting_thread.start()
                 else:
-                    self.wait(25)
+                    self.__manage_condition.wait(25)
 
-            self.wait(5)
+            self.__manage_condition.wait(5)
+            self.__manage_condition.release()
 
-        self.close_device(mxid=device_mxid)
+        # Make sure device is closed
+        self.__close_device(mxid=device_mxid)
+        self.on_device_disconnected(device_mxid)
         log.debug(f'Device {product_name}: thread stopped.')
 
     def __poll_device(self, device: OakCamera) -> None:
@@ -207,7 +213,7 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
 
         return None
 
-    def close_device(self, mxid: str):
+    def __close_device(self, mxid: str):
         """
         Close the device gracefully. If the device is not running, this method does nothing.
 
