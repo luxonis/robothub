@@ -1,3 +1,4 @@
+import atexit
 import logging as log
 import threading
 import time
@@ -30,6 +31,8 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
         self.__device_states: Dict[str, robothub_core.DeviceState] = {}
         self.__device_threads = []
 
+        atexit.register(self.__cleanup)
+
         self.__manage_condition = threading.Condition()
         self.config = robothub_core.CONFIGURATION
 
@@ -48,13 +51,6 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
                                    daemon=False)
             device_thread.start()
             self.__device_threads.append(device_thread)
-
-    def on_stop(self) -> None:
-        for device_thread in self.__device_threads:
-            device_thread.join()
-
-        self.__devices.clear()
-        self.__device_states.clear()
 
     def start_execution(self) -> None:
         self.stop_event.wait()  # Keep main thread alive
@@ -83,6 +79,16 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
         :param mxid: The mxid of the camera that was disconnected.
         """
         pass
+
+    def __cleanup(self) -> None:
+        """
+        Called when the application is stopped. Registered as atexit handler.
+        """
+        for device_thread in self.__device_threads:
+            device_thread.join()
+
+        self.__devices.clear()
+        self.__device_states.clear()
 
     def __manage_device(self, device: robothub_core.RobotHubDevice) -> None:
         """
@@ -200,18 +206,6 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
         self.__device_states[device_mxid] = robothub_core.DeviceState.DISCONNECTED
         return
 
-    def get_device(self, mxid: str) -> Optional[OakCamera]:
-        """
-        Get a device by its mxid. If the device is not running, this method returns None.
-
-        :param mxid: The mxid of the device to get.
-        :return: The device with the given mxid.
-        """
-        if mxid in self.__devices:
-            return self.__devices[mxid]
-
-        return None
-
     def __close_device(self, mxid: str):
         """
         Close the device gracefully. If the device is not running, this method does nothing.
@@ -225,6 +219,18 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
         self.__devices[mxid] = None
         product_name = self.__device_product_names[mxid]
         log.info(f'Device {product_name}: closed gracefully.')
+
+    def get_device(self, mxid: str) -> Optional[OakCamera]:
+        """
+        Get a device by its mxid. If the device is not running, this method returns None.
+
+        :param mxid: The mxid of the device to get.
+        :return: The device with the given mxid.
+        """
+        if mxid in self.__devices:
+            return self.__devices[mxid]
+
+        return None
 
     def restart_device(self, mxid: str):
         """
