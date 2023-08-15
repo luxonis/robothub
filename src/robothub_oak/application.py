@@ -1,5 +1,5 @@
 import atexit
-import logging as log
+import logging
 import threading
 import time
 from abc import ABC, abstractmethod
@@ -12,6 +12,8 @@ from depthai_sdk import OakCamera
 from robothub_oak.utils import get_device_performance_metrics, get_device_details
 
 __all__ = ['BaseApplication']
+
+log = logging.getLogger('robothub_oak')
 
 
 class BaseApplication(robothub_core.RobotHubApplication, ABC):

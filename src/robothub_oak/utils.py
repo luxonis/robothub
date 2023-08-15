@@ -16,12 +16,20 @@ def set_logging_level(level: Union[str, int]) -> None:
     if isinstance(level, str):
         level = level.upper()
 
-    if level != 'DEBUG' or level != log.DEBUG:
-        log.basicConfig(format='%(levelname)s | %(message)s')
-    else:
-        log.basicConfig()
+    handler = log.StreamHandler()
+    handler.setLevel(level)
 
-    log.getLogger().setLevel(level)
+    if level != 'DEBUG' or level != log.DEBUG:
+        formatter = log.Formatter('%(levelname)s | %(message)s')
+        handler.setFormatter(formatter)
+
+    logger = log.getLogger('robothub_oak')
+    logger.propagate = False
+
+    if logger.hasHandlers():
+        logger.handlers.clear()
+
+    logger.addHandler(handler)
 
 
 def get_device_performance_metrics(device: depthai.Device) -> Dict[str, Any]:
@@ -63,13 +71,15 @@ def get_device_details(device: depthai.Device, state: robothub_core.DeviceState)
         'board_name': 'unknown',
         'board_rev': 'unknown',
         'bootloader_version': 'unknown',
-        'state': state.value,
+        'usb_speed': 'unknown',
+        'state': state.value
     }
 
     device_info = try_or_default(device.getDeviceInfo)
     calibration = try_or_default(device.readFactoryCalibration) or try_or_default(device.readCalibration2)
     eeprom_data = try_or_default(calibration.getEepromData)
 
+    info['usb_speed'] = device.getUsbSpeed().name
     bootloader_version = device.getBootloaderVersion()  # can be None
     if bootloader_version:
         info['bootloader_version'] = bootloader_version.toStringSemver()
