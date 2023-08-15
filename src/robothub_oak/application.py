@@ -140,7 +140,7 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
 
                     reporting_thread = Thread(target=self.__device_stats_reporting,
                                               args=(device_mxid,),
-                                              daemon=True,
+                                              daemon=False,
                                               name=f'stats_reporting_{device_mxid}')
                     reporting_thread.start()
                 else:
