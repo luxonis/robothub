@@ -219,8 +219,24 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
 
         :param mxid: The mxid of the device to close.
         """
-        if mxid in self.__devices and self.__devices[mxid]:
-            self.__devices[mxid].__exit__(1, 2, 3)
-            self.__devices[mxid] = None
-            product_name = self.__device_product_names[mxid]
-            log.info(f'Device {product_name}: closed gracefully.')
+        if self.__devices.get(mxid) is None or not self.__devices[mxid].running():
+            return
+
+        self.__devices[mxid].__exit__(1, 2, 3)
+        self.__devices[mxid] = None
+        product_name = self.__device_product_names[mxid]
+        log.info(f'Device {product_name}: closed gracefully.')
+
+    def restart_device(self, mxid: str):
+        """
+        Restart the specified device.
+
+        :param mxid: The mxid of the device to restart.
+        """
+        if mxid not in self.__devices:
+            log.warning(f"Device {mxid} not found for restart.")
+            return
+
+        with self.__manage_condition:
+            self.__close_device(mxid)
+            self.__manage_condition.notify_all()  # Notify the manage_device thread of the restart
