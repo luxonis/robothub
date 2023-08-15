@@ -229,10 +229,7 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
         :param mxid: The mxid of the device to get.
         :return: The device with the given mxid.
         """
-        if mxid in self.__devices:
-            return self.__devices[mxid]
-
-        return None
+        return self.__devices.get(mxid)
 
     def restart_device(self, mxid: str):
         """
