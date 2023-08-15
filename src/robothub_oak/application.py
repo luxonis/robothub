@@ -18,10 +18,17 @@ logger = logging.getLogger(__name__)
 
 class BaseApplication(robothub_core.RobotHubApplication, ABC):
     """
-    Base class for applications.
-    The application is the main entry point for the user. It is responsible for managing the devices and
-    creating the pipelines. The application is also responsible for polling the devices for new data.
-    Derived classes must implement the `setup_pipeline` method.
+    This class acts as the main entry point for the user, managing devices, creating pipelines,
+    and polling the devices for new data. Derived classes must implement the `setup_pipeline` method.
+
+    Attributes:
+        config: The configuration settings from the robotapp.toml config file.
+
+    Methods:
+        setup_pipeline: Abstract method to be implemented by child classes. Sets up the pipeline for a device.
+        on_device_connected: Optional method, called when a device is connected.
+        on_device_disconnected: Optional method, called when a device is disconnected.
+        on_stop: Optional method, called when the application is stopped.
     """
 
     def __init__(self):
