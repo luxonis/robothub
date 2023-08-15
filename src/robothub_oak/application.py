@@ -59,19 +59,19 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
         self.stop_event.wait()  # Keep main thread alive
 
     @abstractmethod
-    def setup_pipeline(self, device: OakCamera) -> None:
+    def setup_pipeline(self, oak: OakCamera) -> None:
         """
         The entry point for the application. This method is called when a device is connected and ready to be used.
 
-        :param device: The device that is ready to be used.
+        :param oak: The device that is ready to be used.
         """
         pass
 
-    def on_device_connected(self, mxid: str) -> None:
+    def on_device_connected(self, oak: OakCamera) -> None:
         """
         Called when a camera is connected.
 
-        :param mxid: The mxid of the camera that was connected.
+        :param oak: The camera that was connected.
         """
         pass
 
