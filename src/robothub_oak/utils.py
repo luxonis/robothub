@@ -10,6 +10,7 @@ __all__ = ['setup_logger', 'get_device_performance_metrics', 'get_device_details
 def setup_logger(name: str, level: int = logging.INFO):
     logger = logging.getLogger(name)
     logger.setLevel(level)
+    logger.propagate = False
 
     handler = logging.StreamHandler()
     handler.setLevel(logging.INFO)
