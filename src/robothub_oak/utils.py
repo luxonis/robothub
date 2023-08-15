@@ -1,34 +1,21 @@
-import logging as log
-from typing import Dict, Any, Union
+import logging
+from typing import Dict, Any
 
 import depthai
 import robothub_core
 
+__all__ = ['setup_logger', 'get_device_performance_metrics', 'get_device_details', 'try_or_default']
 
-def set_logging_level(level: Union[str, int]) -> None:
-    """
-    Set the logging level for the application.
 
-    :param level: Either a string or an integer. If a string, it must be one of the following: 'DEBUG', 'INFO',
-     'WARNING', 'ERROR', 'CRITICAL'. If an integer, it must be one of the following: log.DEBUG, log.INFO, log.WARNING,
-      log.ERROR, log.CRITICAL.
-    """
-    if isinstance(level, str):
-        level = level.upper()
+def setup_logger(name: str, level: int = logging.INFO):
+    logger = logging.getLogger(name)
+    logger.setLevel(level)
 
-    handler = log.StreamHandler()
-    handler.setLevel(level)
-
-    if level != 'DEBUG' or level != log.DEBUG:
-        formatter = log.Formatter('%(levelname)s | %(message)s')
-        handler.setFormatter(formatter)
-
-    logger = log.getLogger('robothub_oak')
-    logger.propagate = False
-
-    if logger.hasHandlers():
-        logger.handlers.clear()
-
+    handler = logging.StreamHandler()
+    handler.setLevel(logging.INFO)
+    format_str = '%(levelname)s | %(name)s | %(message)s' if level == logging.DEBUG else '%(levelname)s | %(message)s'
+    formatter = logging.Formatter(format_str)
+    handler.setFormatter(formatter)
     logger.addHandler(handler)
 
 
