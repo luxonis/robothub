@@ -43,6 +43,7 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
         atexit.register(self.__cleanup)
 
         self.__manage_condition = threading.Condition()
+        self.__report_condition = threading.Condition()
         self.config = robothub_core.CONFIGURATION
 
     def on_start(self) -> None:
@@ -174,6 +175,10 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
         dai_device = self.__devices[device_mxid].device
         state = self.__device_states[device_mxid]
         while self.running:
+            self.__report_condition.acquire()
+            if self.__devices[device_mxid] is None or not self.__devices[device_mxid].running():
+                self.__report_condition.release()
+                return
             try:
                 device_info = get_device_details(dai_device, state)
                 device_stats = get_device_performance_metrics(dai_device)
@@ -184,7 +189,8 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
                 product_name = self.__device_product_names[dai_device.getMxId()]
                 logger.debug(f'Device {product_name}: could not report info/stats with error: {e}.')
 
-            self.wait(30)
+            self.__report_condition.wait(30)
+            self.__report_condition.release()
 
     def __connect(self, device_mxid: str) -> None:
         """
@@ -227,6 +233,7 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
         self.__devices[mxid].__exit__(1, 2, 3)
         self.__devices[mxid] = None
         product_name = self.__device_product_names[mxid]
+        self.__report_condition.notify_all()
         logger.info(f'Device {product_name}: closed gracefully.')
 
     def get_device(self, mxid: str) -> Optional[OakCamera]:
