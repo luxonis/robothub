@@ -50,8 +50,6 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
             self.__device_threads.append(device_thread)
 
     def on_stop(self) -> None:
-        self.stop_event.set()
-
         for device_thread in self.__device_threads:
             device_thread.join()
 
