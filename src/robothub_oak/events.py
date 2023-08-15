@@ -9,14 +9,14 @@ import robothub_core
 
 __all__ = ['send_image_event', 'send_frame_event_with_zipped_images']
 
-log = logging.getLogger('robothub_oak')
+logger = logging.getLogger(__name__)
 
 
 def _log_event_status(result: bool, event_id):
     if result:
-        log.info(f"Event {event_id}: sent successfully.")
+        logger.info(f"Event {event_id}: sent successfully.")
     else:
-        log.info(f'Event {event_id}: failed to send.')
+        logger.info(f'Event {event_id}: failed to send.')
 
 
 def send_image_event(image: Union[np.ndarray, bytes],
@@ -43,7 +43,7 @@ def send_image_event(image: Union[np.ndarray, bytes],
         _log_event_status(True, event.id)
         return event.id
     except Exception as e:
-        log.error(f'Failed to send event: {e}')
+        logger.error(f'Failed to send event: {e}')
         _log_event_status(False, "None")
         return None
 
@@ -70,7 +70,7 @@ def send_frame_event_with_zipped_images(cv_frame,
             event.set_tags(tags)
         if metadata:
             event.set_metadata(metadata)
-        log.debug(f'Total files: {len(files)}')
+        logger.debug(f'Total files: {len(files)}')
         with BytesIO() as zip_buffer:
             with zipfile.ZipFile(zip_buffer, 'w') as zip_file:
                 for idx, file in enumerate(files):
@@ -91,6 +91,6 @@ def send_frame_event_with_zipped_images(cv_frame,
             _log_event_status(True, event.id)
             return event.id
     except Exception as e:
-        log.error(f'Failed to send event: {e}')
+        logger.error(f'Failed to send event: {e}')
         _log_event_status(False, 'None')
         return None
