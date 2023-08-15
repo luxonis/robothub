@@ -44,7 +44,8 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
 
             device_thread = Thread(target=self.__manage_device,
                                    kwargs={'device': device},
-                                   name=f'connection_{device_mxid}', daemon=False)
+                                   name=f'connection_{device_mxid}',
+                                   daemon=False)
             device_thread.start()
             self.__device_threads.append(device_thread)
 
