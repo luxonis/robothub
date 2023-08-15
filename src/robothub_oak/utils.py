@@ -66,7 +66,7 @@ def get_device_details(device: depthai.Device, state: robothub_core.DeviceState)
     calibration = try_or_default(device.readFactoryCalibration) or try_or_default(device.readCalibration2)
     eeprom_data = try_or_default(calibration.getEepromData)
 
-    info['usb_speed'] = device.getUsbSpeed().name
+    info['usb_speed'] = device.getUsbSpeed().name.lower()
     bootloader_version = device.getBootloaderVersion()  # can be None
     if bootloader_version:
         info['bootloader_version'] = bootloader_version.toStringSemver()
