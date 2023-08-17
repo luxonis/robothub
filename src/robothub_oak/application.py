@@ -97,6 +97,10 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
         for device_thread in self.__device_threads:
             device_thread.join()
 
+        # Make sure devices were closed
+        for mxid in self.__devices.keys():
+            self.__close_device(mxid)
+
         self.__devices.clear()
         self.__device_states.clear()
 
