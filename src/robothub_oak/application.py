@@ -100,6 +100,9 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
         self.__devices.clear()
         self.__device_states.clear()
 
+        self.__report_condition.notify_all()
+        self.__manage_condition.notify_all()
+
     def __manage_device(self, device: robothub_core.RobotHubDevice) -> None:
         """
         Handle the life cycle of one device.
