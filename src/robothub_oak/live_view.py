@@ -134,7 +134,7 @@ class LiveView:
         :param manual_publish: If True, the Live View will not be automatically published. Use LiveView.publish() to publish the Live View.
         """
         output = None
-        is_h264 = LiveView.is_h264(component)
+        is_h264 = LiveView.is_encoder_enabled(component)
         if not is_h264:
             output = LiveView.h264_output(device, component)
         elif not is_h264 and not isinstance(component, CameraComponent):
@@ -191,17 +191,19 @@ class LiveView:
         return encoded
 
     @staticmethod
-    def is_h264(component: Component) -> bool:
-        encoder = None
-        if isinstance(component, CameraComponent) or isinstance(component, StereoComponent):
-            encoder = component.encoder
-        elif isinstance(component, NNComponent):
-            encoder = component._input.encoder
+    def is_encoder_enabled(component: Component) -> bool:
+        """
+        Checks if the component has h264 encoding enabled.
 
-        if not encoder:
-            raise ValueError('This component does not have an encoder.')
+        :param component: Component to check.
+        :return: True if the component has h264 encoding enabled, False otherwise.
+        :raises ValueError: If the component is not a CameraComponent or StereoComponent.
+        """
+        if not isinstance(component, CameraComponent) and not isinstance(component, StereoComponent):
+            raise ValueError(f'Component {component.__class__.__name__} must be a CameraComponent or StereoComponent.')
+        encoder = component.encoder
 
-        if encoder.getProfile() != dai.VideoEncoderProperties.Profile.H264_MAIN:
+        if encoder and encoder.getProfile() != dai.VideoEncoderProperties.Profile.H264_MAIN:
             return False
 
         return True
