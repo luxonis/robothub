@@ -46,8 +46,8 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
 
         atexit.register(self.__cleanup)
 
-        self.__manage_condition = threading.Condition()
-        self.__report_condition = threading.Condition()
+        self.__manage_event = threading.Event()
+        self.__report_event = threading.Event()
 
     def on_start(self) -> None:
         if len(robothub_core.DEVICES) == 0:
@@ -102,11 +102,11 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
         """
         Called when the application is stopped. Registered as atexit handler.
         """
+        # Device thread must close the device
         self.__device_thread.join()
 
-        # Make sure device is closed
-        self.__close_device()
-        self.__manage_condition.notify_all()
+        self.__manage_event.set()
+        self.__report_event.set()
 
     def __manage_device(self) -> None:
         """
@@ -116,7 +116,6 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
 
         while self.running:
             # if device is not connected
-            self.__manage_condition.acquire()
             if self.__device is None or not self.__device.running():
                 # Make sure it is properly closed in case it disconnected during runtime
                 self.__close_device()
@@ -135,6 +134,9 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
 
                     logger.info(f"Device {self.__device_product_name}: started successfully.")
 
+                    self.__manage_event.clear()
+                    self.__report_event.clear()
+
                     # Threads for polling and reporting
                     polling_thread = Thread(
                         target=self.__poll_device,
@@ -150,10 +152,9 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
                     )
                     reporting_thread.start()
                 else:
-                    self.__manage_condition.wait(25)
+                    self.__manage_event.wait(25)
 
-            self.__manage_condition.wait(5)
-            self.__manage_condition.release()
+            self.__manage_event.wait(5)
 
         # Make sure device is closed
         self.__close_device()
@@ -164,7 +165,7 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
         """
         Poll the device for new data. This method is called in a separate thread.
         """
-        while self.running:
+        while self.running and not self.__manage_event.is_set():
             if not self.__device.poll():
                 return
 
@@ -176,11 +177,10 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
         """
         dai_device = self.__device.device
         state = self.__device_state
-        while self.running:
+        while self.running and not self.__report_event.is_set():
             if self.__device is None or not self.__device.running():
                 return
 
-            self.__report_condition.acquire()
             try:
                 device_info = get_device_details(dai_device, state)
                 device_stats = get_device_performance_metrics(dai_device)
@@ -191,8 +191,7 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
                 product_name = self.__device_product_name
                 logger.debug(f"Device {product_name}: could not report info/stats with error: {e}.")
 
-            self.__report_condition.wait(30)
-            self.__report_condition.release()
+            self.__report_event.wait(30)
 
     def __connect(self) -> None:
         """
@@ -232,7 +231,6 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
         self.__device.__exit__(1, 2, 3)
         self.__device = None
         product_name = self.__device_product_name
-        self.__report_condition.notify_all()
         logger.info(f"Device {product_name}: closed gracefully.")
 
     def get_device(self) -> Optional[OakCamera]:
@@ -250,6 +248,6 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
             logger.warning(f"Device is not initialized and cannot be restarted.")
             return
 
-        with self.__manage_condition:
-            self.__close_device()
-            self.__manage_condition.notify_all()  # Notify the manage_device thread
+        self.__close_device()
+        self.__report_event.set()
+        self.__manage_event.set()
