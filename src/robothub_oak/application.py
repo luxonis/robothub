@@ -139,7 +139,6 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
                     # Threads for polling and reporting
                     polling_thread = Thread(
                         target=self.__poll_device,
-                        args=(self.__device,),
                         daemon=True,
                         name=f"poll_{self.__device_mxid}",
                     )
@@ -147,7 +146,6 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
 
                     reporting_thread = Thread(
                         target=self.__device_stats_reporting,
-                        args=(self.__device_mxid,),
                         daemon=False,
                         name=f"stats_reporting_{self.__device_mxid}",
                     )
@@ -163,14 +161,12 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
         self.on_device_disconnected()
         logger.debug(f"Device {self.__device_product_name}: thread stopped.")
 
-    def __poll_device(self, device: OakCamera) -> None:
+    def __poll_device(self) -> None:
         """
         Poll the device for new data. This method is called in a separate thread.
-
-        :param device: The device to poll.
         """
         while self.running:
-            if not device.poll():
+            if not self.__device.poll():
                 return
 
             time.sleep(0.0025)
@@ -196,11 +192,9 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
 
             self.__report_condition.wait(30)
 
-    def __connect(self, device_mxid: str) -> None:
+    def __connect(self) -> None:
         """
         Connect to the device. This method is called in a separate thread.
-
-        :param device_mxid: The mxid of the device to connect to.
         """
         give_up_time = time.time() + 30
 
@@ -211,7 +205,7 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
                 f"Device {product_name}: remaining time to connect - {give_up_time - time.time()} seconds."
             )
             try:
-                oak = OakCamera(device_mxid)
+                oak = OakCamera(self.__device_mxid)
                 self.__device = oak
                 self.__device_state = robothub_core.DeviceState.CONNECTED
                 logger.debug(f"Device {product_name}: successfully connected.")
