@@ -106,8 +106,6 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
 
         # Make sure device is closed
         self.__close_device()
-
-        self.__report_condition.notify_all()
         self.__manage_condition.notify_all()
 
     def __manage_device(self) -> None:
