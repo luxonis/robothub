@@ -1,7 +1,9 @@
 import atexit
 import logging
+import signal
 import threading
 import time
+
 from abc import ABC, abstractmethod
 from threading import Thread
 from typing import Optional
@@ -45,6 +47,7 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
         self.__device_thread: Optional[Thread] = None
 
         atexit.register(self.__cleanup)
+        signal.signal(signal.SIGUSR1, self.__cleanup)
 
         self.__manage_event = threading.Event()
         self.__report_event = threading.Event()
@@ -52,6 +55,7 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
     def on_start(self) -> None:
         if len(robothub_core.DEVICES) == 0:
             logger.info("No assigned devices.")
+            self.stop_event.set()
             return
         if len(robothub_core.DEVICES) > 1:
             logger.warning("More than one device assigned, only the first one will be used.")
