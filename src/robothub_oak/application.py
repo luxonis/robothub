@@ -4,22 +4,22 @@ import threading
 import time
 from abc import ABC, abstractmethod
 from threading import Thread
-from typing import Dict, Optional
+from typing import Optional
 
 import robothub_core
 from depthai_sdk import OakCamera
 
 from robothub_oak.utils import get_device_performance_metrics, get_device_details
 
-__all__ = ['BaseApplication']
+__all__ = ["BaseApplication"]
 
 logger = logging.getLogger(__name__)
 
 
 class BaseApplication(robothub_core.RobotHubApplication, ABC):
     """
-    This class acts as the main entry point for the user, managing devices, creating pipelines,
-    and polling the devices for new data. Derived classes must implement the `setup_pipeline` method.
+    This class acts as the main entry point for the user, managing a single device, creating pipelines,
+    and polling the device for new data. Derived classes must implement the `setup_pipeline` method.
 
     Attributes:
         config: The configuration settings from the robotapp.toml config file.
@@ -35,32 +35,42 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
         robothub_core.RobotHubApplication.__init__(self)
         ABC.__init__(self)
 
-        self.__devices: Dict[str, Optional[OakCamera]] = {}
-        self.__device_product_names: Dict[str, str] = {}
-        self.__device_states: Dict[str, robothub_core.DeviceState] = {}
-        self.__device_threads = []
+        self.config = robothub_core.CONFIGURATION
+
+        self.__rh_device: Optional[robothub_core.RobotHubDevice] = None
+        self.__device_mxid: Optional[str] = None
+        self.__device_product_name: Optional[str] = None
+        self.__device_state: Optional[robothub_core.DeviceState] = None
+        self.__device: Optional[OakCamera] = None
+        self.__device_thread: Optional[Thread] = None
 
         atexit.register(self.__cleanup)
 
         self.__manage_condition = threading.Condition()
         self.__report_condition = threading.Condition()
-        self.config = robothub_core.CONFIGURATION
 
     def on_start(self) -> None:
-        for device in robothub_core.DEVICES:
-            device_mxid = device.oak['serialNumber']
-            self.__devices[device_mxid] = None
-            self.__device_states[device_mxid] = robothub_core.DeviceState.DISCONNECTED
+        if len(robothub_core.DEVICES) == 0:
+            logger.info("No assigned devices.")
+            return
+        if len(robothub_core.DEVICES) > 1:
+            logger.warning("More than one device assigned, only the first one will be used.")
 
-            name = device.oak.get('name', None) or device.oak.get('productName', None) or device_mxid
-            self.__device_product_names[device_mxid] = name
+        self.__rh_device = robothub_core.DEVICES[0]
+        self.__device_mxid = self.__rh_device.oak["serialNumber"]
+        self.__device_product_name = (
+                self.__rh_device.oak.get("name", None)
+                or self.__rh_device.oak.get("productName", None)
+                or self.__device_mxid
+        )
+        self.__device_state = robothub_core.DeviceState.DISCONNECTED
 
-            device_thread = Thread(target=self.__manage_device,
-                                   kwargs={'device': device},
-                                   name=f'connection_{device_mxid}',
-                                   daemon=False)
-            device_thread.start()
-            self.__device_threads.append(device_thread)
+        self.__device_thread = Thread(
+            target=self.__manage_device,
+            name=f"manage_{self.__device_mxid}",
+            daemon=False,
+        )
+        self.__device_thread.start()
 
     def start_execution(self) -> None:
         self.stop_event.wait()  # Keep main thread alive
@@ -82,11 +92,9 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
         """
         pass
 
-    def on_device_disconnected(self, mxid: str) -> None:
+    def on_device_disconnected(self) -> None:
         """
         Called when a camera is disconnected. Opposite of on_device_connected.
-
-        :param mxid: The mxid of the camera that was disconnected.
         """
         pass
 
@@ -94,61 +102,55 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
         """
         Called when the application is stopped. Registered as atexit handler.
         """
-        for device_thread in self.__device_threads:
-            device_thread.join()
+        self.__device_thread.join()
 
-        # Make sure devices were closed
-        for mxid in self.__devices.keys():
-            self.__close_device(mxid)
-
-        self.__devices.clear()
-        self.__device_states.clear()
+        # Make sure device is closed
+        self.__close_device()
 
         self.__report_condition.notify_all()
         self.__manage_condition.notify_all()
 
-    def __manage_device(self, device: robothub_core.RobotHubDevice) -> None:
+    def __manage_device(self) -> None:
         """
-        Handle the life cycle of one device.
-
-        :param device: The device to manage.
+        Handle the life cycle of the device.
         """
-        device_mxid = device.oak['serialNumber']
-        product_name = self.__device_product_names[device_mxid]
-        logger.debug(f'Device {product_name}: management thread started.')
+        logger.debug(f"Device {self.__device_product_name}: management thread started.")
 
         while self.running:
-            self.__manage_condition.acquire()
             # if device is not connected
-            if self.__devices[device_mxid] is None or not self.__devices[device_mxid].running():
+            if self.__device is None or not self.__device.running():
                 # Make sure it is properly closed in case it disconnected during runtime
-                self.__close_device(device_mxid)
-                self.on_device_disconnected(device_mxid)
+                self.__close_device()
+                self.on_device_disconnected()
 
                 # Connect to the device
-                self.__connect(device_mxid)
+                self.__connect(self.__device_mxid)
 
                 # If device is connected
-                if self.__devices[device_mxid]:
-                    logger.debug(f'Device {product_name}: creating pipeline...')
+                if self.__device:
+                    logger.debug(f"Device {self.__device_product_name}: creating pipeline...")
 
-                    self.setup_pipeline(oak=self.__devices[device_mxid])
-                    self.__devices[device_mxid].start(blocking=False)
-                    self.on_device_connected(self.__devices[device_mxid])
+                    self.setup_pipeline(oak=self.__device)
+                    self.__device.start(blocking=False)
+                    self.on_device_connected(self.__device)
 
-                    logger.info(f'Device {product_name}: started successfully.')
+                    logger.info(f"Device {self.__device_product_name}: started successfully.")
 
                     # Threads for polling and reporting
-                    polling_thread = Thread(target=self.__poll_device,
-                                            args=(self.__devices[device_mxid],),
-                                            daemon=True,
-                                            name=f'poll_{device_mxid}')
+                    polling_thread = Thread(
+                        target=self.__poll_device,
+                        args=(self.__device,),
+                        daemon=True,
+                        name=f"poll_{self.__device_mxid}",
+                    )
                     polling_thread.start()
 
-                    reporting_thread = Thread(target=self.__device_stats_reporting,
-                                              args=(device_mxid,),
-                                              daemon=False,
-                                              name=f'stats_reporting_{device_mxid}')
+                    reporting_thread = Thread(
+                        target=self.__device_stats_reporting,
+                        args=(self.__device_mxid,),
+                        daemon=False,
+                        name=f"stats_reporting_{self.__device_mxid}",
+                    )
                     reporting_thread.start()
                 else:
                     self.__manage_condition.wait(25)
@@ -157,9 +159,9 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
             self.__manage_condition.release()
 
         # Make sure device is closed
-        self.__close_device(mxid=device_mxid)
-        self.on_device_disconnected(device_mxid)
-        logger.debug(f'Device {product_name}: thread stopped.')
+        self.__close_device()
+        self.on_device_disconnected()
+        logger.debug(f"Device {self.__device_product_name}: thread stopped.")
 
     def __poll_device(self, device: OakCamera) -> None:
         """
@@ -173,18 +175,14 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
 
             time.sleep(0.0025)
 
-    def __device_stats_reporting(self, device_mxid: str) -> None:
+    def __device_stats_reporting(self) -> None:
         """
         Report device info and stats every 30 seconds.
-
-        :param device_mxid: The mxid of the device to report info/stats for.
         """
-        dai_device = self.__devices[device_mxid].device
-        state = self.__device_states[device_mxid]
+        dai_device = self.__device.device
+        state = self.__device_state
         while self.running:
-            self.__report_condition.acquire()
-            if self.__devices[device_mxid] is None or not self.__devices[device_mxid].running():
-                self.__report_condition.release()
+            if self.__device is None or not self.__device.running():
                 return
             try:
                 device_info = get_device_details(dai_device, state)
@@ -193,11 +191,10 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
                 robothub_core.AGENT.publish_device_info(device_info)
                 robothub_core.AGENT.publish_device_stats(device_stats)
             except Exception as e:
-                product_name = self.__device_product_names[dai_device.getMxId()]
-                logger.debug(f'Device {product_name}: could not report info/stats with error: {e}.')
+                product_name = self.__device_product_name
+                logger.debug(f"Device {product_name}: could not report info/stats with error: {e}.")
 
             self.__report_condition.wait(30)
-            self.__report_condition.release()
 
     def __connect(self, device_mxid: str) -> None:
         """
@@ -205,63 +202,58 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
 
         :param device_mxid: The mxid of the device to connect to.
         """
-        start_time = time.time()
-        give_up_time = start_time + 30
+        give_up_time = time.time() + 30
 
-        self.__device_states[device_mxid] = robothub_core.DeviceState.CONNECTING
-        product_name = self.__device_product_names[device_mxid]
+        self.__device_state = robothub_core.DeviceState.CONNECTING
+        product_name = self.__device_product_name
         while time.time() < give_up_time and self.running:
-            logger.debug(f'Device {product_name}: remaining time to connect - {give_up_time - time.time()} seconds.')
+            logger.debug(
+                f"Device {product_name}: remaining time to connect - {give_up_time - time.time()} seconds."
+            )
             try:
                 oak = OakCamera(device_mxid)
-                self.__devices[device_mxid] = oak
-                self.__device_states[device_mxid] = robothub_core.DeviceState.CONNECTED
-                logger.debug(f'Device {product_name}: successfully connected.')
+                self.__device = oak
+                self.__device_state = robothub_core.DeviceState.CONNECTED
+                logger.debug(f"Device {product_name}: successfully connected.")
                 return
             except Exception as e:
                 # If device can't be connected to on first try, wait 5 seconds and try again.
-                logger.debug(f'Device {product_name}: error while trying to connect - {e}.')
+                logger.debug(f"Device {product_name}: error while trying to connect - {e}.")
                 self.wait(5)
 
-        logger.info(f'Device {product_name}: could not manage to connect within 30s timeout.')
-        self.__devices[device_mxid] = None
-        self.__device_states[device_mxid] = robothub_core.DeviceState.DISCONNECTED
+        logger.info(f"Device {product_name}: could not manage to connect within 30s timeout.")
+        self.__device = None
+        self.__device_state = robothub_core.DeviceState.DISCONNECTED
         return
 
-    def __close_device(self, mxid: str):
+    def __close_device(self):
         """
         Close the device gracefully. If the device is not running, this method does nothing.
-
-        :param mxid: The mxid of the device to close.
         """
-        if self.__devices.get(mxid) is None or not self.__devices[mxid].running():
+        if self.__device is None or not self.__device.running():
             return
 
-        self.__devices[mxid].__exit__(1, 2, 3)
-        self.__devices[mxid] = None
-        product_name = self.__device_product_names[mxid]
+        self.__device.__exit__(1, 2, 3)
+        self.__device = None
+        product_name = self.__device_product_name
         self.__report_condition.notify_all()
-        logger.info(f'Device {product_name}: closed gracefully.')
+        logger.info(f"Device {product_name}: closed gracefully.")
 
-    def get_device(self, mxid: str) -> Optional[OakCamera]:
+    def get_device(self) -> Optional[OakCamera]:
         """
         Get a device by its mxid. If the device is not running, this method returns None.
-
-        :param mxid: The mxid of the device to get.
-        :return: The device with the given mxid.
+        :return: The device or None if the device is not running.
         """
-        return self.__devices.get(mxid)
+        return self.__device
 
-    def restart_device(self, mxid: str):
+    def restart_device(self):
         """
-        Restart the specified device.
-
-        :param mxid: The mxid of the device to restart.
+        Restart the device.
         """
-        if mxid not in self.__devices:
-            logger.warning(f"Device {mxid} not found for restart.")
+        if not self.__device:
+            logger.warning(f"Device is not initialized and cannot be restarted.")
             return
 
         with self.__manage_condition:
-            self.__close_device(mxid)
-            self.__manage_condition.notify_all()  # Notify the manage_device thread of the restart
+            self.__close_device()
+            self.__manage_condition.notify_all()  # Notify the manage_device thread
