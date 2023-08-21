@@ -177,9 +177,10 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
         dai_device = self.__device.device
         state = self.__device_state
         while self.running:
-            self.__report_condition.acquire()
             if self.__device is None or not self.__device.running():
                 return
+
+            self.__report_condition.acquire()
             try:
                 device_info = get_device_details(dai_device, state)
                 device_stats = get_device_performance_metrics(dai_device)
