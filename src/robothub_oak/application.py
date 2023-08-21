@@ -118,13 +118,14 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
 
         while self.running:
             # if device is not connected
+            self.__manage_condition.acquire()
             if self.__device is None or not self.__device.running():
                 # Make sure it is properly closed in case it disconnected during runtime
                 self.__close_device()
                 self.on_device_disconnected()
 
                 # Connect to the device
-                self.__connect(self.__device_mxid)
+                self.__connect()
 
                 # If device is connected
                 if self.__device:
@@ -178,6 +179,7 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
         dai_device = self.__device.device
         state = self.__device_state
         while self.running:
+            self.__report_condition.acquire()
             if self.__device is None or not self.__device.running():
                 return
             try:
@@ -191,6 +193,7 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
                 logger.debug(f"Device {product_name}: could not report info/stats with error: {e}.")
 
             self.__report_condition.wait(30)
+            self.__report_condition.release()
 
     def __connect(self) -> None:
         """
