@@ -102,15 +102,16 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
         """
         pass
 
-    def __cleanup(self) -> None:
+    def __cleanup(self, *args, **kwargs) -> None:
         """
         Called when the application is stopped. Registered as atexit handler.
         """
         # Device thread must close the device
-        self.__device_thread.join()
-
+        self.stop_event.set()
         self.__manage_event.set()
         self.__report_event.set()
+
+        self.__device_thread.join()
 
     def __manage_device(self) -> None:
         """
