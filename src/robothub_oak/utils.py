@@ -8,6 +8,14 @@ __all__ = ['setup_logger', 'get_device_performance_metrics', 'get_device_details
 
 
 def setup_logger(name: str, level: int = logging.INFO):
+    """
+    :param name: Logger name.
+    :param level: Either a string or an integer. If a string, it must be one of the following: 'DEBUG', 'INFO',
+    'WARNING', 'ERROR', 'CRITICAL'. If an integer, it must be one of the following: log.DEBUG, log.INFO, log.WARNING,
+    log.ERROR, log.CRITICAL.
+    """
+    if isinstance(level, str):
+        level = level.upper()
     logger = logging.getLogger(name)
     logger.setLevel(level)
     logger.propagate = False
