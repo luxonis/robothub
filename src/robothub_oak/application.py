@@ -48,13 +48,15 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
         self.__device_thread: Optional[Thread] = None
         self.__health_check_thread: Optional[Thread] = None
 
+        self.__watch_dog_manage_device = WatchDog(id_="device_manager", interval_seconds=10.)
+        self.__watch_dog_polling = WatchDog(id_="polling", interval_seconds=5*60.)
+        self.__watch_dog_device_reports = WatchDog(id_="device_reports", interval_seconds=5*60.)
+
         atexit.register(self.__cleanup)
         signal.signal(signal.SIGUSR1, self.__cleanup)
 
         self.__manage_event = threading.Event()
         self.__report_event = threading.Event()
-
-        self.__watch_dog = WatchDog(id_="device_manager", interval_seconds=10.)
 
     def on_start(self) -> None:
         if len(robothub_core.DEVICES) == 0:
@@ -80,10 +82,8 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
         )
         self.__device_thread.start()
 
-        self.__health_check_thread = Thread(target=_run_health_check, name=f"health_check", daemon=True)
+        self.__health_check_thread = Thread(target=self.__run_health_check, name=f"health_check", daemon=True)
         self.__health_check_thread.start()
-
-        self.__watch_dog.start()
 
     def start_execution(self) -> None:
         self.stop_event.wait()  # Keep main thread alive
@@ -127,6 +127,7 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
         Handle the life cycle of the device.
         """
         logger.debug(f"Device {self.__device_product_name}: management thread started.")
+        self.__watch_dog_manage_device.start()
 
         while self.running:
             # if device is not connected
@@ -168,6 +169,7 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
                 else:
                     self.__manage_event.wait(25)
 
+            self.__watch_dog_device_reports.ping()
             self.__manage_event.wait(5)
 
         # Make sure device is closed
@@ -179,16 +181,19 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
         """
         Poll the device for new data. This method is called in a separate thread.
         """
+        self.__watch_dog_polling.start()
         while self.running and not self.__manage_event.is_set():
             if not self.__device.poll():
                 return
 
+            self.__watch_dog_polling.ping()
             time.sleep(0.0025)
 
     def __device_stats_reporting(self) -> None:
         """
         Report device info and stats every 30 seconds.
         """
+        self.__watch_dog_device_reports.start()
         dai_device = self.__device.device
         state = self.__device_state
         while self.running and not self.__report_event.is_set():
@@ -205,6 +210,7 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
                 product_name = self.__device_product_name
                 logger.debug(f"Device {product_name}: could not report info/stats with error: {e}.")
 
+            self.__watch_dog_device_reports.ping()
             self.__report_event.wait(30)
 
     def __connect(self) -> None:
@@ -266,7 +272,7 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
         self.__report_event.set()
         self.__manage_event.set()
 
-    def _run_health_check(self):
+    def __run_health_check(self):
         health_check_frequency = 5.
         robothub_core.AGENT.send_health_check_init(health_check_frequency)
         while self.running():
