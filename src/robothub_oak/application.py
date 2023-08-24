@@ -272,9 +272,9 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
         while self.running():
             self.wait(health_check_frequency)
             if WatchDog.status_is_ok():
-                self.AGENT.send_health_check_error()
-            else:
                 self.AGENT.send_health_check_ok()
+            else:
+                self.AGENT.send_health_check_error()
 
     # send_health_check_init(health_check_frequency) -> message = {'what': 'wish', 'type': "health_check", 'body': {"frequency": frequency: float}}
     # message = {'what': 'notification', 'type': "health_check", 'body': {"result": "OK" or "ERROR"}
