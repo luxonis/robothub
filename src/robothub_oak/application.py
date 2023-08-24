@@ -10,6 +10,7 @@ from typing import Optional
 
 import robothub_core
 from depthai_sdk import OakCamera
+from watch_dog import *
 
 from robothub_oak.utils import get_device_performance_metrics, get_device_details
 
@@ -45,12 +46,15 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
         self.__device_state: Optional[robothub_core.DeviceState] = None
         self.__device: Optional[OakCamera] = None
         self.__device_thread: Optional[Thread] = None
+        self.__health_check_thread: Optional[Thread] = None
 
         atexit.register(self.__cleanup)
         signal.signal(signal.SIGUSR1, self.__cleanup)
 
         self.__manage_event = threading.Event()
         self.__report_event = threading.Event()
+
+        self.__watch_dog = WatchDog(id_="device_manager", interval_seconds=10.)
 
     def on_start(self) -> None:
         if len(robothub_core.DEVICES) == 0:
@@ -75,6 +79,11 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
             daemon=False,
         )
         self.__device_thread.start()
+
+        self.__health_check_thread = Thread(target=_run_health_check, name=f"health_check", daemon=True)
+        self.__health_check_thread.start()
+
+        self.__watch_dog.start()
 
     def start_execution(self) -> None:
         self.stop_event.wait()  # Keep main thread alive
@@ -256,3 +265,16 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
         self.__close_device()
         self.__report_event.set()
         self.__manage_event.set()
+
+    def _run_health_check(self):
+        health_check_frequency = 5.
+        robothub_core.AGENT.send_health_check_init(health_check_frequency)
+        while self.running():
+            self.wait(health_check_frequency)
+            if WatchDog.status_is_ok():
+                self.AGENT.send_health_check_error()
+            else:
+                self.AGENT.send_health_check_ok()
+
+    # send_health_check_init(health_check_frequency) -> message = {'what': 'wish', 'type': "health_check", 'body': {"frequency": frequency: float}}
+    # message = {'what': 'notification', 'type': "health_check", 'body': {"result": "OK" or "ERROR"}
