@@ -48,9 +48,9 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
         self.__device_thread: Optional[Thread] = None
         self.__health_check_thread: Optional[Thread] = None
 
-        self.__watch_dog_manage_device = WatchDog(id_="device_manager", interval_seconds=10.)
-        self.__watch_dog_polling = WatchDog(id_="polling", interval_seconds=5*60.)
-        self.__watch_dog_device_reports = WatchDog(id_="device_reports", interval_seconds=5*60.)
+        self.__watch_dog_manage_device = WatchDog.create(interval_seconds=10., description="device_manager")
+        self.__watch_dog_polling = WatchDog.create(interval_seconds=5, description="polling", agent_response=AgentResponse.NOTIFY)
+        self.__watch_dog_device_reports = WatchDog.create(interval_seconds=5*60., description="device_reports")
 
         atexit.register(self.__cleanup)
         signal.signal(signal.SIGUSR1, self.__cleanup)
@@ -82,9 +82,6 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
         )
         self.__device_thread.start()
 
-        self.__health_check_thread = Thread(target=self.__run_health_check, name=f"health_check", daemon=True)
-        self.__health_check_thread.start()
-
     def start_execution(self) -> None:
         self.stop_event.wait()  # Keep main thread alive
 
@@ -115,6 +112,7 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
         """
         Called when the application is stopped. Registered as atexit handler.
         """
+        WatchDog.destroy_all()
         # Device thread must close the device
         self.stop_event.set()
         self.__manage_event.set()
@@ -271,16 +269,3 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
         self.__close_device()
         self.__report_event.set()
         self.__manage_event.set()
-
-    def __run_health_check(self):
-        health_check_frequency = 5.
-        robothub_core.AGENT.send_health_check_init(health_check_frequency)
-        while self.running():
-            self.wait(health_check_frequency)
-            if WatchDog.status_is_ok():
-                self.AGENT.send_health_check_ok()
-            else:
-                self.AGENT.send_health_check_error()
-
-    # send_health_check_init(health_check_frequency) -> message = {'what': 'wish', 'type': "health_check", 'body': {"frequency": frequency: float}}
-    # message = {'what': 'notification', 'type': "health_check", 'body': {"result": "OK" or "RESTART"}
