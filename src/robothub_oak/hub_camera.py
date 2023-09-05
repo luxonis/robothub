@@ -6,7 +6,7 @@ from typing import Union, Optional, Callable, Dict, Any
 
 import depthai as dai
 import depthai_sdk
-import robothub
+import robothub_core
 from depthai_sdk import OakCamera
 from depthai_sdk.components import CameraComponent, StereoComponent, NNComponent
 from depthai_sdk.trigger_action import Trigger, Action
@@ -33,13 +33,13 @@ class HubCamera:
         :param usb_speed: USB speed to use.
         :param rotation: Rotation of the camera, defaults to 0.
         """
-        self.state = robothub.DeviceState.UNKNOWN
+        self.state = robothub_core.DeviceState.UNKNOWN
         self.device_name = device_name
         self.product_name = product_name
         self.usb_speed = usb_speed
         self.rotation = rotation
 
-        self.stop_event = robothub.threading.Event()
+        self.stop_event = robothub_core.threading.Event()
         self.streams = {}  # unique_key -> StreamHandle
         self.available_sensors = []  # self.oak_camera.sensors if self.oak_camera else []
 
@@ -152,8 +152,8 @@ class HubCamera:
         if unique_key is None:
             unique_key = f'{self.device_name}_{component.__class__.__name__.lower()}_{component.out.encoded.__name__}'
 
-        if unique_key in robothub.STREAMS.streams.keys():
-            stream_handle = robothub.STREAMS.streams[unique_key]
+        if unique_key in robothub_core.STREAMS.streams.keys():
+            stream_handle = robothub_core.STREAMS.streams[unique_key]
         else:
             stream_handle = self._create_stream(unique_key=unique_key, name=name)
             if stream_handle is None:
@@ -163,22 +163,22 @@ class HubCamera:
         self.streams[unique_key] = stream_handle
         self._add_stream_callback(stream_handle=stream_handle, component=component, callback=callback)
 
-    def _create_stream(self, unique_key: str, name: str) -> Optional[robothub.StreamHandle]:
+    def _create_stream(self, unique_key: str, name: str) -> Optional[robothub_core.StreamHandle]:
         try:
-            return robothub.STREAMS.create_video(camera_serial=self.device_name,
+            return robothub_core.STREAMS.create_video(camera_serial=self.device_name,
                                                  unique_key=unique_key,
                                                  description=name)
         except Exception:
             try:
-                robothub.STREAMS.destroy_streams_by_id([unique_key])
-                return robothub.STREAMS.create_video(camera_serial=self.device_name,
+                robothub_core.STREAMS.destroy_streams_by_id([unique_key])
+                return robothub_core.STREAMS.create_video(camera_serial=self.device_name,
                                                      unique_key=unique_key,
                                                      description=name)
             except ValueError:
                 return None
 
     def _add_stream_callback(self,
-                             stream_handle: robothub.StreamHandle,
+                             stream_handle: robothub_core.StreamHandle,
                              component: Union[CameraComponent, NNComponent, StereoComponent],
                              callback: Callable
                              ) -> None:
@@ -225,14 +225,14 @@ class HubCamera:
         """
         Starts the device and sets the state to connected.
         """
-        if self.state == robothub.DeviceState.CONNECTED:
+        if self.state == robothub_core.DeviceState.CONNECTED:
             return True
 
         start_time = time.monotonic()
         while not self.stop_event.is_set():
             try:
                 self.oak_camera.start()
-                self.state = robothub.DeviceState.CONNECTED
+                self.state = robothub_core.DeviceState.CONNECTED
                 return True
             except Exception as e:
                 if time.monotonic() - start_time > 10:
@@ -250,12 +250,12 @@ class HubCamera:
 
         for stream in self.streams.values():
             try:
-                robothub.STREAMS.destroy(stream)
+                robothub_core.STREAMS.destroy(stream)
             except ValueError:
                 pass
 
         self.streams.clear()
-        self.state = robothub.DeviceState.DISCONNECTED
+        self.state = robothub_core.DeviceState.DISCONNECTED
 
         if self.oak_camera:
             self.oak_camera.device.close()

@@ -6,7 +6,7 @@ import time
 from collections import defaultdict
 from typing import Optional, List
 
-import robothub
+import robothub_core
 
 from robothub_oak.device import Device
 from robothub_oak.hub_camera import HubCamera
@@ -26,12 +26,12 @@ class DeviceManager:
         self._hub_cameras = []  # Used to store all HubCamera instances that are currently running
 
         self.connecting_to_device = False  # Used to prevent multiple threads from connecting to the same device
-        self.stop_event = robothub.threading.Event()
-        self.lock = robothub.threading.Lock()
+        self.stop_event = robothub_core.threading.Event()
+        self.lock = robothub_core.threading.Lock()
 
-        self.reporting_thread = robothub.threading.Thread(target=self._report, name='ReportingThread', daemon=False)
-        self.polling_thread = robothub.threading.Thread(target=self._poll, name='PollingThread', daemon=False)
-        self.connection_thread = robothub.threading.Thread(target=self._connect, name='ConnectionThread', daemon=False)
+        self.reporting_thread = robothub_core.threading.Thread(target=self._report, name='ReportingThread', daemon=False)
+        self.polling_thread = robothub_core.threading.Thread(target=self._poll, name='PollingThread', daemon=False)
+        self.connection_thread = robothub_core.threading.Thread(target=self._connect, name='ConnectionThread', daemon=False)
 
     def __exit__(self):
         self.stop()
@@ -75,13 +75,13 @@ class DeviceManager:
         self.__graceful_thread_join(self.polling_thread)
 
         try:
-            robothub.STREAMS.destroy_all_streams()
+            robothub_core.STREAMS.destroy_all_streams()
         except BaseException as e:
             logging.debug(f'Destroy all streams excepted with: {e}.')
 
         for camera in self._hub_cameras:
             try:
-                if camera.state != robothub.DeviceState.DISCONNECTED:
+                if camera.state != robothub_core.DeviceState.DISCONNECTED:
                     with open(os.devnull, 'w') as devnull:
                         with contextlib.redirect_stdout(devnull):
                             camera.stop()
@@ -120,8 +120,8 @@ class DeviceManager:
                     device_info = camera.info_report()
                     device_stats = camera.stats_report()
 
-                    robothub.AGENT.publish_device_info(device_info)
-                    robothub.AGENT.publish_device_stats(device_stats)
+                    robothub_core.AGENT.publish_device_info(device_info)
+                    robothub_core.AGENT.publish_device_stats(device_stats)
                 except Exception as e:
                     log.debug(f'Device {camera.device_name}: could not report info/stats with error: {e}.')
 
@@ -241,7 +241,7 @@ class DeviceManager:
 
         :return: All devices.
         """
-        for obj in robothub.DEVICES:
+        for obj in robothub_core.DEVICES:
             device_dict = defaultdict(lambda: None, obj.oak)
             device = DEVICE_MANAGER.get_device(
                 mxid=device_dict['serialNumber'],

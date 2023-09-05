@@ -8,7 +8,7 @@ from typing import Callable, Union
 import depthai as dai
 import depthai_sdk.classes.packets as packets
 import depthai_sdk.trigger_action
-import robothub
+import robothub_core
 from depthai_sdk.components.parser import parse_encode
 
 from robothub_oak.components.camera import Camera
@@ -299,7 +299,7 @@ class CreateTriggerActionCommand(Command):
         video_paths = Path(path).glob('*.mp4')
         for video_path in video_paths:
             with open(str(video_path), 'rb') as f:
-                robothub.DETECTIONS.send_video_event(video=f.read(), title='Trigger caused recording')
+                robothub_core.DETECTIONS.send_video_event(video=f.read(), title='Trigger caused recording')
 
 
 class StreamCommand(Command):

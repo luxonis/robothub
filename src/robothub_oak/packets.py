@@ -5,7 +5,7 @@ try:
 except ImportError:
     cv2 = None
 
-import robothub
+import robothub_core
 
 __all__ = ['HubPacket', 'DetectionPacket', 'TrackerPacket', 'DepthPacket', 'IMUPacket']
 
@@ -27,7 +27,7 @@ class HubPacket:
         try:
             # convert numpy array to jpg
             frame_bytes = cv2.imencode('.jpg', self.depthai_sdk_packet.frame)[1].tobytes()
-            robothub.DETECTIONS.send_frame_event(imagedata=frame_bytes, title=title, camera_serial=self.device.mxid)
+            robothub_core.DETECTIONS.send_frame_event(imagedata=frame_bytes, title=title, camera_serial=self.device.mxid)
         except Exception as e:
             warnings.warn(f'Could not upload detection with error: {e}')
 
@@ -55,7 +55,7 @@ class DetectionPacket(HubPacket):
             frame_bytes = cv2.imencode('.jpg', self.depthai_sdk_packet.frame)[1].tobytes()
 
             # TODO add metadata
-            robothub.DETECTIONS.send_frame_event(imagedata=frame_bytes, title=title, camera_serial=self.device.mxid)
+            robothub_core.DETECTIONS.send_frame_event(imagedata=frame_bytes, title=title, camera_serial=self.device.mxid)
         except Exception as e:
             warnings.warn(f'Could not upload detection with error: {e}')
 

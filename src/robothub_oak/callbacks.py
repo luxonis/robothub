@@ -3,7 +3,7 @@ import time
 from functools import partial
 from typing import Callable
 
-from robothub import StreamHandle
+from robothub_core import StreamHandle
 
 __all__ = [
     'get_default_color_callback',
