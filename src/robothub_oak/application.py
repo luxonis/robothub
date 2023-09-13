@@ -213,7 +213,7 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
                 f"Device {product_name}: remaining time to connect - {give_up_time - time.time()} seconds."
             )
             try:
-                oak = OakCamera(self.__device_mxid, replay=REPLAY_PATH if REPLAY_PATH else None)
+                oak = OakCamera(self.__device_mxid, replay=REPLAY_PATH)
                 self.__device = oak
                 self.__device_state = robothub_core.DeviceState.CONNECTED
                 logger.debug(f"Device {product_name}: successfully connected.")
