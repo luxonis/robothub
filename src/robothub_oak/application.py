@@ -9,9 +9,9 @@ from threading import Thread
 from typing import Optional
 
 import robothub_core
-from robothub_oak.utils import get_device_performance_metrics, get_device_details
-from robothub_oak.watch_dogs import *
 from depthai_sdk import OakCamera
+
+from robothub_oak.utils import get_device_performance_metrics, get_device_details
 
 __all__ = ["BaseApplication"]
 
@@ -45,12 +45,6 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
         self.__device_state: Optional[robothub_core.DeviceState] = None
         self.__device: Optional[OakCamera] = None
         self.__device_thread: Optional[Thread] = None
-
-        self.__watch_dog_for_manage_device_thread = WatchDog.create_instance(heartbeat_interval_seconds=30., description="device_manager")
-        self.__watch_dog_for_polling_thread = WatchDog.create_instance(heartbeat_interval_seconds=5., description="polling",
-                                                                       agent_response=AgentResponse.SEND_EMAIL_NOTIFICATION)
-        self.__watch_dog_for_device_stats_reporting_thread = WatchDog.create_instance(heartbeat_interval_seconds=5 * 60.,
-                                                                                      description="device_reports")
 
         atexit.register(self.__cleanup)
         signal.signal(signal.SIGUSR1, self.__cleanup)
@@ -112,7 +106,6 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
         """
         Called when the application is stopped. Registered as atexit handler.
         """
-        WatchDog.destroy_all()
         # Device thread must close the device
         self.stop_event.set()
         self.__manage_event.set()
@@ -125,7 +118,6 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
         Handle the life cycle of the device.
         """
         logger.debug(f"Device {self.__device_product_name}: management thread started.")
-        self.__watch_dog_for_manage_device_thread.start()
 
         while self.running:
             # if device is not connected
@@ -167,7 +159,6 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
                 else:
                     self.__manage_event.wait(25)
 
-            self.__watch_dog_for_manage_device_thread.ping()
             self.__manage_event.wait(5)
 
         # Make sure device is closed
@@ -179,19 +170,16 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
         """
         Poll the device for new data. This method is called in a separate thread.
         """
-        self.__watch_dog_for_polling_thread.start()
         while self.running and not self.__manage_event.is_set():
             if not self.__device.poll():
                 return
 
-            self.__watch_dog_for_polling_thread.ping()
             time.sleep(0.0025)
 
     def __device_stats_reporting(self) -> None:
         """
         Report device info and stats every 30 seconds.
         """
-        self.__watch_dog_for_device_stats_reporting_thread.start()
         dai_device = self.__device.device
         state = self.__device_state
         while self.running and not self.__report_event.is_set():
@@ -208,7 +196,6 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
                 product_name = self.__device_product_name
                 logger.debug(f"Device {product_name}: could not report info/stats with error: {e}.")
 
-            self.__watch_dog_for_device_stats_reporting_thread.ping()
             self.__report_event.wait(30)
 
     def __connect(self) -> None:
