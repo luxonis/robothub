@@ -1,9 +1,9 @@
 import atexit
 import logging
+import os
 import signal
 import threading
 import time
-
 from abc import ABC, abstractmethod
 from threading import Thread
 from typing import Optional
@@ -11,12 +11,13 @@ from typing import Optional
 import robothub_core
 from depthai_sdk import OakCamera
 
-from robothub_oak import REPLAY_PATH
 from robothub_oak.utils import get_device_performance_metrics, get_device_details
 
 __all__ = ["BaseApplication"]
 
 logger = logging.getLogger(__name__)
+
+REPLAY_PATH = os.environ.get('RH_OAK_REPLAY_PATH', None) or os.environ.get('RH_REPLAY_PATH', None)
 
 
 class BaseApplication(robothub_core.RobotHubApplication, ABC):
