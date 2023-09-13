@@ -11,6 +11,7 @@ from typing import Optional
 import robothub_core
 from depthai_sdk import OakCamera
 
+from robothub_oak import REPLAY_PATH
 from robothub_oak.utils import get_device_performance_metrics, get_device_details
 
 __all__ = ["BaseApplication"]
@@ -211,7 +212,7 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
                 f"Device {product_name}: remaining time to connect - {give_up_time - time.time()} seconds."
             )
             try:
-                oak = OakCamera(self.__device_mxid)
+                oak = OakCamera(self.__device_mxid, replay=REPLAY_PATH if REPLAY_PATH else None)
                 self.__device = oak
                 self.__device_state = robothub_core.DeviceState.CONNECTED
                 logger.debug(f"Device {product_name}: successfully connected.")
