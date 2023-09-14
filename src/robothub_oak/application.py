@@ -122,7 +122,6 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
         finally:
             # Make sure device is closed
             self.__close_device()
-            self.on_device_disconnected()
             logger.debug(f"Device {self.__device_product_name}: thread stopped.")
     
     def __manage_device_inner(self) -> None:
