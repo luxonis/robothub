@@ -1,3 +1,4 @@
+import contextlib
 import logging
 import os
 import threading
@@ -9,7 +10,7 @@ from typing import Optional
 import robothub_core
 from depthai_sdk import OakCamera
 
-from robothub_oak.utils import get_device_performance_metrics, get_device_details
+from robothub_oak.utils import get_device_details, get_device_performance_metrics
 
 __all__ = ["BaseApplication"]
 
@@ -43,11 +44,9 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
         self.__device_mxid: Optional[str] = None
         self.__device_product_name: Optional[str] = None
         self.__device_state: Optional[robothub_core.DeviceState] = None
-        self.__device: Optional[OakCamera] = None
         self.__device_thread: Optional[Thread] = None
-
-        self.__manage_event = threading.Event()
-        self.__report_event = threading.Event()
+        self.__device_stop_event = threading.Event()
+        self.__device: Optional[OakCamera] = None
 
     def on_start(self) -> None:
         if len(robothub_core.DEVICES) == 0:
@@ -60,9 +59,9 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
         self.__rh_device = robothub_core.DEVICES[0]
         self.__device_mxid = self.__rh_device.oak["serialNumber"]
         self.__device_product_name = (
-                self.__rh_device.oak.get("name", None)
-                or self.__rh_device.oak.get("productName", None)
-                or self.__device_mxid
+            self.__rh_device.oak.get("name", None)
+            or self.__rh_device.oak.get("productName", None)
+            or self.__device_mxid
         )
         self.__device_state = robothub_core.DeviceState.DISCONNECTED
 
@@ -82,9 +81,7 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
         """
         # Device thread must close the device
         self.stop_event.set()
-        self.__manage_event.set()
-        self.__report_event.set()
-
+        self.__device_stop_event.set()
         self.__device_thread.join()
 
     @abstractmethod
@@ -123,80 +120,77 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
             # Make sure device is closed
             self.__close_device()
             logger.debug(f"Device {self.__device_product_name}: thread stopped.")
-    
+
     def __manage_device_inner(self) -> None:
-        # if device is not connected
-        if self.__device is None or not self.__device.running():
-            # Make sure it is properly closed in case it disconnected during runtime
-            self.__close_device()
-            self.on_device_disconnected()
+        # Connect device
+        self.__device_stop_event.clear()
+        self.__connect()
+        if self.__device is None:
+            # Wait 30 seconds before trying to connect again
+            self.wait(30)
+            return
 
-            # Connect to the device
-            self.__connect()
+        # Start device
+        logger.debug(f"Device {self.__device_product_name}: creating pipeline...")
+        self.setup_pipeline(oak=self.__device)
+        self.__device.start(blocking=False)
+        self.on_device_connected(self.__device)
+        logger.info(f"Device {self.__device_product_name}: started successfully.")
 
-            # If device is connected
-            if self.__device:
-                logger.debug(f"Device {self.__device_product_name}: creating pipeline...")
+        # Start threads for polling and reporting
+        polling_thread = Thread(
+            target=self.__poll_device,
+            daemon=False,
+            name=f"poll_{self.__device_mxid}",
+        )
+        reporting_thread = Thread(
+            target=self.__report_info_and_stats,
+            daemon=False,
+            name=f"reporting_{self.__device_mxid}",
+        )
+        polling_thread.start()
+        reporting_thread.start()
 
-                self.setup_pipeline(oak=self.__device)
-                self.__device.start(blocking=False)
-                self.on_device_connected(self.__device)
+        # Wait for device to stop
+        polling_thread.join()
+        reporting_thread.join()
 
-                logger.info(f"Device {self.__device_product_name}: started successfully.")
-
-                self.__manage_event.clear()
-                self.__report_event.clear()
-
-                # Threads for polling and reporting
-                polling_thread = Thread(
-                    target=self.__poll_device,
-                    daemon=True,
-                    name=f"poll_{self.__device_mxid}",
-                )
-                polling_thread.start()
-
-                reporting_thread = Thread(
-                    target=self.__device_stats_reporting,
-                    daemon=False,
-                    name=f"stats_reporting_{self.__device_mxid}",
-                )
-                reporting_thread.start()
-            else:
-                self.__manage_event.wait(25)
-
-        self.__manage_event.wait(5)
+        # Close device
+        self.__close_device()
+        self.on_device_disconnected()
 
     def __poll_device(self) -> None:
         """
         Poll the device for new data. This method is called in a separate thread.
         """
-        while self.running and not self.__manage_event.is_set():
-            if not self.__device.poll():
-                return
+        try:
+            while self.running and not self.__device_stop_event.is_set():
+                self.__device.poll()
+                if not self.__device.running():
+                    break
+                time.sleep(0.0025)
+        finally:
+            self.__device_stop_event.set()
 
-            time.sleep(0.0025)
-
-    def __device_stats_reporting(self) -> None:
+    def __report_info_and_stats(self) -> None:
         """
         Report device info and stats every 30 seconds.
         """
-        dai_device = self.__device.device
-        state = self.__device_state
-        while self.running and not self.__report_event.is_set():
-            if self.__device is None or not self.__device.running():
-                return
+        product_name = self.__device_product_name
+        while self.running and not self.__device_stop_event.is_set():
+            try:
+                device_info = get_device_details(self.__device.device, self.__device_state)
+                robothub_core.AGENT.publish_device_info(device_info)
+            except Exception as e:
+                logger.debug(f"Device {product_name}: could not report info with error: {e}.")
 
             try:
-                device_info = get_device_details(dai_device, state)
-                device_stats = get_device_performance_metrics(dai_device)
-
-                robothub_core.AGENT.publish_device_info(device_info)
+                device_stats = get_device_performance_metrics(self.__device.device)
                 robothub_core.AGENT.publish_device_stats(device_stats)
             except Exception as e:
-                product_name = self.__device_product_name
-                logger.debug(f"Device {product_name}: could not report info/stats with error: {e}.")
+                logger.debug(f"Device {product_name}: could not report stats with error: {e}.")
 
-            self.__report_event.wait(30)
+            self.__device_stop_event.wait(30)
 
     def __connect(self) -> None:
         """
@@ -218,10 +212,14 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
                 return
             except Exception as e:
                 # If device can't be connected to on first try, wait 5 seconds and try again.
-                logger.debug(f"Device {product_name}: error while trying to connect - {e}.")
+                logger.debug(
+                    f"Device {product_name}: error while trying to connect - {e}."
+                )
                 self.wait(5)
 
-        logger.info(f"Device {product_name}: could not manage to connect within 30s timeout.")
+        logger.info(
+            f"Device {product_name}: could not manage to connect within 30s timeout."
+        )
         self.__device = None
         self.__device_state = robothub_core.DeviceState.DISCONNECTED
         return
@@ -230,13 +228,10 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
         """
         Close the device gracefully. If the device is not running, this method does nothing.
         """
-        if self.__device is None or not self.__device.running():
-            return
-
-        self.__device.__exit__(1, 2, 3)
+        with contextlib.suppress(Exception):
+            self.__device.__exit__(1, 2, 3)
         self.__device = None
-        product_name = self.__device_product_name
-        logger.info(f"Device {product_name}: closed gracefully.")
+        logger.info(f"Device {self.__device_product_name}: closed gracefully.")
 
     def get_device(self) -> Optional[OakCamera]:
         """
@@ -253,6 +248,4 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
             logger.warning(f"Device is not initialized and cannot be restarted.")
             return
 
-        self.__close_device()
-        self.__report_event.set()
-        self.__manage_event.set()
+        self.__device_stop_event.set()
