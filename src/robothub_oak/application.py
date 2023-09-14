@@ -195,13 +195,13 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
         """
         Connect to the device. This method is called in a separate thread.
         """
-        give_up_time = time.time() + 30
+        give_up_time = time.monotonic() + 30
 
         self.__device_state = robothub_core.DeviceState.CONNECTING
         product_name = self.__device_product_name
-        while time.time() < give_up_time and self.running:
+        while time.monotonic() < give_up_time and self.running:
             logger.debug(
-                f"Device {product_name}: remaining time to connect - {give_up_time - time.time()} seconds."
+                f"Device {product_name}: remaining time to connect - {give_up_time - time.monotonic()} seconds."
             )
             try:
                 oak = OakCamera(self.__device_mxid, replay=REPLAY_PATH)
