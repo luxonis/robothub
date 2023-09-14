@@ -116,52 +116,56 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
         """
         logger.debug(f"Device {self.__device_product_name}: management thread started.")
 
-        while self.running:
-            # if device is not connected
-            if self.__device is None or not self.__device.running():
-                # Make sure it is properly closed in case it disconnected during runtime
-                self.__close_device()
-                self.on_device_disconnected()
+        try:
+            while self.running:
+                self.__manage_device_inner()
+        finally:
+            # Make sure device is closed
+            self.__close_device()
+            self.on_device_disconnected()
+            logger.debug(f"Device {self.__device_product_name}: thread stopped.")
+    
+    def __manage_device_inner(self) -> None:
+        # if device is not connected
+        if self.__device is None or not self.__device.running():
+            # Make sure it is properly closed in case it disconnected during runtime
+            self.__close_device()
+            self.on_device_disconnected()
 
-                # Connect to the device
-                self.__connect()
+            # Connect to the device
+            self.__connect()
 
-                # If device is connected
-                if self.__device:
-                    logger.debug(f"Device {self.__device_product_name}: creating pipeline...")
+            # If device is connected
+            if self.__device:
+                logger.debug(f"Device {self.__device_product_name}: creating pipeline...")
 
-                    self.setup_pipeline(oak=self.__device)
-                    self.__device.start(blocking=False)
-                    self.on_device_connected(self.__device)
+                self.setup_pipeline(oak=self.__device)
+                self.__device.start(blocking=False)
+                self.on_device_connected(self.__device)
 
-                    logger.info(f"Device {self.__device_product_name}: started successfully.")
+                logger.info(f"Device {self.__device_product_name}: started successfully.")
 
-                    self.__manage_event.clear()
-                    self.__report_event.clear()
+                self.__manage_event.clear()
+                self.__report_event.clear()
 
-                    # Threads for polling and reporting
-                    polling_thread = Thread(
-                        target=self.__poll_device,
-                        daemon=True,
-                        name=f"poll_{self.__device_mxid}",
-                    )
-                    polling_thread.start()
+                # Threads for polling and reporting
+                polling_thread = Thread(
+                    target=self.__poll_device,
+                    daemon=True,
+                    name=f"poll_{self.__device_mxid}",
+                )
+                polling_thread.start()
 
-                    reporting_thread = Thread(
-                        target=self.__device_stats_reporting,
-                        daemon=False,
-                        name=f"stats_reporting_{self.__device_mxid}",
-                    )
-                    reporting_thread.start()
-                else:
-                    self.__manage_event.wait(25)
+                reporting_thread = Thread(
+                    target=self.__device_stats_reporting,
+                    daemon=False,
+                    name=f"stats_reporting_{self.__device_mxid}",
+                )
+                reporting_thread.start()
+            else:
+                self.__manage_event.wait(25)
 
-            self.__manage_event.wait(5)
-
-        # Make sure device is closed
-        self.__close_device()
-        self.on_device_disconnected()
-        logger.debug(f"Device {self.__device_product_name}: thread stopped.")
+        self.__manage_event.wait(5)
 
     def __poll_device(self) -> None:
         """
