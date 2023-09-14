@@ -1,7 +1,5 @@
-import atexit
 import logging
 import os
-import signal
 import threading
 import time
 from abc import ABC, abstractmethod
@@ -48,9 +46,6 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
         self.__device: Optional[OakCamera] = None
         self.__device_thread: Optional[Thread] = None
 
-        atexit.register(self.__cleanup)
-        signal.signal(signal.SIGUSR1, self.__cleanup)
-
         self.__manage_event = threading.Event()
         self.__report_event = threading.Event()
 
@@ -81,6 +76,17 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
     def start_execution(self) -> None:
         self.stop_event.wait()  # Keep main thread alive
 
+    def on_stop(self) -> None:
+        """
+        Called when the application is stopped. Registered as atexit handler.
+        """
+        # Device thread must close the device
+        self.stop_event.set()
+        self.__manage_event.set()
+        self.__report_event.set()
+
+        self.__device_thread.join()
+
     @abstractmethod
     def setup_pipeline(self, oak: OakCamera) -> None:
         """
@@ -103,17 +109,6 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
         Called when a camera is disconnected. Opposite of on_device_connected.
         """
         pass
-
-    def __cleanup(self, *args, **kwargs) -> None:
-        """
-        Called when the application is stopped. Registered as atexit handler.
-        """
-        # Device thread must close the device
-        self.stop_event.set()
-        self.__manage_event.set()
-        self.__report_event.set()
-
-        self.__device_thread.join()
 
     def __manage_device(self) -> None:
         """
