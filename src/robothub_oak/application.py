@@ -199,7 +199,7 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
 
         self.__device_state = robothub_core.DeviceState.CONNECTING
         product_name = self.__device_product_name
-        while time.monotonic() < give_up_time and self.running:
+        while self.running and time.monotonic() < give_up_time:
             logger.debug(
                 f"Device {product_name}: remaining time to connect - {give_up_time - time.monotonic()} seconds."
             )
@@ -219,7 +219,6 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
         logger.info(
             f"Device {product_name}: could not manage to connect within 30s timeout."
         )
-        self.__device = None
         self.__device_state = robothub_core.DeviceState.DISCONNECTED
         return
 
