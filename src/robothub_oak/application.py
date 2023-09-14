@@ -215,6 +215,11 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
                     f"Device {product_name}: error while trying to connect - {e}."
                 )
                 self.wait(5)
+            else:
+                self.__device = oak
+                self.__device_state = robothub_core.DeviceState.CONNECTED
+                logger.debug(f"Device {product_name}: successfully connected.")
+                return
 
         logger.info(
             f"Device {product_name}: could not manage to connect within 30s timeout."
