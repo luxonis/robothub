@@ -84,6 +84,7 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
         with contextlib.suppress(Exception):
             self.__device_thread.join()
             logger.debug(f"Device thread {self.__device_product_name}: stopped.")
+        robothub_core.STREAMS.destroy_all_streams()
 
     @abstractmethod
     def setup_pipeline(self, oak: OakCamera) -> None:
