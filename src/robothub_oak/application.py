@@ -1,9 +1,9 @@
 import atexit
 import logging
+import os
 import signal
 import threading
 import time
-
 from abc import ABC, abstractmethod
 from threading import Thread
 from typing import Optional
@@ -16,6 +16,8 @@ from robothub_oak.utils import get_device_performance_metrics, get_device_detail
 __all__ = ["BaseApplication"]
 
 logger = logging.getLogger(__name__)
+
+REPLAY_PATH = os.environ.get('RH_OAK_REPLAY_PATH', None) or os.environ.get('RH_REPLAY_PATH', None)
 
 
 class BaseApplication(robothub_core.RobotHubApplication, ABC):
@@ -211,7 +213,7 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
                 f"Device {product_name}: remaining time to connect - {give_up_time - time.time()} seconds."
             )
             try:
-                oak = OakCamera(self.__device_mxid)
+                oak = OakCamera(self.__device_mxid, replay=REPLAY_PATH)
                 self.__device = oak
                 self.__device_state = robothub_core.DeviceState.CONNECTED
                 logger.debug(f"Device {product_name}: successfully connected.")
