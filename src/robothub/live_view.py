@@ -10,7 +10,7 @@ from depthai_sdk.oak_outputs.xout.xout_base import StreamXout
 from depthai_sdk.oak_outputs.xout.xout_h26x import XoutH26x
 from depthai_sdk.visualize.objects import VisText, VisLine
 
-from robothub_oak.types import BoundingBox
+from robothub.types import BoundingBox
 
 __all__ = ['LiveView', 'LIVE_VIEWS']
 
