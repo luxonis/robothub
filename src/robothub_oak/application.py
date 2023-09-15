@@ -81,7 +81,8 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
         """
         # Device thread must close the device
         self.__device_stop_event.set()
-        self.__device_thread.join()
+        with contextlib.suppress(Exception):
+            self.__device_thread.join()
 
     @abstractmethod
     def setup_pipeline(self, oak: OakCamera) -> None:
