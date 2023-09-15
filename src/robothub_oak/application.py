@@ -208,10 +208,6 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
             )
             try:
                 oak = OakCamera(self.__device_mxid, replay=REPLAY_PATH)
-                self.__device = oak
-                self.__device_state = robothub_core.DeviceState.CONNECTED
-                logger.debug(f"Device {product_name}: successfully connected.")
-                return
             except Exception as e:
                 # If device can't be connected to on first try, wait 5 seconds and try again.
                 logger.debug(
