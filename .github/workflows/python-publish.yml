@@ -42,20 +42,12 @@ jobs:
 
     - name: Generate docs
       run: |
-        python gen-docs.py ./src/robothub_oak
+        python gen-docs.py ./src/robothub
         mv docs.json schema.json
-        rclone copy "schema.json" "cfr2:docs-assets/libraries/python/robothub_oak/${{ github.ref_name }}/"
+        rclone copy "schema.json" "cfr2:docs-assets/libraries/python/robothub/${{ github.ref_name }}/"
 
     - name: Publish package
       uses: pypa/gh-action-pypi-publish@27b31702a0e7fc50959f5ad993c78deac1bdfc29
       with:
         user: __token__
         password: ${{ secrets.PYPI_API_TOKEN }}
-
-    - name: Repository Dispatch
-      uses: peter-evans/repository-dispatch@v2
-      with:
-        token: ${{ secrets.REPO_ACCESS_TOKEN }}
-        event-type: robothub-oak-release
-        repository: luxonis/robothub-images
-        client-payload: '{"ref": "${{ github.ref }}"}'
