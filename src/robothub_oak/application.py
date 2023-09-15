@@ -83,6 +83,7 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
         self.__device_stop_event.set()
         with contextlib.suppress(Exception):
             self.__device_thread.join()
+            logger.debug(f"Device thread {self.__device_product_name}: stopped.")
 
     @abstractmethod
     def setup_pipeline(self, oak: OakCamera) -> None:
@@ -234,8 +235,8 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
         """
         with contextlib.suppress(Exception):
             self.__device.__exit__(1, 2, 3)
+            logger.info(f"Device {self.__device_product_name}: closed gracefully.")
         self.__device = None
-        logger.info(f"Device {self.__device_product_name}: closed gracefully.")
 
     def get_device(self) -> Optional[OakCamera]:
         """
