@@ -10,7 +10,7 @@ from typing import Optional
 import robothub_core
 from depthai_sdk import OakCamera
 
-from robothub_oak.utils import get_device_details, get_device_performance_metrics
+from robothub.utils import get_device_details, get_device_performance_metrics
 
 __all__ = ["BaseApplication"]
 

@@ -1,6 +1,6 @@
-from robothub_oak.application import *
-from robothub_oak.live_view import *
-from robothub_oak.utils import setup_logger
+from robothub.application import *
+from robothub.live_view import *
+from robothub.utils import setup_logger
 
 try:
     import blobconverter
