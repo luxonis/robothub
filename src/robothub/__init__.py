@@ -10,7 +10,7 @@ try:
 except ImportError:
     pass
 
-__version__ = '2.1.0'
+__version__ = '2.2.0'
 
 # Setup logging for the module
 setup_logger(__name__)
