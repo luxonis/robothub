@@ -5,8 +5,8 @@ from setuptools import setup
 long_description = io.open('README.md', encoding='utf-8').read()
 
 setup(
-    name='robothub_oak',
-    version='2.1.0',
+    name='robothub',
+    version='2.2.0',
     description='RobotHub integration library',
     long_description=long_description,
     long_description_content_type='text/markdown',
@@ -15,7 +15,7 @@ setup(
     keywords='robothub camera robot hub connect agent depthai sdk',
     author='Luxonis',
     author_email='support@luxonis.com',
-    packages=['robothub_oak'],
+    packages=['robothub'],
     package_dir={'': 'src'},  # https://stackoverflow.com/a/67238346/5494277
     include_package_data=True,
     project_urls={
