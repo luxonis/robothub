@@ -1,5 +1,18 @@
+import logging
+import tempfile
+import threading
 import time
+import uuid
+from collections import deque
+from queue import Queue, Empty
 from typing import List, Optional, Union, Dict, Tuple
+
+from robothub.events import send_video_event
+
+try:
+    import av
+except ImportError:
+    av = None
 
 import depthai as dai
 import numpy as np
@@ -13,6 +26,8 @@ from depthai_sdk.visualize.objects import VisText, VisLine
 from robothub.types import BoundingBox
 
 __all__ = ['LiveView', 'LIVE_VIEWS']
+
+logger = logging.getLogger(__name__)
 
 
 def _create_stream_handle(camera_serial: str, unique_key: str, name: str):
@@ -95,19 +110,23 @@ class LiveView:
                  unique_key: str,
                  device_mxid: str,
                  frame_width: int,
-                 frame_height: int):
+                 frame_height: int,
+                 fps: int,
+                 max_buffer_size: int):
         """
         :param name: Name of the Live View.
         :param unique_key: Live View identifier.
         :param device_mxid: MXID of the device that is streaming the Live View.
         :param frame_width: Frame width.
         :param frame_height: Frame height.
+        :param max_buffer_size: Maximum number of seconds to buffer.
         """
         self.frame_width = frame_width
         self.frame_height = frame_height
         self.device_mxid = device_mxid
         self.unique_key = unique_key
         self.name = name
+        self.fps = fps
 
         self.stream_handle = _create_stream_handle(camera_serial=device_mxid, unique_key=unique_key, name=name)
 
@@ -117,12 +136,16 @@ class LiveView:
         self.labels: List[str] = []
         self.lines: List[VisLine] = []
 
+        self.frame_buffer = deque(maxlen=max_buffer_size * fps)
+        self.temporary_queues = {}
+
     @staticmethod
     def create(device: OakCamera,
                component: Union[CameraComponent, StereoComponent],
                name: str,
                unique_key: str = None,
-               manual_publish: bool = False
+               manual_publish: bool = False,
+               max_buffer_size: int = 10,
                ) -> 'LiveView':
         """
         Creates a Live View for a given component.
@@ -132,6 +155,7 @@ class LiveView:
         :param name: Name of the Live View.
         :param unique_key: Live View identifier.
         :param manual_publish: If True, the Live View will not be automatically published. Use LiveView.publish() to publish the Live View.
+        :param max_buffer_size: Maximum number of seconds to buffer.
         """
         output = None
         is_h264 = LiveView.is_encoder_enabled(component)
@@ -142,6 +166,7 @@ class LiveView:
                              f'enabled to be used with LiveView.')
 
         w, h = LiveView.get_stream_size(component)
+        fps = LiveView.get_component_fps(component)
         device_mxid = device.device.getMxId()
         unique_key = unique_key or f'{device_mxid}_{component.__class__.__name__.lower()}_encoded'
 
@@ -149,22 +174,21 @@ class LiveView:
                              unique_key=unique_key,
                              device_mxid=device_mxid,
                              frame_width=w,
-                             frame_height=h)
+                             frame_height=h,
+                             fps=fps,
+                             max_buffer_size=max_buffer_size)
 
         if not manual_publish:
             device.callback(output or component.out.encoded, live_view.h264_callback)
+        else:
+            device.callback(output or component.out.encoded, live_view.)
 
         LIVE_VIEWS[unique_key] = live_view
         return live_view
 
     @staticmethod
     def h264_output(device: OakCamera, component: CameraComponent):
-        fps = 30
-        if isinstance(component, StereoComponent):
-            fps = component._fps
-        elif isinstance(component, CameraComponent):
-            fps = component.get_fps()
-
+        fps = LiveView.get_component_fps(component)
         encoder = device.pipeline.createVideoEncoder()
         encoder_profile = dai.VideoEncoderProperties.Profile.H264_MAIN
         encoder.setDefaultProfilePreset(fps, encoder_profile)
@@ -189,6 +213,15 @@ class LiveView:
             return component._create_xout(pipeline, xout)
 
         return encoded
+
+    @staticmethod
+    def get_component_fps(component):
+        if isinstance(component, StereoComponent):
+            return component._fps
+        elif isinstance(component, CameraComponent):
+            return component.get_fps()
+
+        return 30
 
     @staticmethod
     def is_encoder_enabled(component: Component) -> bool:
@@ -240,6 +273,50 @@ class LiveView:
 
         return LIVE_VIEWS[unique_key]
 
+    def send_video_event(self, before_seconds: int, after_seconds: int, title: str):
+        if not av:
+            logger.warning('av library is not installed. Cannot send video event. Please make sure PyAV is installed.')
+            return
+
+        video_frames_before = self.frame_buffer[-before_seconds * self.fps:].copy()
+        video_frames_after = []
+        temp_queue = Queue()
+        queue_uuid = uuid.uuid4()
+        self.temporary_queues[queue_uuid] = temp_queue
+        latest_t_before = video_frames_before[-1].getTimestamp()
+
+        def wait_until_complete():
+            while True:
+                try:
+                    p = temp_queue.get(block=True, timeout=1.0)
+                    timestamp = p.getTimestamp()
+                    if timestamp > latest_t_before:
+                        video_frames_after.append(p)
+                    if timestamp - latest_t_before > after_seconds:
+                        break
+                except Empty:
+                    break
+
+        t = threading.Thread(target=wait_until_complete)
+        t.start()
+        t.join()
+
+        video_data = self._mux_video(video_frames_before + video_frames_after)
+        send_video_event(video_data, title='Video Event')
+
+    def _mux_video(self, h264_frames):
+        file = tempfile.NamedTemporaryFile(suffix='.mp4')
+        with av.open(file.name, mode='w') as container:
+            stream = container.add_stream('h264', rate=self.fps)
+            for frame in h264_frames:
+                packet = av.Packet(frame.getData())
+                stream.mux(packet)
+
+        with open(file.name, 'rb') as f:
+            data = f.read()
+
+        return data
+
     def add_rectangle(self, rectangle: BoundingBox, label: str) -> None:
         self.rectangles.append(rectangle)
         self.labels.append(label)
@@ -278,6 +355,11 @@ class LiveView:
 
     def h264_callback(self, h264_packet):
         self.publish(h264_frame=h264_packet.frame)
+
+    def _append_to_buffer_callback(self, packet):
+        self.frame_buffer.append(packet)
+        for queue in self.temporary_queues:
+            queue.append(packet)
 
     def _reset_overlays(self):
         self.rectangles.clear()
