@@ -1,6 +1,7 @@
 import logging
 import zipfile
 from io import BytesIO
+from pathlib import Path
 from typing import Union, Optional, List
 
 import cv2
@@ -94,3 +95,11 @@ def send_frame_event_with_zipped_images(cv_frame,
         logger.error(f'Failed to send event: {e}')
         _log_event_status(False, 'None')
         return None
+
+
+def send_video_event(video, title: str):
+    if isinstance(video, str) or isinstance(video, Path):
+        with open(str(video), 'rb') as f:
+            robothub_core.DETECTIONS.send_video_event(video=f.read(), title=title)
+    else:
+        robothub_core.DETECTIONS.send_video_event(video=video, title=title)
