@@ -278,7 +278,7 @@ class LiveView:
             logger.warning('av library is not installed. Cannot send video event. Please make sure PyAV is installed.')
             return
 
-        video_frames_before = self.frame_buffer[-before_seconds * self.fps:].copy()
+        video_frames_before = self.frame_buffer[-(before_seconds * self.fps):].copy()
         video_frames_after = []
         temp_queue = Queue()
         queue_uuid = uuid.uuid4()
