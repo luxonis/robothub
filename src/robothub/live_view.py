@@ -181,7 +181,7 @@ class LiveView:
         if not manual_publish:
             device.callback(output or component.out.encoded, live_view.h264_callback)
         else:
-            device.callback(output or component.out.encoded, live_view.)
+            device.callback(output or component.out.encoded, live_view._append_to_buffer_callback)
 
         LIVE_VIEWS[unique_key] = live_view
         return live_view
