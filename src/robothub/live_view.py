@@ -302,7 +302,7 @@ class LiveView:
         t.join()
 
         video_data = self._mux_video(video_frames_before + video_frames_after)
-        send_video_event(video_data, title='Video Event')
+        send_video_event(video_data, title=title)
 
     def _mux_video(self, h264_frames):
         file = tempfile.NamedTemporaryFile(suffix='.mp4')
