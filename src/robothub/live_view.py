@@ -136,7 +136,7 @@ class LiveView:
         self.labels: List[str] = []
         self.lines: List[VisLine] = []
 
-        self.frame_buffer = deque(maxlen=max_buffer_size * fps)
+        self.frame_buffer = deque(maxlen=int(max_buffer_size * fps))
         self.temporary_queues = {}
 
     @staticmethod
