@@ -129,7 +129,6 @@ class LiveView:
         self.lines: List[VisLine] = []
 
         self.frame_buffer = FrameBuffer(maxlen=int(max_buffer_size * fps))
-        self.temporary_queues = {}
 
     @staticmethod
     def create(device: OakCamera,
