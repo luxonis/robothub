@@ -265,10 +265,18 @@ class LiveView:
 
         return LIVE_VIEWS[unique_key]
 
-    def save_video(self, before_seconds: int, after_seconds: int, title: str):
+    def save_video_event(self, before_seconds: int, after_seconds: int, title: str):
         # We need to start a new thread because we cannot block the main thread.
-        t = threading.Thread(target=self.frame_buffer.save_video,
-                             args=(before_seconds, after_seconds, title),
+        kwargs = {
+            'before_seconds': before_seconds,
+            'after_seconds': after_seconds,
+            'title': title,
+            'fps': self.fps,
+            'frame_width': self.frame_width,
+            'frame_height': self.frame_height,
+        }
+        t = threading.Thread(target=self.frame_buffer.process_video_event,
+                             kwargs=kwargs,
                              daemon=False)
         t.start()
 

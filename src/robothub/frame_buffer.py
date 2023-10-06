@@ -9,6 +9,8 @@ from queue import Queue, Empty
 
 from depthai_sdk.recorders.video_writers import AvWriter
 
+from robothub.events import send_video_event
+
 try:
     import av
 except ImportError:
@@ -30,9 +32,23 @@ class FrameBuffer:
         :param end: End index. If None, return all elements from `start` to the end of the buffer.
         :return: Slice of the buffer.
         """
-        return list(
-            itertools.islice(self.buffer, int(start), end)
-        )
+        return list(itertools.islice(self.buffer, int(start), end))
+
+    def process_video_event(self,
+                            before_seconds: int,
+                            after_seconds: int,
+                            title: str,
+                            fps: int,
+                            frame_width: int,
+                            frame_height: int,
+                            ) -> None:
+        video_bytes = self.save_video(before_seconds=before_seconds,
+                                      after_seconds=after_seconds,
+                                      fps=fps,
+                                      frame_width=frame_width,
+                                      frame_height=frame_height,
+                                      return_bytes=True)
+        send_video_event(video_bytes, title=title)
 
     def save_video(self,
                    before_seconds: int,
@@ -51,7 +67,7 @@ class FrameBuffer:
         :param frame_width: Video frame width.
         :param frame_height: Video frame height.
         :param return_bytes: If True, return the video as bytes. Otherwise, save the video to disk and return the path.
-        :return:
+        :return: Path to the video if `return_bytes` is False, otherwise the video as bytes.
         """
         if not av:
             raise ImportError('av library is not installed. Cannot save video. '
@@ -99,13 +115,6 @@ class FrameBuffer:
                    ) -> str | bytes | None:
         """
         Mux a list of packets into a video.
-
-        :param packets: List of DepthAI packets.
-        :param fps: The FPS of the video.
-        :param frame_width: Video frame width.
-        :param frame_height: Video frame height.
-        :param return_bytes: If True, return the video as bytes. Otherwise, save the video to disk and return the path.
-        :return:
         """
         with tempfile.TemporaryDirectory() as dir_path:
             name = str(uuid.uuid4())
