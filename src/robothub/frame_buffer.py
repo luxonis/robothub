@@ -4,6 +4,7 @@ import logging
 import tempfile
 import uuid
 from collections import deque
+from pathlib import Path
 from queue import Queue, Empty
 
 from depthai_sdk.recorders.video_writers import AvWriter
@@ -106,7 +107,6 @@ class FrameBuffer:
         :param return_bytes: If True, return the video as bytes. Otherwise, save the video to disk and return the path.
         :return:
         """
-        from pathlib import Path
         with tempfile.TemporaryDirectory() as dir_path:
             name = str(uuid.uuid4())
             av_writer = AvWriter(path=Path(dir_path),
