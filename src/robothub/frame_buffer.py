@@ -94,7 +94,6 @@ class FrameBuffer:
                         break
 
                 except Empty:
-                    # robothub_core.wait(1 / fps)
                     pass
 
         wait_until_complete()
@@ -133,8 +132,7 @@ class FrameBuffer:
             if not return_bytes:
                 return str(video_path)
 
-            with open(video_path, 'rb') as f:
-                return f.read()
+            return video_path.read_bytes()
 
     def default_callback(self, packet) -> None:
         """
