@@ -1,20 +1,7 @@
-import datetime
-import itertools
 import logging
-import tempfile
 import threading
 import time
-import uuid
-from collections import deque
-from queue import Queue, Empty
 from typing import List, Optional, Union, Dict, Tuple
-
-from robothub.events import send_video_event
-
-try:
-    import av
-except ImportError:
-    av = None
 
 import depthai as dai
 import numpy as np
@@ -22,10 +9,10 @@ import robothub_core
 from depthai_sdk import OakCamera
 from depthai_sdk.components import Component, CameraComponent, StereoComponent, NNComponent
 from depthai_sdk.oak_outputs.xout.xout_base import StreamXout
-from depthai_sdk.recorders.video_writers import AvWriter
 from depthai_sdk.oak_outputs.xout.xout_h26x import XoutH26x
 from depthai_sdk.visualize.objects import VisText, VisLine
 
+from robothub.frame_buffer import FrameBuffer
 from robothub.types import BoundingBox
 
 __all__ = ['LiveView', 'LIVE_VIEWS']
@@ -141,7 +128,7 @@ class LiveView:
         self.labels: List[str] = []
         self.lines: List[VisLine] = []
 
-        self.frame_buffer = deque(maxlen=int(max_buffer_size * fps))
+        self.frame_buffer = FrameBuffer(maxlen=int(max_buffer_size * fps))
         self.temporary_queues = {}
 
     @staticmethod
@@ -186,7 +173,7 @@ class LiveView:
         if not manual_publish:
             device.callback(output or component.out.encoded, live_view.h264_callback)
         else:
-            device.callback(output or component.out.encoded, live_view._append_to_buffer_callback)
+            device.callback(output or component.out.encoded, live_view.frame_buffer.default_callback)
 
         LIVE_VIEWS[unique_key] = live_view
         return live_view
@@ -278,63 +265,12 @@ class LiveView:
 
         return LIVE_VIEWS[unique_key]
 
-    def send_video_event(self, before_seconds: int, after_seconds: int, title: str):
+    def save_video(self, before_seconds: int, after_seconds: int, title: str):
         # We need to start a new thread because we cannot block the main thread.
-        threading.Thread(target=self._send_video_event_inner, args=(before_seconds, after_seconds, title)).start()
-
-    def _send_video_event_inner(self, before_seconds: int, after_seconds: int, title: str):
-        if not av:
-            logger.warning('av library is not installed. Cannot send video event. '
-                           'Please make sure PyAV is installed (`pip install pyav`).')
-            return
-
-        video_frames_before = list(
-            itertools.islice(self.frame_buffer, self.frame_buffer.maxlen - int(before_seconds * self.fps), None))
-        video_frames_after = []
-        temp_queue = Queue()
-        queue_uuid = uuid.uuid4()
-        self.temporary_queues[queue_uuid] = temp_queue
-        latest_t_before = video_frames_before[-1].msg.getTimestamp()
-
-        def wait_until_complete():
-            while True:
-                try:
-                    p = self.temporary_queues[queue_uuid].get(block=False)
-                    timestamp = p.msg.getTimestamp()
-                    if timestamp > latest_t_before:
-                        video_frames_after.append(p)
-                    if timestamp - latest_t_before > datetime.timedelta(seconds=after_seconds):
-                        break
-
-                except Empty:
-                    self.event.wait(1 / self.fps)
-
-        t = threading.Thread(target=wait_until_complete)
+        t = threading.Thread(target=self.frame_buffer.save_video,
+                             args=(before_seconds, after_seconds, title),
+                             daemon=False)
         t.start()
-        t.join()
-
-        self.temporary_queues.pop(queue_uuid)
-        video_data = self._mux_video(video_frames_before + video_frames_after)
-        send_video_event(video_data, title=title)
-
-    def _mux_video(self, packets):
-        from pathlib import Path
-        with tempfile.TemporaryDirectory() as dir_path:
-            name = str(uuid.uuid4())
-            av_writer = AvWriter(path=Path(dir_path),
-                                 name=name,
-                                 fourcc='h264',
-                                 fps=self.fps,
-                                 frame_shape=(self.frame_width, self.frame_height))
-
-            for p in packets:
-                av_writer.write(p.msg)
-
-            av_writer.close()
-            with open(Path(dir_path, name).with_suffix('.mp4'), 'rb') as f:
-                data = f.read()
-
-            return data
 
     def add_rectangle(self, rectangle: BoundingBox, label: str) -> None:
         self.rectangles.append(rectangle)
@@ -374,12 +310,7 @@ class LiveView:
 
     def h264_callback(self, h264_packet):
         self.publish(h264_frame=h264_packet.frame)
-        self._append_to_buffer_callback(h264_packet)
-
-    def _append_to_buffer_callback(self, packet):
-        self.frame_buffer.append(packet)
-        for _, queue in self.temporary_queues.items():
-            queue.put(packet)
+        self.frame_buffer.default_callback(h264_packet)
 
     def _reset_overlays(self):
         self.rectangles.clear()

@@ -100,6 +100,6 @@ def send_frame_event_with_zipped_images(cv_frame,
 def send_video_event(video, title: str):
     if isinstance(video, str) or isinstance(video, Path):
         with open(str(video), 'rb') as f:
-            robothub_core.DETECTIONS.send_video_event(video=f.read(), title=title)
+            robothub_core.DETECTIONS.save_video(video=f.read(), title=title)
     else:
-        robothub_core.DETECTIONS.send_video_event(video=video, title=title)
+        robothub_core.DETECTIONS.save_video(video=video, title=title)
