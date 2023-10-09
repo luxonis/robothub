@@ -22,6 +22,11 @@ logger = logging.getLogger(__name__)
 
 class FrameBuffer:
     def __init__(self, maxlen: int = None):
+        """
+        A buffer for storing frames.
+
+        :param maxlen: The maximum number of frames to store in the buffer. If None, the buffer will be unbounded.
+        """
         self.buffer = deque(maxlen=maxlen)
         self.temporary_queues = set()
 
@@ -79,13 +84,17 @@ class FrameBuffer:
 
         if before_seconds < 0 or after_seconds < 0:
             raise ValueError('`before_seconds` and `after_seconds` must be positive.')
+        if before_seconds * fps > self.buffer.maxlen:
+            raise ValueError('`before_seconds` is too large. The buffer does not contain enough frames.')
 
+        # Get frames before the current time
         video_frames_before = self.get_slice(start=self.buffer.maxlen - before_seconds * fps)
         video_frames_after = []
         temp_queue = Queue()
         self.temporary_queues.add(temp_queue)
         latest_t_before = video_frames_before[-1].msg.getTimestamp()
 
+        # Get frames after the current time
         while True:
             try:
                 p = temp_queue.get(block=True, timeout=2.0)

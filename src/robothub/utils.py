@@ -9,6 +9,8 @@ __all__ = ['setup_logger', 'get_device_performance_metrics', 'get_device_details
 
 def setup_logger(name: str, level: int = logging.INFO):
     """
+    Initializes a logger with the given name and level.
+
     :param name: Logger name.
     :param level: Either a string or an integer. If a string, it must be one of the following: 'DEBUG', 'INFO',
     'WARNING', 'ERROR', 'CRITICAL'. If an integer, it must be one of the following: log.DEBUG, log.INFO, log.WARNING,
@@ -93,6 +95,9 @@ def get_device_details(device: depthai.Device, state: robothub_core.DeviceState)
 
 
 def try_or_default(func, default=None):
+    """
+    Tries to call the given function and returns its result. If an exception is raised, returns the default value.
+    """
     try:
         return func()
     except:

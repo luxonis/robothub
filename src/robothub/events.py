@@ -14,6 +14,9 @@ logger = logging.getLogger(__name__)
 
 
 def _catch_event_exception(func):
+    """
+    Catch exceptions when sending events to RH.
+    """
     def wrapper(*args, **kwargs):
         try:
             return func(*args, **kwargs)
