@@ -6,6 +6,7 @@ import uuid
 from collections import deque
 from pathlib import Path
 from queue import Queue, Empty
+from typing import Callable
 
 from depthai_sdk.recorders.video_writers import AvWriter
 
@@ -41,13 +42,15 @@ class FrameBuffer:
                             fps: int,
                             frame_width: int,
                             frame_height: int,
+                            on_complete: Callable = None
                             ) -> None:
         video_bytes = self.save_video(before_seconds=before_seconds,
                                       after_seconds=after_seconds,
                                       fps=fps,
                                       frame_width=frame_width,
                                       frame_height=frame_height,
-                                      return_bytes=True)
+                                      return_bytes=False,
+                                      on_complete=on_complete)
         send_video_event(video_bytes, title=title)
 
     def save_video(self,
@@ -56,7 +59,8 @@ class FrameBuffer:
                    fps: int,
                    frame_width: int,
                    frame_height: int,
-                   return_bytes=False
+                   return_bytes=False,
+                   on_complete: Callable = lambda x: None
                    ) -> str | bytes | None:
         """
         Save a video of the last `before_seconds` seconds and the next `after_seconds` seconds.
@@ -66,8 +70,8 @@ class FrameBuffer:
         :param fps: The FPS of the video.
         :param frame_width: Video frame width.
         :param frame_height: Video frame height.
-        :param return_bytes: If True, return the video as bytes. Otherwise, save the video to disk and return the path.
-        :return: Path to the video if `return_bytes` is False, otherwise the video as bytes.
+        :param return_bytes: If True, pass the video bytes to `on_complete` instead of saving to disk. Default: False.
+        :param on_complete: Callback function to call when the video is ready. If `return_bytes` is True, the video bytes will be passed to this function.
         """
         if not av:
             raise ImportError('av library is not installed. Cannot save video. '
@@ -94,14 +98,17 @@ class FrameBuffer:
                 pass
 
         self.temporary_queues.remove(temp_queue)
-        return self._mux_video(packets=video_frames_before + video_frames_after,
-                               fps=fps,
-                               frame_width=frame_width,
-                               frame_height=frame_height,
-                               return_bytes=return_bytes)
+        video_res = self._mux_video(packets=video_frames_before + video_frames_after,
+                                    fps=fps,
+                                    frame_width=frame_width,
+                                    frame_height=frame_height,
+                                    return_bytes=return_bytes)
 
-    def _mux_video(self,
-                   packets: list,
+        on_complete(video_res)
+        return video_res
+
+    @staticmethod
+    def _mux_video(packets: list,
                    fps: int,
                    frame_width: int,
                    frame_height: int,
