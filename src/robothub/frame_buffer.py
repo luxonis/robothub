@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 class FrameBuffer:
     def __init__(self, maxlen: int = None):
         self.buffer = deque(maxlen=maxlen)
-        self.temporary_queues = {}
+        self.temporary_queues = set()
 
     def get_slice(self, start: int, end: int = None) -> list:
         """
@@ -79,26 +79,21 @@ class FrameBuffer:
         video_frames_before = self.get_slice(start=self.buffer.maxlen - before_seconds * fps)
         video_frames_after = []
         temp_queue = Queue()
-        queue_uuid = uuid.uuid4()
-        self.temporary_queues[queue_uuid] = temp_queue
+        self.temporary_queues.add(temp_queue)
         latest_t_before = video_frames_before[-1].msg.getTimestamp()
 
-        def wait_until_complete():
-            while True:
-                try:
-                    p = self.temporary_queues[queue_uuid].get(block=True)
-                    timestamp = p.msg.getTimestamp()
-                    if timestamp > latest_t_before:
-                        video_frames_after.append(p)
-                    if timestamp - latest_t_before > datetime.timedelta(seconds=after_seconds):
-                        break
+        while True:
+            try:
+                p = temp_queue.get(block=True, timeout=2.0)
+                timestamp = p.msg.getTimestamp()
+                if timestamp > latest_t_before:
+                    video_frames_after.append(p)
+                if timestamp - latest_t_before > datetime.timedelta(seconds=after_seconds):
+                    break
+            except Empty:
+                pass
 
-                except Empty:
-                    pass
-
-        wait_until_complete()
-
-        self.temporary_queues.pop(queue_uuid)
+        self.temporary_queues.remove(temp_queue)
         return self._mux_video(packets=video_frames_before + video_frames_after,
                                fps=fps,
                                frame_width=frame_width,
@@ -136,11 +131,11 @@ class FrameBuffer:
 
     def default_callback(self, packet) -> None:
         """
-        Default callback for the frame buffer. It will append the packet to the buffer and put it in all temporary queues. 
+        Default callback for the frame buffer. It will append the packet to the buffer and put it in all temporary queues.
         """
         self.buffer.append(packet)
-        for _, queue in self.temporary_queues.items():
-            queue.put(packet)
+        for q in self.temporary_queues.copy():
+            q.put(packet)
 
     @property
     def maxlen(self) -> int:
