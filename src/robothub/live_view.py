@@ -1,7 +1,7 @@
 import logging
 import threading
 import time
-from typing import List, Optional, Union, Dict, Tuple
+from typing import List, Optional, Union, Dict, Tuple, Callable
 
 import depthai as dai
 import numpy as np
@@ -264,7 +264,22 @@ class LiveView:
 
         return LIVE_VIEWS[unique_key]
 
-    def save_video_event(self, before_seconds: int, after_seconds: int, title: str):
+    def save_video_event(self,
+                         before_seconds: int,
+                         after_seconds: int,
+                         title: str,
+                         on_complete: Callable = lambda x: None
+                         ) -> None:
+        """
+        Saves a video event to the frame buffer, then calls `on_complete` when the video is ready.
+        When the video is ready, the `on_complete` function will be called with the path to the video file.
+        Note: When app is stopped, it is not guaranteed that the video will be saved.
+
+        :param before_seconds: Number of seconds to save before the event occurred.
+        :param after_seconds: Number of seconds to save after the event occurred.
+        :param title: Title of the video event.
+        :param on_complete: Function to call when the video is ready.
+        """
         # We need to start a new thread because we cannot block the main thread.
         kwargs = {
             'before_seconds': before_seconds,
@@ -273,10 +288,11 @@ class LiveView:
             'fps': self.fps,
             'frame_width': self.frame_width,
             'frame_height': self.frame_height,
+            'on_complete': on_complete
         }
         t = threading.Thread(target=self.frame_buffer.process_video_event,
                              kwargs=kwargs,
-                             daemon=False)
+                             daemon=True)
         t.start()
 
     def add_rectangle(self, rectangle: BoundingBox, label: str) -> None:
