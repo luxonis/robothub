@@ -2,6 +2,7 @@ import logging
 import zipfile
 from datetime import datetime
 from io import BytesIO
+from pathlib import Path
 from typing import Union, Optional, List
 
 import cv2
@@ -141,7 +142,8 @@ def send_video_event(video: bytes | str,
     :return: The event ID. None if the event failed to send.
     """
     event = robothub_core.EVENTS.prepare()
-    event.add_video(video, f'Video event {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}', metadata)
+    video_bytes = Path(video).read_bytes() if isinstance(video, str) else video
+    event.add_video(video_bytes, f'Video event {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}', metadata)
     event.set_title(title)
     robothub_core.EVENTS.upload(event)
     _log_event_status(True, event.id)
