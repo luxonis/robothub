@@ -1,7 +1,7 @@
 import logging
 import threading
 import time
-from typing import List, Optional, Union, Dict, Tuple, Callable
+from typing import List, Optional, Union, Dict, Tuple
 
 import depthai as dai
 import numpy as np
@@ -12,28 +12,14 @@ from depthai_sdk.oak_outputs.xout.xout_base import StreamXout
 from depthai_sdk.oak_outputs.xout.xout_h26x import XoutH26x
 from depthai_sdk.visualize.objects import VisText, VisLine
 
+from robothub.events import send_video_event
 from robothub.frame_buffer import FrameBuffer
+from robothub.live_view_utils import validate_once, create_stream_handle
 from robothub.types import BoundingBox
 
 __all__ = ['LiveView', 'LIVE_VIEWS']
 
 logger = logging.getLogger(__name__)
-
-
-def _create_stream_handle(camera_serial: str, unique_key: str, name: str):
-    """
-    Create or get existing stream handle.
-
-    :param camera_serial: Device MXID.
-    :param unique_key: Unique key for the stream.
-    :param name: Name of the stream.
-    :return: robothub_core.StreamHandle object.
-    """
-    if unique_key not in robothub_core.STREAMS.streams:
-        color_stream_handle = robothub_core.STREAMS.create_video(camera_serial, unique_key, name)
-    else:
-        color_stream_handle = robothub_core.STREAMS.streams[unique_key]
-    return color_stream_handle
 
 
 def _publish_data(stream_handle: robothub_core.StreamHandle,
@@ -141,7 +127,7 @@ class LiveView:
         self.name = name
         self.fps = fps
 
-        self.stream_handle = _create_stream_handle(camera_serial=device_mxid, unique_key=unique_key, name=name)
+        self.stream_handle = create_stream_handle(camera_serial=device_mxid, unique_key=unique_key, name=name)
 
         # Objects
         self.texts: List[VisText] = []
@@ -328,7 +314,6 @@ class LiveView:
                          before_seconds: int,
                          after_seconds: int,
                          title: str,
-                         on_complete: Callable = lambda x: None
                          ) -> None:
         """
         Saves a video event to the frame buffer, then calls `on_complete` when the video is ready.
@@ -338,19 +323,22 @@ class LiveView:
         :param before_seconds: Number of seconds to save before the event occurred.
         :param after_seconds: Number of seconds to save after the event occurred.
         :param title: Title of the video event.
-        :param on_complete: Function to call when the video is ready.
         """
+
         # We need to start a new thread because we cannot block the main thread.
+        def on_complete(video_path):
+            send_video_event(video_path, title)
+
         kwargs = {
             'before_seconds': before_seconds,
             'after_seconds': after_seconds,
-            'title': title,
             'fps': self.fps,
             'frame_width': self.frame_width,
             'frame_height': self.frame_height,
-            'on_complete': on_complete
+            'on_complete': on_complete,
+            'delete_after_complete': True
         }
-        t = threading.Thread(target=self.frame_buffer.process_video_event,
+        t = threading.Thread(target=self.frame_buffer.save_video,
                              kwargs=kwargs,
                              daemon=True)
         t.start()
@@ -407,6 +395,7 @@ class LiveView:
         obj = VisLine(pt1, pt2, color, thickness)
         self.lines.append(obj)
 
+    @validate_once
     def publish(self, h264_frame: Union[np.array, List]) -> None:
         """
         Publishes a frame to the live view. If manual_publish is set to True,
