@@ -214,7 +214,7 @@ class LiveView:
                 fps=encoder.getFrameRate(),
                 frame_shape=component.node.getResolution()
             )
-            xout.name = component._source
+            xout.name = f'{component._source}_h264'
             return component._create_xout(pipeline, xout)
 
         return encoded
