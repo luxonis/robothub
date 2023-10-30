@@ -72,9 +72,6 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
         )
         self.__device_thread.start()
 
-    def start_execution(self) -> None:
-        self.stop_event.wait()  # Keep main thread alive
-
     def on_stop(self) -> None:
         """
         Called when the application is stopped. Registered as atexit handler.
