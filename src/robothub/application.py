@@ -238,6 +238,7 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
     def get_device(self) -> Optional[OakCamera]:
         """
         Get a device by its mxid. If the device is not running, this method returns None.
+
         :return: The device or None if the device is not running.
         """
         return self.__device
