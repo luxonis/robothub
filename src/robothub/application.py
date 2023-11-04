@@ -74,7 +74,7 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
 
     def on_stop(self) -> None:
         """
-        Called when the application is stopped. Registered as atexit handler.
+        Called when the application is stopped.
         """
         # Device thread must close the device
         self.__device_stop_event.set()
