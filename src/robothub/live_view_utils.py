@@ -4,26 +4,11 @@ import numpy as np
 import robothub_core
 
 __all__ = [
-    'validate_once',
     'is_h264_frame',
     'create_stream_handle'
 ]
 
 logger = logging.getLogger(__name__)
-
-
-def validate_once(func):
-    func.validated = False
-
-    def wrapper(self, frame):
-        if not func.validated:
-            if not is_h264_frame(frame):
-                logger.warning(f'Frame is not H.264 encoded, please make sure the pipeline is configured correctly.\n'
-                               f'RobotHub supports H.264 encoded frames only.')
-            func.validated = True
-        return func(self, frame)
-
-    return wrapper
 
 
 def is_h264_frame(data):

@@ -14,8 +14,9 @@ from depthai_sdk.visualize.objects import VisText, VisLine
 
 from robothub.events import send_video_event
 from robothub.frame_buffer import FrameBuffer
-from robothub.live_view_utils import validate_once, create_stream_handle
+from robothub.live_view_utils import create_stream_handle
 from robothub.types import BoundingBox
+from robothub.live_view_utils import is_h264_frame
 
 __all__ = ['LiveView', 'LIVE_VIEWS']
 
@@ -128,6 +129,7 @@ class LiveView:
         self.fps = fps
 
         self.stream_handle = create_stream_handle(camera_serial=device_mxid, unique_key=unique_key, name=name)
+        self.__validated_frame_h264 = False
 
         # Objects
         self.texts: List[VisText] = []
@@ -395,7 +397,6 @@ class LiveView:
         obj = VisLine(pt1, pt2, color, thickness)
         self.lines.append(obj)
 
-    @validate_once
     def publish(self, h264_frame: Union[np.array, List]) -> None:
         """
         Publishes a frame to the live view. If manual_publish is set to True,
@@ -403,6 +404,13 @@ class LiveView:
 
         :param h264_frame: H264 frame to publish.
         """
+        if not self.__validated_frame_h264:
+            if not is_h264_frame(h264_frame):
+                logger.error('Frame is not H.264 encoded, '
+                             'please make sure the pipeline is configured correctly.\n'
+                             'RobotHub supports H.264 encoded frames only.')
+            self.__validated_frame_h264 = True
+
         _publish_data(stream_handle=self.stream_handle,
                       h264_frame=h264_frame,
                       rectangles=self.rectangles,
