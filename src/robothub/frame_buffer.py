@@ -27,7 +27,7 @@ class FrameBuffer:
         self.buffer = deque(maxlen=maxlen)
         self.temporary_queues = set()
 
-    def get_slice(self, start: int, end: int = None) -> list:
+    def get_slice(self, start: int, end: int | None = None) -> list:
         """
         Get a slice of the buffer.
 
@@ -62,7 +62,7 @@ class FrameBuffer:
                               'Please make sure PyAV is installed (`pip install pyav`).')
 
         if before_seconds < 0 or after_seconds < 0:
-            raise ValueError('`before_seconds` and `after_seconds` must be positive.')
+            raise ValueError('`before_seconds` and `after_seconds` must be non-negative.')
         if before_seconds * fps > self.buffer.maxlen:
             raise ValueError('`before_seconds` is too large. The buffer does not contain enough frames.')
 
