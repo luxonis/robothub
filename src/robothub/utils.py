@@ -100,5 +100,5 @@ def try_or_default(func, default=None):
     """
     try:
         return func()
-    except:
+    except Exception:
         return default
