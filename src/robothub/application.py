@@ -72,18 +72,15 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
         )
         self.__device_thread.start()
 
-    def start_execution(self) -> None:
-        self.stop_event.wait()  # Keep main thread alive
-
     def on_stop(self) -> None:
         """
-        Called when the application is stopped. Registered as atexit handler.
+        Called when the application is stopped.
         """
         # Device thread must close the device
         self.__device_stop_event.set()
         with contextlib.suppress(Exception):
             self.__device_thread.join()
-            logger.debug(f"Device thread {self.__device_product_name}: stopped.")
+            logger.info(f"Device thread {self.__device_product_name}: stopped.")
         robothub_core.STREAMS.destroy_all_streams()
 
     @abstractmethod
@@ -113,7 +110,7 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
         """
         Handle the life cycle of the device.
         """
-        logger.debug(f"Device {self.__device_product_name}: management thread started.")
+        logger.info(f"Device {self.__device_product_name}: management thread started.")
 
         try:
             while self.running:
@@ -133,7 +130,7 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
             return
 
         # Start device
-        logger.debug(f"Device {self.__device_product_name}: creating pipeline...")
+        logger.info(f"Device {self.__device_product_name}: creating pipeline...")
         self.setup_pipeline(oak=self.__device)
         self.__device.start(blocking=False)
         self.on_device_connected(self.__device)
@@ -210,9 +207,7 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
                 oak = OakCamera(self.__device_mxid, replay=REPLAY_PATH)
             except Exception as e:
                 # If device can't be connected to on first try, wait 5 seconds and try again.
-                logger.debug(
-                    f"Device {product_name}: error while trying to connect - {e}."
-                )
+                logger.error(f"Device {product_name}: error while trying to connect - {e}.")
                 self.wait(5)
             else:
                 self.__device = oak
@@ -220,9 +215,7 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
                 logger.debug(f"Device {product_name}: successfully connected.")
                 return
 
-        logger.info(
-            f"Device {product_name}: could not manage to connect within 30s timeout."
-        )
+        logger.error(f"Device {product_name}: could not manage to connect within 30s timeout.")
         self.__device_state = robothub_core.DeviceState.DISCONNECTED
         return
 
@@ -238,6 +231,7 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
     def get_device(self) -> Optional[OakCamera]:
         """
         Get a device by its mxid. If the device is not running, this method returns None.
+
         :return: The device or None if the device is not running.
         """
         return self.__device
@@ -247,7 +241,7 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
         Restart the device.
         """
         if not self.__device:
-            logger.warning(f"Device is not initialized and cannot be restarted.")
+            logger.warning("Device is not initialized and cannot be restarted.")
             return
 
         self.__device_stop_event.set()
