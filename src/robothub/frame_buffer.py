@@ -63,11 +63,11 @@ class FrameBuffer:
 
         if before_seconds < 0 or after_seconds < 0:
             raise ValueError('`before_seconds` and `after_seconds` must be non-negative.')
-        if before_seconds * fps > self.buffer.maxlen:
+        if before_seconds * fps > len(self.buffer):
             raise ValueError('`before_seconds` is too large. The buffer does not contain enough frames.')
 
         # Get frames before the current time
-        video_frames_before = self.get_slice(start=self.buffer.maxlen - before_seconds * fps)
+        video_frames_before = self.get_slice(start=(len(self.buffer) - 1) - before_seconds * fps)
         video_frames_after = []
         temp_queue = Queue()
         self.temporary_queues.add(temp_queue)

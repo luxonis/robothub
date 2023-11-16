@@ -327,6 +327,9 @@ class LiveView:
         :param title: Title of the video event.
         """
 
+        if self.frame_buffer.maxlen == 0:
+            raise Exception('You have set `max_buffer_size` to zero, therefore you cannot use frame buffer.')
+
         # We need to start a new thread because we cannot block the main thread.
         def on_complete(video_path):
             send_video_event(video_path, title)
