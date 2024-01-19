@@ -206,10 +206,10 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
                 f"Device {product_name}: remaining time to connect - {give_up_time - time.monotonic()} seconds."
             )
             try:
-                if(self.__device_ip == None):
-                    oak = OakCamera(self.__device_ip, replay=REPLAY_PATH)
-                else:
+                if self.__device_ip is None:
                     oak = OakCamera(self.__device_mxid, replay=REPLAY_PATH)
+                else:
+                    oak = OakCamera(self.__device_ip, replay=REPLAY_PATH)
                     
             except Exception as e:
                 # If device can't be connected to on first try, wait 5 seconds and try again.
