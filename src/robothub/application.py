@@ -18,7 +18,6 @@ logger = logging.getLogger(__name__)
 
 REPLAY_PATH = os.environ.get('RH_OAK_REPLAY_PATH', None) or os.environ.get('RH_REPLAY_PATH', None)
 
-
 class BaseApplication(robothub_core.RobotHubApplication, ABC):
     """
     This class acts as the main entry point for the user, managing a single device, creating pipelines,
@@ -42,6 +41,7 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
 
         self.__rh_device: Optional[robothub_core.RobotHubDevice] = None
         self.__device_mxid: Optional[str] = None
+        self.__device_ip: Optional[str] = None                     
         self.__device_product_name: Optional[str] = None
         self.__device_state: Optional[robothub_core.DeviceState] = None
         self.__device_thread: Optional[Thread] = None
@@ -58,11 +58,13 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
 
         self.__rh_device = robothub_core.DEVICES[0]
         self.__device_mxid = self.__rh_device.oak["serialNumber"]
+        self.__device_ip = self.__rh_device.oak["ipAddress"]
+        
         self.__device_product_name = (
             self.__rh_device.oak.get("name", None)
             or self.__rh_device.oak.get("productName", None)
-            or self.__device_mxid
-        )
+            or self.__device_mxid)
+        
         self.__device_state = robothub_core.DeviceState.DISCONNECTED
 
         self.__device_thread = Thread(
@@ -204,7 +206,11 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
                 f"Device {product_name}: remaining time to connect - {give_up_time - time.monotonic()} seconds."
             )
             try:
-                oak = OakCamera(self.__device_mxid, replay=REPLAY_PATH)
+                if self.__device_ip is None:
+                    oak = OakCamera(self.__device_mxid, replay=REPLAY_PATH)
+                else:
+                    oak = OakCamera(self.__device_ip, replay=REPLAY_PATH)
+                    
             except Exception as e:
                 # If device can't be connected to on first try, wait 5 seconds and try again.
                 logger.error(f"Device {product_name}: error while trying to connect - {e}.")
