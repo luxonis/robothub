@@ -2,6 +2,8 @@ from robothub.application import *
 from robothub.live_view import *
 from robothub.utils import setup_logger
 
+from robothub_core import CONFIGURATION
+
 try:
     import blobconverter
 
