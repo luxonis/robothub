@@ -177,7 +177,7 @@ class RobotHubApplication(ABC):
         if self.kill_timeout is not None:
             self.kill_timeout.cancel()
 
-    def _run(self) -> None:
+    def run(self) -> None:
         """Launch script uses this method to start the App."""
         self._bind_globals()
 
