@@ -3,11 +3,15 @@ import zipfile
 from datetime import datetime
 from io import BytesIO
 from pathlib import Path
-from typing import Union, Optional, List
+from typing import List, Optional, Union
 
 import cv2
 import numpy as np
-import robothub_core
+
+try:
+    import robothub_core
+except ImportError:
+    import robothub.robothub_core_wrapper as robothub_core
 
 __all__ = ['send_image_event', 'send_frame_event_with_zipped_images', 'send_video_event']
 

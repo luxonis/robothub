@@ -4,7 +4,7 @@ import logging
 import uuid
 from collections import deque
 from pathlib import Path
-from queue import Queue, Empty
+from queue import Empty, Queue
 from typing import Callable, Optional
 
 from depthai_sdk.recorders.video_writers import AvWriter

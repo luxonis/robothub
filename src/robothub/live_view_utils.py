@@ -1,7 +1,10 @@
 import logging
 
 import numpy as np
-import robothub_core
+try:
+    import robothub_core
+except ImportError:
+    import robothub.robothub_core_wrapper as robothub_core
 
 __all__ = [
     'is_h264_frame',

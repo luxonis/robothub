@@ -1,22 +1,25 @@
 import logging
 import threading
 import time
-from typing import List, Optional, Union, Dict, Tuple
+from typing import Dict, List, Optional, Tuple, Union
 
 import depthai as dai
 import numpy as np
-import robothub_core
+try:
+    import robothub_core
+except ImportError:
+    import robothub.robothub_core_wrapper as robothub_core
 from depthai_sdk import OakCamera
-from depthai_sdk.components import Component, CameraComponent, StereoComponent, NNComponent
+from depthai_sdk.components import (CameraComponent, Component, NNComponent,
+                                    StereoComponent)
 from depthai_sdk.oak_outputs.xout.xout_base import StreamXout
 from depthai_sdk.oak_outputs.xout.xout_h26x import XoutH26x
-from depthai_sdk.visualize.objects import VisText, VisLine
+from depthai_sdk.visualize.objects import VisLine, VisText
 
 from robothub.events import send_video_event
 from robothub.frame_buffer import FrameBuffer
-from robothub.live_view_utils import create_stream_handle
+from robothub.live_view_utils import create_stream_handle, is_h264_frame
 from robothub.types import BoundingBox
-from robothub.live_view_utils import is_h264_frame
 
 __all__ = ['LiveView', 'LIVE_VIEWS']
 
