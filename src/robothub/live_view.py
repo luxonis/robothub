@@ -5,6 +5,7 @@ from typing import Dict, List, Optional, Tuple, Union
 
 import depthai as dai
 import numpy as np
+
 try:
     import robothub_core
 except ImportError:
@@ -143,23 +144,54 @@ class LiveView:
         self.frame_buffer = FrameBuffer(maxlen=int(max_buffer_size * fps))
 
     @staticmethod
-    def create(device: OakCamera,
-               component: Union[CameraComponent, StereoComponent],
+    def create(component: Union[CameraComponent, StereoComponent, dai.node.VideoEncoder],
                name: str,
                unique_key: str = None,
                manual_publish: bool = False,
                max_buffer_size: int = 0,
+               device: OakCamera = None
                ) -> 'LiveView':
         """
-        Creates a Live View for a given component.
+        Creates a Live View.
 
         :param device: OakCamera instance.
-        :param component: Component to create a Live View for. Either a CameraComponent, StereoComponent or NNComponent.
+        :param component: Component to create a Live View for. Either a CameraComponent, StereoComponent, NNComponent or VideoEncoder.
         :param name: Name of the Live View.
         :param unique_key: Live View identifier.
         :param manual_publish: If True, the Live View will not be automatically published. Use LiveView.publish() to publish the Live View.
         :param max_buffer_size: Maximum number of seconds to buffer.
         """
+        if isinstance(component, dai.node.VideoEncoder):
+            return LiveView.__create_depthai_live_view(component=component,
+                                                       name=name,
+                                                       unique_key=unique_key,
+                                                       manual_publish=manual_publish,
+                                                       max_buffer_size=max_buffer_size
+                                                       )
+        return LiveView.__create_sdk_live_view(component=component,
+                                               name=name,
+                                               unique_key=unique_key,
+                                               manual_publish=manual_publish,
+                                               max_buffer_size=max_buffer_size
+                                               )
+
+    @staticmethod
+    def __create_depthai_live_view(component: dai.node.VideoEncoder,
+                                   name: str,
+                                   unique_key: str = None,
+                                   manual_publish: bool = False,
+                                   max_buffer_size: int = 0,
+                                   device: OakCamera = None) -> 'LiveView':
+        component.get
+
+
+    @staticmethod
+    def __create_sdk_live_view(component: Union[CameraComponent, StereoComponent, dai.node.VideoEncoder],
+                               name: str,
+                               unique_key: str = None,
+                               manual_publish: bool = False,
+                               max_buffer_size: int = 0,
+                               device: OakCamera = None) -> 'LiveView':
         output = None
         is_h264 = LiveView._is_encoder_enabled(component)
         if not is_h264:

@@ -19,8 +19,8 @@ from depthai_sdk import OakCamera
 
 from robothub.utils import get_device_details, get_device_performance_metrics
 
-__all__ = ["BaseDepthAIApplication", "BaseSDKApplication", "LOCAL_DEV", 'TEAM_ID', 'APP_INSTANCE_ID', 'APP_VERSION', 'ROBOT_ID', 'STORAGE_DIR',
-           'PUBLIC_FILES_DIR', 'COMMUNICATOR', 'CONFIGURATION', 'DEVICES', 'STREAMS', 'StreamHandle']
+__all__ = ["app_is_running", "BaseDepthAIApplication", "BaseSDKApplication", "LOCAL_DEV", 'TEAM_ID', 'APP_INSTANCE_ID', 'APP_VERSION', 'ROBOT_ID',
+           'STORAGE_DIR', 'PUBLIC_FILES_DIR', 'COMMUNICATOR', 'CONFIGURATION', 'DEVICES', 'STREAMS', 'StreamHandle']
 
 logger = logging.getLogger(__name__)
 
@@ -37,6 +37,8 @@ STORAGE_DIR = robothub_core.STORAGE_DIR
 StreamHandle = robothub_core.StreamHandle
 STREAMS = robothub_core.STREAMS
 TEAM_ID = robothub_core.TEAM_ID
+
+app_is_running = robothub_core.app_is_running
 
 # this needs to be in sync with globals.py from robothub_core wrapper
 LOCAL_DEV = APP_INSTANCE_ID == "ROBOTHUB_ROBOT_APP_ID" and APP_VERSION == "ROBOTHUB_APP_VERSION"
