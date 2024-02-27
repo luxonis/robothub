@@ -17,6 +17,7 @@ class Streams:
     def __init__(self):
         self.streams = {}
         self._wish_responses = {}
+        self._agent_client = None
 
     def _bind_agent_(self, agent):
         self._agent_client = agent
