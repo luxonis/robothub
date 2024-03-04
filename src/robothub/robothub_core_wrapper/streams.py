@@ -10,6 +10,7 @@ from typing import Dict
 
 __all__ = ['Streams', 'StreamHandle', 'STREAMS']
 
+
 class Streams:
     """Handles video streams"""
     streams: Dict[str, 'StreamHandle']

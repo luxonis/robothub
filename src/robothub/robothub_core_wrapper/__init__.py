@@ -3,6 +3,11 @@ Low-level python API to interact with RobotHub Agent.
 
 Accessible only when running as a Perception App.
 """
+import logging as log
+
+log.basicConfig(format = '%(levelname)s | %(funcName)s:%(lineno)s => %(message)s', level = log.INFO)
+
+log.info(f"Using robothub_core mock used for local development.")
 
 from robothub.robothub_core_wrapper._event_typechecks import *
 from robothub.robothub_core_wrapper._exceptions import *

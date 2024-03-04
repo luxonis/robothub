@@ -61,6 +61,10 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
         self._device_stop_event = threading.Event()
         self._device: Optional[Union[OakCamera, depthai.Device]] = None
 
+    @property
+    def device_is_running(self) -> bool:
+        return not self._device_stop_event.is_set()
+
     def on_start(self) -> None:
         if len(DEVICES) == 0:
             logger.info("No assigned devices.")
@@ -128,7 +132,7 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
         Report device info and stats every 30 seconds.
         """
         product_name = self._device_product_name
-        while self.running and not self._device_stop_event.is_set():
+        while self.running and self.device_is_running:
             try:
                 device_info = get_device_details(self.__get_dai_device(), self.__device_state)
                 robothub_core.AGENT.publish_device_info(device_info)
@@ -151,6 +155,7 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
 
         self.__device_state = robothub_core.DeviceState.CONNECTING
         product_name = self._device_product_name
+        logger.info(f"Establishing connection with Device {product_name} and uploading the pipeline...")
         while self.running and time.monotonic() < give_up_time:
             logger.debug(
                 f"Device {product_name}: remaining time to connect - {give_up_time - time.monotonic()} seconds."
@@ -164,7 +169,7 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
                 self.wait(5)
             else:
                 self.__device_state = robothub_core.DeviceState.CONNECTED
-                logger.debug(f"Device {product_name}: successfully connected.")
+                logger.info(f"Device {product_name}: successfully connected.")
                 return
 
         logger.error(f"Device {product_name}: could not manage to connect within 30s timeout.")
@@ -213,8 +218,10 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
 class BaseDepthAIApplication(BaseApplication):
     def _manage_device_inner(self) -> None:
         self._device_stop_event.clear()
+        logger.info(f"Device {self._device_product_name}: creating Pipeline...")
         self.pipeline = self.setup_pipeline()
         assert self.pipeline is not None, f"setup_pipeline() must return a valid depthai.Pipeline object but returned {self.pipeline}."
+        logger.info(f"Device {self._device_product_name}: Pipeline created...")
         self._connect()
         if self._device is None:
             # Wait 30 seconds before trying to connect again

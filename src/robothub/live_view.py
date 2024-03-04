@@ -338,7 +338,7 @@ class SdkLiveView(LiveView):
         if not manual_publish:
             device.callback(output or component.out.encoded, live_view._publish_callback)
         else:
-            device.callback(output or component.out.encoded, live_view.frame_buffer.default_callback)
+            device.callback(output or component.out.encoded, live_view.frame_buffer.add_frame)
 
         LIVE_VIEWS[unique_key] = live_view
         return live_view
@@ -469,7 +469,7 @@ class SdkLiveView(LiveView):
         :param h264_packet: H264 packet to publish.
         """
         self.publish(h264_frame=h264_packet.frame)
-        self.frame_buffer.default_callback(h264_packet)
+        self.frame_buffer.add_frame(h264_packet)
 
 
 def _publish_data(stream_handle: robothub_core.StreamHandle,

@@ -17,8 +17,6 @@ from robothub.robothub_core_wrapper.communicator import COMMUNICATOR
 from robothub.robothub_core_wrapper.events import EVENTS, UploadedEvent
 from robothub.robothub_core_wrapper.streams import STREAMS
 
-log.basicConfig(format = '%(levelname)s | %(funcName)s:%(lineno)s => %(message)s', level = log.INFO)
-
 __all__ = ['RobotHubApplication', 'threading']
 
 
