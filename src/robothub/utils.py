@@ -1,8 +1,11 @@
 import logging
-from typing import Dict, Any
+from typing import Any, Dict
 
 import depthai
-import robothub_core
+try:
+    import robothub_core
+except ImportError:
+    import robothub.robothub_core_wrapper as robothub_core
 
 __all__ = ['setup_logger', 'get_device_performance_metrics', 'get_device_details', 'try_or_default']
 
@@ -20,7 +23,6 @@ def setup_logger(name: str, level: int = logging.INFO):
         level = level.upper()
     logger = logging.getLogger(name)
     logger.setLevel(level)
-    logger.propagate = False
 
     handler = logging.StreamHandler()
     handler.setLevel(logging.INFO)

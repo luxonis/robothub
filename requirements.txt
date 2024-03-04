@@ -1,1 +1,3 @@
 depthai_sdk==1.12.1
+toml==0.10.2
+

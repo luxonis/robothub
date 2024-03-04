@@ -1,8 +1,12 @@
+import logging as log
+
+
+
 from robothub.application import *
+from robothub.events import *
+from robothub.frame_buffer import *
 from robothub.live_view import *
 from robothub.utils import setup_logger
-
-from robothub_core import CONFIGURATION
 
 try:
     import blobconverter
@@ -12,7 +16,13 @@ try:
 except ImportError:
     pass
 
-__version__ = '2.4.0'
+# Import symbols from robothub_core and make them available under the robothub namespace
+try:
+    import robothub_core as robothub
+except ImportError:
+    import robothub.robothub_core_wrapper as robothub
+
+__version__ = '2.5.0'
 
 # Setup logging for the module
-setup_logger(__name__)
+# setup_logger(__name__)
