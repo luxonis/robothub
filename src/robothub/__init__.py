@@ -1,3 +1,7 @@
+import logging as log
+
+
+
 from robothub.application import *
 from robothub.events import *
 from robothub.frame_buffer import *
@@ -21,4 +25,4 @@ except ImportError:
 __version__ = '2.5.0'
 
 # Setup logging for the module
-setup_logger(__name__)
+# setup_logger(__name__)

@@ -23,7 +23,6 @@ def setup_logger(name: str, level: int = logging.INFO):
         level = level.upper()
     logger = logging.getLogger(name)
     logger.setLevel(level)
-    logger.propagate = False
 
     handler = logging.StreamHandler()
     handler.setLevel(logging.INFO)

@@ -55,6 +55,7 @@ class Events:
             raise RuntimeError('Event was already sent')
         else:
             event._sent = True
+            log.info(f"Event ignored in local environment: {str(event)}")
             self._agent_client._send_detection(event)
 
     def send_frame_event(self, imagedata: bytes | bytearray, camera_serial: str, title: str | None = None, frame_name: str | None = None, frame_metadata: dict | None = None) -> None:
