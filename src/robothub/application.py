@@ -31,6 +31,7 @@ APP_VERSION = robothub_core.APP_VERSION
 COMMUNICATOR = robothub_core.COMMUNICATOR
 CONFIGURATION = robothub_core.CONFIGURATION
 DEVICES = robothub_core.DEVICES
+EVENTS = robothub_core.EVENTS
 PUBLIC_FILES_DIR = robothub_core.PUBLIC_FILES_DIR
 ROBOT_ID = robothub_core.ROBOT_ID
 STORAGE_DIR = robothub_core.STORAGE_DIR
