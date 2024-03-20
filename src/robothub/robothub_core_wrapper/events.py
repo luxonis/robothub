@@ -9,19 +9,7 @@ from uuid import uuid4
 
 from robothub.robothub_core_wrapper._event_typechecks import *
 
-__all__ = ['Events', 'FutureEvent', 'UploadedEvent', 'EVENTS', 'DETECTIONS', 'Detections', 'UploadedDetection', 'FutureDetection'] # Deprecated DETECTIONS 
-
-
-class Detections:
-    """Deprecated class. Temporarily added for import purposes"""
-
-
-class UploadedDetection:
-    """Deprecated class. Temporarily added for import purposes"""
-
-
-class FutureDetection:
-    """Deprecated class. Temporarily added for import purposes"""
+__all__ = ['Events', 'FutureEvent', 'UploadedEvent', 'EVENTS'] # Deprecated DETECTIONS
 
 
 class Events:
@@ -509,5 +497,3 @@ class UploadedEvent:
 
 
 EVENTS = Events()
-DETECTIONS = EVENTS
-"""Deprecated, use EVENTS instead!"""
