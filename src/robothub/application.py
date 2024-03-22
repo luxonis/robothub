@@ -20,7 +20,7 @@ from depthai_sdk import OakCamera
 from robothub.utils import get_device_details, get_device_performance_metrics
 
 __all__ = ["app_is_running", "BaseDepthAIApplication", "BaseSDKApplication", "LOCAL_DEV", "TEAM_ID", "APP_INSTANCE_ID", "APP_VERSION", "ROBOT_ID",
-           "STORAGE_DIR", "PUBLIC_FILES_DIR", "COMMUNICATOR", "CONFIGURATION", "DEVICES", "STREAMS", "StreamHandle", "EVENTS"]
+           "STORAGE_DIR", "PUBLIC_FILES_DIR", "COMMUNICATOR", "CONFIGURATION", "DEVICES", "STREAMS", "StreamHandle", "EVENTS", "DEVICE_MXID"]
 
 logger = logging.getLogger(__name__)
 
@@ -40,6 +40,7 @@ STREAMS = robothub_core.STREAMS
 TEAM_ID = robothub_core.TEAM_ID
 
 app_is_running = robothub_core.app_is_running
+DEVICE_MXID = "unknown"
 
 # this needs to be in sync with globals.py from robothub_core wrapper
 LOCAL_DEV = APP_INSTANCE_ID == "ROBOTHUB_ROBOT_APP_ID" and APP_VERSION == "ROBOTHUB_APP_VERSION"
@@ -67,6 +68,7 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
         return not self._device_stop_event.is_set()
 
     def on_start(self) -> None:
+        global DEVICE_MXID
         if len(DEVICES) == 0:
             logger.info("No assigned devices.")
             self.stop_event.set()
@@ -76,6 +78,7 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
 
         self.__rh_device = DEVICES[0]
         self._device_mxid = self.__rh_device.oak["serialNumber"]
+        DEVICE_MXID = self._device_mxid
         self._device_ip = self.__rh_device.oak["ipAddress"]
         
         self._device_product_name = (
