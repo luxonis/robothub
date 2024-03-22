@@ -284,11 +284,6 @@ class FutureEvent:
         if not name:
             name = stem
 
-        if copy:
-            shutil.copy(filename, dst)
-        else:
-            shutil.move(filename, dst)
-
         event_object = {"path": str(dst), "name": name}
         self.__files.append(event_object)
 
