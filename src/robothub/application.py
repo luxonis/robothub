@@ -40,6 +40,7 @@ STREAMS = robothub_core.STREAMS
 TEAM_ID = robothub_core.TEAM_ID
 
 app_is_running = robothub_core.app_is_running
+wait = robothub_core.wait
 DEVICE_MXID = "unknown"
 
 # this needs to be in sync with globals.py from robothub_core wrapper
