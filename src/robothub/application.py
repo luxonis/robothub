@@ -20,7 +20,7 @@ from depthai_sdk import OakCamera
 from robothub.utils import get_device_details, get_device_performance_metrics
 
 __all__ = ["app_is_running", "BaseDepthAIApplication", "BaseSDKApplication", "LOCAL_DEV", "TEAM_ID", "APP_INSTANCE_ID", "APP_VERSION", "ROBOT_ID",
-           "STORAGE_DIR", "PUBLIC_FILES_DIR", "COMMUNICATOR", "CONFIGURATION", "DEVICES", "STREAMS", "StreamHandle", "EVENTS", "DEVICE_MXID"]
+           "STORAGE_DIR", "PUBLIC_FILES_DIR", "COMMUNICATOR", "CONFIGURATION", "DEVICES", "STREAMS", "StreamHandle", "EVENTS", "DEVICE_MXID", "wait"]
 
 logger = logging.getLogger(__name__)
 
