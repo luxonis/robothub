@@ -53,7 +53,16 @@ def _load_configuration():
         log.critical(f"Configuration file 'robotapp.toml' not found in the root dir.")
         rh_defaults = {}
     else:
-        rh_defaults = {config["key"]: config["initial_value"] for config in rh_config["configuration"] if "key" in config}
+        rh_defaults = {}
+        for config in rh_config["configuration"]:
+            if "key" in config:
+                if config.get("field") == "choice":
+                    options = config["options"]
+                    for option in options:
+                        if "default" in option and option["default"] is True:
+                            rh_defaults[config["key"]] = option["key"]
+                else:
+                    rh_defaults[config["key"]] = config["initial_value"]
 
     try:
         with open(LOCAL_CONFIG_PATH, "r") as file:
