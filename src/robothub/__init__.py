@@ -22,7 +22,7 @@ try:
 except ImportError:
     import robothub.robothub_core_wrapper as robothub
 
-__version__ = '2.5.1'
+__version__ = '2.5.2'
 
 # Setup logging for the module
 # setup_logger(__name__)
