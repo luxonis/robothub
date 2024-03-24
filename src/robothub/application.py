@@ -282,13 +282,13 @@ class BaseSDKApplication(BaseApplication):
     and polling the device for new data. Derived classes must implement the `setup_pipeline` method.
 
     Attributes:
-        config: The configuration settings from the robotapp.toml config file.
+    config: The configuration settings from the robotapp.toml config file.
 
     Methods:
-        setup_pipeline: Abstract method to be implemented by child classes. Sets up the pipeline for a device.
-        on_device_connected: Optional method, called when a device is connected.
-        on_device_disconnected: Optional method, called when a device is disconnected.
-        on_stop: Optional method, called when the application is stopped.
+    setup_pipeline: Abstract method to be implemented by child classes. Sets up the pipeline for a device.
+    on_device_connected: Optional method, called when a device is connected.
+    on_device_disconnected: Optional method, called when a device is disconnected.
+    on_stop: Optional method, called when the application is stopped.
     """
 
     def _manage_device_inner(self) -> None:
