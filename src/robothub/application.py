@@ -3,20 +3,17 @@ import logging
 import os
 import threading
 import time
-
-import depthai
-
-try:
-    import robothub_core
-except ImportError:
-    import robothub.robothub_core_wrapper as robothub_core
-
 from abc import ABC, abstractmethod
 from threading import Thread
 from typing import Optional, Union
 
+import depthai
+try:
+    import robothub_core
+except ImportError:
+    import robothub.robothub_core_wrapper as robothub_core
 from depthai_sdk import OakCamera
-
+from robothub.replay_camera import ReplayCamera
 from robothub.utils import get_device_details, get_device_performance_metrics
 
 __all__ = ["AGENT", "app_is_running", "BaseDepthAIApplication", "BaseSDKApplication", "LOCAL_DEV", "TEAM_ID", "APP_INSTANCE_ID", "APP_VERSION",
@@ -235,6 +232,8 @@ class BaseDepthAIApplication(BaseApplication):
             self.wait(30)
             return
 
+        self._start_replay()
+
         if LOCAL_DEV is True:
             self.manage_device(self._device)
         else:
@@ -259,6 +258,10 @@ class BaseDepthAIApplication(BaseApplication):
 
         # Close device
         self._close_device()
+
+    def _start_replay(self):
+        for replay in ReplayCamera.replay_camera_instances:
+            replay.start_polling(self._device)
 
     def _acquire_device(self) -> depthai.Device:
         return depthai.Device(self.pipeline, depthai.DeviceInfo(
