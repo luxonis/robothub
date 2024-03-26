@@ -3,7 +3,7 @@ import os
 import pathlib
 import threading
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import timedelta
 from enum import Enum, auto
 from typing import List, Optional, Tuple
@@ -28,13 +28,25 @@ class PathType(Enum):
 
 @dataclass
 class StreamName:
-    INPUT_CONTROL = "rh_replay_input_control"
-    INPUT_CONFIG = "rh_replay_input_config"
-    RAW = "rh_replay_raw"
-    ISP = "rh_replay_isp"
-    VIDEO = "rh_replay_video"
-    STILL = "rh_replay_still"
-    PREVIEW = "rh_replay_preview"
+    suffix: str
+    INPUT_CONTROL: str = field(init=False)
+    INPUT_CONFIG: str = field(init=False)
+    GRAY: str = field(init=False)
+    RAW: str = field(init=False)
+    ISP: str = field(init=False)
+    VIDEO: str = field(init=False)
+    STILL: str = field(init=False)
+    PREVIEW: str = field(init=False)
+
+    def __post_init__(self):
+        self.INPUT_CONTROL = f"rh_replay_input_control_{self.suffix}"
+        self.INPUT_CONFIG = f"rh_replay_input_config_{self.suffix}"
+        self.GRAY = f"rh_replay_gray_{self.suffix}"
+        self.RAW = f"rh_replay_raw_{self.suffix}"
+        self.ISP = f"rh_replay_isp_{self.suffix}"
+        self.VIDEO = f"rh_replay_video_{self.suffix}"
+        self.STILL = f"rh_replay_still_{self.suffix}"
+        self.PREVIEW = f"rh_replay_preview_{self.suffix}"
 
 
 class ImageDirectoryCapture:
@@ -102,6 +114,7 @@ class ReplayCamera:
 
     def __init__(self, pipeline: dai.Pipeline, fps: float, src: str, run_in_loop: bool = True):
         self.replay_camera_instances.append(self)
+        self._stream_name: StreamName = StreamName(suffix=str(len(self.replay_camera_instances)))
         # NOTE(miha): Replay node inputs/outputs
         self._input_control: Optional[dai.Node.Input] = None
         self._input_config: Optional[dai.Node.Input] = None
@@ -110,6 +123,7 @@ class ReplayCamera:
         self._video: Optional[dai.Node.Output] = None
         self._still: Optional[dai.Node.Output] = None
         self._preview: Optional[dai.Node.Output] = None
+        self._out: Optional[dai.Node.Output] = None
         # self.frameEvent: Optional[dai.Node.Output] = None
         # self.InitialControl: Optional[dai.CameraControl] = None
 
@@ -120,6 +134,7 @@ class ReplayCamera:
         self._video_queue: Optional[dai.DataInputQueue] = None
         self._still_queue: Optional[dai.DataInputQueue] = None
         self._preview_queue: Optional[dai.DataInputQueue] = None
+        self._out_queue: Optional[dai.DataOutputQueue] = None
 
         self._fps: float = fps
         self._video_width: int = 1920
@@ -186,22 +201,22 @@ class ReplayCamera:
 
     def _send_video_frames(self, device: dai.Device):
         if self._input_control is not None:
-            self._input_control_queue = device.getOutputQueue(name=StreamName.INPUT_CONTROL)
+            self._input_control_queue = device.getOutputQueue(name=self._stream_name.INPUT_CONTROL)
         if self._input_config is not None:
-            self._input_config_queue = device.getOutputQueue(name=StreamName.INPUT_CONFIG)
+            self._input_config_queue = device.getOutputQueue(name=self._stream_name.INPUT_CONFIG)
 
         if self._raw is not None:
-            self._raw_queue = device.getInputQueue(name=StreamName.RAW)
+            self._raw_queue = device.getInputQueue(name=self._stream_name.RAW)
         if self._isp is not None:
-            self._isp_queue = device.getInputQueue(name=StreamName.ISP)
+            self._isp_queue = device.getInputQueue(name=self._stream_name.ISP)
         if self._video is not None:
-            self._video_queue = device.getInputQueue(name=StreamName.VIDEO)
+            self._video_queue = device.getInputQueue(name=self._stream_name.VIDEO)
         if self._still is not None:
-            self._still_queue = device.getInputQueue(name=StreamName.STILL)
+            self._still_queue = device.getInputQueue(name=self._stream_name.STILL)
         if self._preview is not None:
-            self._preview_queue = device.getInputQueue(name=StreamName.PREVIEW)
+            self._preview_queue = device.getInputQueue(name=self._stream_name.PREVIEW)
         if self._out is not None:
-            self._out_queue = device.getOutputQueue(name=StreamName.GRAY)
+            self._out_queue = device.getInputQueue(name=self._stream_name.GRAY)
 
         sequence_number = 0
         send_video_frames_start = time.time()
@@ -275,7 +290,7 @@ class ReplayCamera:
                 self._video_queue.send(video_img_frame)
             if self._still_queue is not None:
                 self._still_queue.send(dai.ImgFrame())
-            if self._preview_queue is not None:
+            if self._preview_queue is not None or self._out_queue is not None:
                 preview_frame = cv2.resize(frame, (self._preview_width, self._preview_height))
                 preview_img_frame = create_img_frame(
                     data=to_planar(preview_frame, (self._preview_width, self._preview_height)),
@@ -285,14 +300,17 @@ class ReplayCamera:
                     sequence_number=sequence_number,
                     timestamp=timestamp,
                 )
-                self._preview_queue.send(preview_img_frame)
+                if self._preview_queue is not None:
+                    self._preview_queue.send(preview_img_frame)
+                if self._out_queue is not None:
+                    self._out_queue.send(preview_img_frame)
 
             sequence_number += 1
 
             process_time = time.monotonic() - start
             if process_time > 1. / self._fps:
                 logging.error(
-                    f"Proccessing time ({process_time}ms) didn't hit the set camera FPS deadline ({1. / self._fps}ms)"
+                    f"Proccessing time ({process_time:.3f}ms) didn't hit the set camera FPS deadline ({1. / self._fps:.3f}ms)"
                 )
             time_to_sleep = max((1. / self._fps) - process_time, 0)
             logging.debug(f"process_time: {process_time}, time_to_sleep: {time_to_sleep}")
@@ -472,7 +490,7 @@ class ReplayCamera:
         self.preview  # Ensures that 'preview' is inited (lazy loaded).
         self._preview_width = width
         self._preview_height = height
-        self._nodes[StreamName.PREVIEW].setMaxDataSize(width * height * 3)
+        self._nodes[self._stream_name.PREVIEW].setMaxDataSize(width * height * 3)
 
     # @overload
     # def setPreviewSize(self, width: int, height: int) -> None:
@@ -515,7 +533,7 @@ class ReplayCamera:
         self.video  # Ensures that 'video' is inited (lazy loaded).
         self._video_width = width
         self._video_height = height
-        self._nodes[StreamName.VIDEO].setMaxDataSize(width * height * 3)
+        self._nodes[self._stream_name.VIDEO].setMaxDataSize(width * height * 3)
 
     # @overload
     # def setVideoSize(self, width: int, height: int) -> None:
@@ -539,41 +557,53 @@ class ReplayCamera:
     @property
     def inputConfig(self) -> dai.Node.Input:
         if self._input_config is None:
-            self._input_config = self._create_cam_input(self._pipeline, StreamName.INPUT_CONFIG)
+            self._input_config = self._create_cam_input(self._pipeline, self._stream_name.INPUT_CONFIG)
         return self._input_config
 
     @property
     def inputControl(self) -> dai.Node.Input:
         if self._input_control is None:
-            self._input_control = self._create_cam_input(self._pipeline, StreamName.INPUT_CONTROL)
+            self._input_control = self._create_cam_input(self._pipeline, self._stream_name.INPUT_CONTROL)
         return self._input_control
 
     @property
     def isp(self) -> dai.Node.Output:
         if self._isp is None:
-            self._isp = self._create_cam_output(self._pipeline, StreamName.ISP)
+            self._isp = self._create_cam_output(self._pipeline, self._stream_name.ISP)
         return self._isp
 
     @property
     def preview(self) -> dai.Node.Output:
         if self._preview is None:
-            self._preview = self._create_cam_output(self._pipeline, StreamName.PREVIEW)
+            self._preview = self._create_cam_output(self._pipeline, self._stream_name.PREVIEW)
         return self._preview
 
     @property
     def raw(self) -> dai.Node.Output:
         if self._raw is None:
-            self._raw = self._create_cam_output(self._pipeline, StreamName.RAW)
+            self._raw = self._create_cam_output(self._pipeline, self._stream_name.RAW)
         return self._raw
 
     @property
     def still(self) -> dai.Node.Output:
         if self._still is None:
-            self._still = self._create_cam_output(self._pipeline, StreamName.STILL)
+            self._still = self._create_cam_output(self._pipeline, self._stream_name.STILL)
         return self._still
 
     @property
     def video(self) -> dai.Node.Output:
         if self._video is None:
-            self._video = self._create_cam_output(self._pipeline, StreamName.VIDEO)
+            self._video = self._create_cam_output(self._pipeline, self._stream_name.VIDEO)
         return self._video
+
+    @property
+    def out(self) -> dai.Node.Output:
+        if self._out is None:
+            node_out = self._create_cam_output(self._pipeline, self._stream_name.GRAY)
+            manip = self._pipeline.createImageManip()
+            manip.setFrameType(dai.RawImgFrame.Type.GRAY8)
+            manip.setResize(1280, 800)
+            manip.setKeepAspectRatio(False)
+            node_out.link(manip.inputImage)
+            self._out = manip.out
+        return self._out

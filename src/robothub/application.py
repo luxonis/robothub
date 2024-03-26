@@ -124,19 +124,19 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
         logger.info(f"Device {self._device_product_name}: management thread started.")
 
         try:
-            while self.running:
+            while app_is_running():
                 self._manage_device_inner()
         finally:
             # Make sure device is closed
             self._close_device()
-            logger.debug(f"Device {self._device_product_name}: thread stopped.")
+            logger.info(f"Device {self._device_product_name}: thread stopped.")
 
     def _report_info_and_stats(self) -> None:
         """
         Report device info and stats every 30 seconds.
         """
         product_name = self._device_product_name
-        while self.running and self.device_is_running:
+        while app_is_running() and self.device_is_running:
             try:
                 device_info = get_device_details(self.__get_dai_device(), self.__device_state)
                 robothub_core.AGENT.publish_device_info(device_info)
