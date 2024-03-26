@@ -13,9 +13,12 @@ try:
 except ImportError:
     import robothub.robothub_core_wrapper as robothub_core
 
-__all__ = ['send_image_event', 'send_frame_event_with_zipped_images', 'send_video_event']
+__all__ = ['send_image_event', 'send_frame_event_with_zipped_images', 'send_video_event', 'FutureEvent', 'UploadedEvent']
 
 logger = logging.getLogger(__name__)
+
+FutureEvent = robothub_core.events.FutureEvent
+UploadedEvent = robothub_core.events.UploadedEvent
 
 
 def _catch_event_exception(func):

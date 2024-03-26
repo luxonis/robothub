@@ -8,10 +8,11 @@ from collections import deque
 from enum import Enum
 from pathlib import Path
 from queue import Empty, Queue
-from typing import Callable, Optional
+from typing import Callable, Optional, Union
 
 import depthai as dai
 from depthai_sdk.recorders.video_writers import AvWriter
+from depthai_sdk import FramePacket
 from robothub.events import send_video_event
 
 try:
@@ -63,7 +64,7 @@ class FrameBuffer:
         self.__temporary_queues = set()
         self.__packet_type: Optional[PacketType] = None
 
-    def get_slice(self, start: int, end: int | None = None) -> list:
+    def _get_slice(self, start: int, end: int | None = None) -> list:
         """
         Get a slice of the buffer.
 
@@ -157,7 +158,7 @@ class FrameBuffer:
                            f" The video will start later.")
 
         # Get frames before the current time
-        video_frames_before = self.get_slice(start=(len(self.__buffer) - 1) - before_seconds * fps)
+        video_frames_before = self._get_slice(start=(len(self.__buffer) - 1) - before_seconds * fps)
         video_frames_after = []
         temp_queue = Queue()
         self.__temporary_queues.add(temp_queue)
@@ -222,7 +223,7 @@ class FrameBuffer:
         video_path = Path(dir_path, name).with_suffix('.mp4')
         return str(video_path)
 
-    def add_frame(self, packet) -> None:
+    def add_frame(self, packet: Union[FramePacket, dai.ImgFrame]) -> None:
         """
         Default callback for the frame buffer. It will append the packet to the buffer and put it in all temporary queues.
         """

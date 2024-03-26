@@ -97,7 +97,7 @@ class LiveView(ABC):
     def _publish_local_stream(self, h264_frame: np.ndarray):
         if cv2 is None:
             return
-        frame = self.decode_h264_frame(h264_frame)
+        frame = self._decode_h264_frame(h264_frame)
         if frame is None:
             return
         for text in self._texts:
@@ -112,7 +112,7 @@ class LiveView(ABC):
         cv2.imshow(self._name, frame)
         cv2.waitKey(1)
 
-    def decode_h264_frame(self, frame):
+    def _decode_h264_frame(self, frame):
         if self.codec_r is None:
             return None
         enc_packets = self.codec_r.parse(frame)

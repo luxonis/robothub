@@ -19,18 +19,21 @@ from depthai_sdk import OakCamera
 
 from robothub.utils import get_device_details, get_device_performance_metrics
 
-__all__ = ["app_is_running", "BaseDepthAIApplication", "BaseSDKApplication", "LOCAL_DEV", 'TEAM_ID', 'APP_INSTANCE_ID', 'APP_VERSION', 'ROBOT_ID',
-           'STORAGE_DIR', 'PUBLIC_FILES_DIR', 'COMMUNICATOR', 'CONFIGURATION', 'DEVICES', 'STREAMS', 'StreamHandle']
+__all__ = ["AGENT", "app_is_running", "BaseDepthAIApplication", "BaseSDKApplication", "LOCAL_DEV", "TEAM_ID", "APP_INSTANCE_ID", "APP_VERSION",
+           "ROBOT_ID", "STORAGE_DIR", "PUBLIC_FILES_DIR", "COMMUNICATOR", "CONFIGURATION", "DEVICES", "STREAMS", "StreamHandle", "EVENTS",
+           "DEVICE_MXID", "wait"]
 
 logger = logging.getLogger(__name__)
 
-REPLAY_PATH = os.environ.get('RH_OAK_REPLAY_PATH', None) or os.environ.get('RH_REPLAY_PATH', None)
+REPLAY_PATH = os.environ.get("RH_OAK_REPLAY_PATH", None) or os.environ.get("RH_REPLAY_PATH", None)
 
+AGENT = robothub_core.AGENT
 APP_INSTANCE_ID = robothub_core.APP_INSTANCE_ID
 APP_VERSION = robothub_core.APP_VERSION
 COMMUNICATOR = robothub_core.COMMUNICATOR
 CONFIGURATION = robothub_core.CONFIGURATION
 DEVICES = robothub_core.DEVICES
+EVENTS = robothub_core.EVENTS
 PUBLIC_FILES_DIR = robothub_core.PUBLIC_FILES_DIR
 ROBOT_ID = robothub_core.ROBOT_ID
 STORAGE_DIR = robothub_core.STORAGE_DIR
@@ -39,6 +42,8 @@ STREAMS = robothub_core.STREAMS
 TEAM_ID = robothub_core.TEAM_ID
 
 app_is_running = robothub_core.app_is_running
+wait = robothub_core.wait
+DEVICE_MXID = "unknown"
 
 # this needs to be in sync with globals.py from robothub_core wrapper
 LOCAL_DEV = APP_INSTANCE_ID == "ROBOTHUB_ROBOT_APP_ID" and APP_VERSION == "ROBOTHUB_APP_VERSION"
@@ -66,6 +71,7 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
         return not self._device_stop_event.is_set()
 
     def on_start(self) -> None:
+        global DEVICE_MXID
         if len(DEVICES) == 0:
             logger.info("No assigned devices.")
             self.stop_event.set()
@@ -75,6 +81,7 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
 
         self.__rh_device = DEVICES[0]
         self._device_mxid = self.__rh_device.oak["serialNumber"]
+        DEVICE_MXID = self._device_mxid
         self._device_ip = self.__rh_device.oak["ipAddress"]
         
         self._device_product_name = (
@@ -273,15 +280,6 @@ class BaseSDKApplication(BaseApplication):
     """
     This class acts as the main entry point for the SDK user, managing a single device, creating pipelines,
     and polling the device for new data. Derived classes must implement the `setup_pipeline` method.
-
-    Attributes:
-        config: The configuration settings from the robotapp.toml config file.
-
-    Methods:
-        setup_pipeline: Abstract method to be implemented by child classes. Sets up the pipeline for a device.
-        on_device_connected: Optional method, called when a device is connected.
-        on_device_disconnected: Optional method, called when a device is disconnected.
-        on_stop: Optional method, called when the application is stopped.
     """
 
     def _manage_device_inner(self) -> None:
