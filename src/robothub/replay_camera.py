@@ -3,8 +3,9 @@ import os
 import pathlib
 import threading
 import time
+from dataclasses import dataclass
 from datetime import timedelta
-from enum import Enum, StrEnum, auto
+from enum import Enum, auto
 from typing import List, Optional, Tuple
 
 import cv2
@@ -25,7 +26,8 @@ class PathType(Enum):
     IMAGE_DIRECTORY = auto()
 
 
-class StreamName(StrEnum):
+@dataclass
+class StreamName:
     INPUT_CONTROL = "rh_replay_input_control"
     INPUT_CONFIG = "rh_replay_input_config"
     RAW = "rh_replay_raw"
@@ -96,7 +98,10 @@ def to_planar(arr: np.ndarray, shape: tuple) -> np.ndarray:
 
 
 class ReplayCamera:
+    replay_camera_instances: list['ReplayCamera'] = []
+
     def __init__(self, pipeline: dai.Pipeline, fps: float, src: str, run_in_loop: bool = True):
+        self.replay_camera_instances.append(self)
         # NOTE(miha): Replay node inputs/outputs
         self._input_control: Optional[dai.Node.Input] = None
         self._input_config: Optional[dai.Node.Input] = None
@@ -195,6 +200,8 @@ class ReplayCamera:
             self._still_queue = device.getInputQueue(name=StreamName.STILL)
         if self._preview is not None:
             self._preview_queue = device.getInputQueue(name=StreamName.PREVIEW)
+        if self._out is not None:
+            self._out_queue = device.getOutputQueue(name=StreamName.GRAY)
 
         sequence_number = 0
         send_video_frames_start = time.time()
@@ -283,19 +290,19 @@ class ReplayCamera:
             sequence_number += 1
 
             process_time = time.monotonic() - start
-            if process_time > (1000.0 / self._fps) / 1000.0:
+            if process_time > 1. / self._fps:
                 logging.error(
-                    f"Proccessing time ({process_time}) didn't hit the set camera FPS deadline ({1000.0 / self._fps})"
+                    f"Proccessing time ({process_time}ms) didn't hit the set camera FPS deadline ({1. / self._fps}ms)"
                 )
-            time_to_sleep = max((1000.0 / self._fps / 1000.0) - process_time, 0)
+            time_to_sleep = max((1. / self._fps) - process_time, 0)
             logging.debug(f"process_time: {process_time}, time_to_sleep: {time_to_sleep}")
             time.sleep(time_to_sleep)
 
         self._cap.release()
 
-    def start_pooling(self, device: dai.Device):
-        self.thread = threading.Thread(target=self._send_video_frames, args=(device,))
-        self.thread.start()
+    def start_polling(self, device: dai.Device):
+        thread = threading.Thread(target=self._send_video_frames, args=(device,))
+        thread.start()
 
     # NOTE(miha): Below are methods for ColorCamera class:
 
