@@ -6,7 +6,7 @@ long_description = io.open('README.md', encoding='utf-8').read()
 
 setup(
     name='robothub',
-    version='2.5.4',
+    version='2.5.5',
     description='RobotHub integration library',
     long_description=long_description,
     long_description_content_type='text/markdown',
