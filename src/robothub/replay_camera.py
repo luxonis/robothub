@@ -601,7 +601,7 @@ class ReplayCamera:
         if self._out is None:
             node_out = self._create_cam_output(self._pipeline, self._stream_name.GRAY)
             manip = self._pipeline.createImageManip()
-            manip.setFrameType(dai.RawImgFrame.Type.GRAY8)
+            manip.setFrameType(dai.RawImgFrame.Type.RAW8)
             manip.setResize(1280, 800)
             manip.setKeepAspectRatio(False)
             node_out.link(manip.inputImage)
