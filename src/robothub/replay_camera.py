@@ -130,6 +130,7 @@ class ReplayCamera:
         self._interleaved = False
         self._run_in_loop = run_in_loop
         self._pipeline: dai.Pipeline = pipeline
+        self._camera_socket: dai.CameraBoardSocket | None = None
 
         self._init_cap(src)
         if self._cap is None:
@@ -221,6 +222,8 @@ class ReplayCamera:
             img_frame.setSequenceNum(sequence_number)
             img_frame.setWidth(width)
             img_frame.setHeight(height)
+            if self._camera_socket is not None:
+                img_frame.setInstanceNum(int(self._camera_socket))
             return img_frame
 
         def get_next_frame():
@@ -307,7 +310,7 @@ class ReplayCamera:
     # NOTE(miha): Below are methods for ColorCamera class:
 
     def getBoardSocket(self) -> dai.CameraBoardSocket:
-        raise NotImplementedError("This function is not yet implemented")
+        return self._camera_socket
 
     def getCamId(self) -> int:
         raise NotImplementedError("This function is not yet implemented")
@@ -412,7 +415,7 @@ class ReplayCamera:
         raise NotImplementedError("This function is not yet implemented")
 
     def setBoardSocket(self, boardSocket: dai.CameraBoardSocket) -> None:
-        raise NotImplementedError("This function is not yet implemented")
+        self._camera_socket = boardSocket
 
     def setCamId(self, arg0: int) -> None:
         raise NotImplementedError("This function is not yet implemented")
