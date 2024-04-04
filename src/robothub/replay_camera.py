@@ -258,7 +258,7 @@ class ReplayCamera:
 
             return frame
 
-        while rh.app_is_running and not self.replay_is_running:
+        while rh.app_is_running and self.replay_is_running:
             start = time.monotonic()
 
             # NOTE(miha): Returned frame is in BGR format
