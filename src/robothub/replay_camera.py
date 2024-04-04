@@ -147,6 +147,9 @@ class ReplayCamera:
         self._pipeline: dai.Pipeline = pipeline
         self._camera_socket: dai.CameraBoardSocket | None = None
 
+        self._stop_event = threading.Event()
+        self._thread: Optional[threading.Thread] = None
+
         self._init_cap(src)
         if self._cap is None:
             logging.error("Couldn't init the cap")
@@ -255,7 +258,7 @@ class ReplayCamera:
 
             return frame
 
-        while rh.app_is_running:
+        while rh.app_is_running and self.replay_is_running:
             start = time.monotonic()
 
             # NOTE(miha): Returned frame is in BGR format
@@ -322,8 +325,17 @@ class ReplayCamera:
         self._cap.release()
 
     def start_polling(self, device: dai.Device):
-        thread = threading.Thread(target=self._send_video_frames, args=(device,))
-        thread.start()
+        self._thread = threading.Thread(target=self._send_video_frames, args=(device,))
+        self._thread.start()
+
+    def stop_polling(self):
+        if self._thread and self._thread.is_alive():
+            self._stop_event.set()
+            self._thread.join()
+
+    @property
+    def replay_is_running(self):
+        return not self._stop_event.is_set()
 
     # NOTE(miha): Below are methods for ColorCamera class:
 
