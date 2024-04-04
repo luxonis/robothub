@@ -258,7 +258,7 @@ class ReplayCamera:
 
             return frame
 
-        while rh.app_is_running and not self._stop_event.is_set():
+        while rh.app_is_running and not self.replay_is_running:
             start = time.monotonic()
 
             # NOTE(miha): Returned frame is in BGR format
@@ -329,9 +329,13 @@ class ReplayCamera:
         self._thread.start()
 
     def stop_polling(self):
-        if self._thread:
+        if self._thread and self._thread.is_alive():
             self._stop_event.set()
             self._thread.join()
+
+    @property
+    def replay_is_running(self):
+        return not self._stop_event.is_set()
 
     # NOTE(miha): Below are methods for ColorCamera class:
 
