@@ -1,6 +1,6 @@
 import pathlib
 from enum import Enum, auto
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 import numpy as np
 
@@ -12,6 +12,13 @@ class PathType(Enum):
     VIDEO = auto()
     IMAGE_DIRECTORY = auto()
     IMAGE = auto()
+
+
+class ReadFrameType(Enum):
+    NORMAL = auto()
+    NEXT = auto()
+    PREV = auto()
+    JUMP = auto()
 
 
 VideoSuffixes = [".mp4", ".avi"]
@@ -39,7 +46,10 @@ class CaptureManager:
         self._frame_index = 0 if start is None else start
         self._capture_index = 0
 
+        self._pause = False
+
         self._path_type: Optional[PathType] = None
+        self._read_frame_type: ReadFrameType = ReadFrameType.NORMAL
 
         self._parse_src(src)
         if self._path_type is None:
@@ -109,6 +119,44 @@ class CaptureManager:
     def get_capture(self) -> Capture:
         return self._capture
 
+    def next_frame(self):
+        self._read_frame_type = ReadFrameType.NEXT
+
+    def prev_frame(self):
+        self._read_frame_type = ReadFrameType.PREV
+
+    def jump_to_frame(self, index):
+        self._read_frame_type = ReadFrameType.JUMP
+        self._jump_index = index
+
+    def toggle_pause(self):
+        self._pause = not self._pause
+
+    # NOTE(miha): With more complex logic for getting frame (i.e. next, prev frame), we
+    # need a function to handle such exotic cases.
+    # TODO(miha): We don't handle cases where next_frame should go to the next capture, ...
+    def _read_frame(self) -> Tuple[bool, Optional[np.ndarray]]:
+        next_frame_exists = False
+        frame = None
+
+        if self._read_frame_type == ReadFrameType.NORMAL:
+            if self._pause:
+                next_frame_exists, frame = self._capture.read(self._frame_index)
+            else:
+                next_frame_exists, frame = self._capture.read()
+        elif self._read_frame_type == ReadFrameType.NEXT:
+            self._frame_index += 1
+            next_frame_exists, frame = self._capture.read(self._frame_index)
+        elif self._read_frame_type == ReadFrameType.PREV:
+            self._frame_index -= 1
+            next_frame_exists, frame = self._capture.read(self._frame_index)
+        elif self._read_frame_type == ReadFrameType.JUMP:
+            self._frame_index = self._jump_index
+            next_frame_exists, frame = self._capture.read(self._frame_index)
+
+        self._read_frame_type = ReadFrameType.NORMAL
+        return next_frame_exists, frame
+
     def get_next_frame(self) -> Optional[np.ndarray]:
         if not self._capture.is_opened():
             return None
@@ -116,15 +164,21 @@ class CaptureManager:
         if self._end is not None and self._frame_index > self._end:
             self._reset_capture()
 
+        if self._frame_index < self._start:
+            self._reset_capture()
+
         frame = None
         for _ in range(2):
-            next_frame_exists, frame = self._capture.read()
+            # next_frame_exists, frame = self._capture.read()
+            next_frame_exists, frame = self._read_frame()
+
             if not next_frame_exists and self._should_move_to_next_capture:
                 self._reset_capture()
                 continue
             break
 
-        self._frame_index += 1
+        if not self._pause:
+            self._frame_index += 1
         return frame
 
     def close(self):

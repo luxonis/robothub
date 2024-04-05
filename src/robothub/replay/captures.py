@@ -2,7 +2,7 @@ import logging
 import os
 import pathlib
 from abc import ABC, abstractmethod
-from typing import Optional, Tuple
+from typing import Optional, Tuple, overload
 
 import av
 import cv2
@@ -10,8 +10,18 @@ import numpy as np
 
 
 class Capture(ABC):
+    @overload
     @abstractmethod
-    def read(self) -> Tuple[bool, Optional[np.ndarray]]:
+    def read(self, index: None = None) -> Tuple[bool, Optional[np.ndarray]]:
+        pass
+
+    @overload
+    @abstractmethod
+    def read(self, index: int) -> Tuple[bool, Optional[np.ndarray]]:
+        pass
+
+    @abstractmethod
+    def read(self, index: int | None = None) -> Tuple[bool, Optional[np.ndarray]]:
         pass
 
     @abstractmethod
@@ -24,6 +34,10 @@ class Capture(ABC):
 
     @abstractmethod
     def close(self):
+        pass
+
+    @abstractmethod
+    def length(self) -> int:
         pass
 
 
@@ -40,13 +54,26 @@ class ImageDirectoryCapture(Capture):
         self.image_files = image_files
         self.current_frame = 0
 
-    def read(self) -> Tuple[bool, Optional[np.ndarray]]:
-        if self.current_frame < len(self.image_files):
-            frame = cv2.imread(self.image_files[self.current_frame])
+    @overload
+    def read(self, index: None = None) -> Tuple[bool, Optional[np.ndarray]]:
+        pass
+
+    @overload
+    def read(self, index: int) -> Tuple[bool, Optional[np.ndarray]]:
+        pass
+
+    def read(self, index: int | None = None) -> Tuple[bool, Optional[np.ndarray]]:
+        image_index = index if index is not None else self.current_frame
+
+        frame = None
+        if image_index < len(self.image_files):
+            frame = cv2.imread(self.image_files[image_index])
+
+        # NOTE(miha): self.current_frame index was used
+        if index is None:
             self.current_frame += 1
-            return True, frame
-        else:
-            return False, None
+
+        return frame is not None, frame
 
     def reset(self, seek: Optional[int] = None):
         self.current_frame = 0 if seek is None else seek
@@ -56,6 +83,9 @@ class ImageDirectoryCapture(Capture):
 
     def close(self):
         pass
+
+    def length(self) -> int:
+        return len(self.image_files)
 
 
 class PyAvVideoCapture(Capture):
@@ -67,7 +97,18 @@ class PyAvVideoCapture(Capture):
         for frame in self.container.decode(video=0):
             yield True, frame.to_rgb().to_ndarray()
 
-    def read(self) -> Tuple[bool, Optional[np.ndarray]]:
+    @overload
+    def read(self, index: None = None) -> Tuple[bool, Optional[np.ndarray]]:
+        pass
+
+    @overload
+    def read(self, index: int) -> Tuple[bool, Optional[np.ndarray]]:
+        pass
+
+    def read(self, index: int | None = None) -> Tuple[bool, Optional[np.ndarray]]:
+        if index is not None:
+            raise NotImplementedError("Reading at index is not supported for PyAvVideoCapture")
+
         try:
             has_next_frame, frame = next(self._next_frame())
             # NOTE(miha): Convert RGB to BGR
@@ -85,12 +126,25 @@ class PyAvVideoCapture(Capture):
     def close(self):
         self.container.close()
 
+    def length(self) -> int:
+        return 0
+
 
 class VideoCapture(Capture):
     def __init__(self, path: pathlib.Path):
         self.capture = cv2.VideoCapture(str(path))
 
-    def read(self) -> Tuple[bool, Optional[np.ndarray]]:
+    @overload
+    def read(self, index: None = None) -> Tuple[bool, Optional[np.ndarray]]:
+        pass
+
+    @overload
+    def read(self, index: int) -> Tuple[bool, Optional[np.ndarray]]:
+        pass
+
+    def read(self, index: int | None = None) -> Tuple[bool, Optional[np.ndarray]]:
+        if index is not None:
+            self.capture.set(cv2.CAP_PROP_POS_FRAMES, index)
         return self.capture.read()
 
     def reset(self, seek: Optional[int] = None):
@@ -104,3 +158,7 @@ class VideoCapture(Capture):
 
     def close(self):
         self.capture.release()
+
+    def length(self) -> int:
+        num_frames = self.capture.get(cv2.CAP_PROP_FRAME_COUNT)
+        return int(num_frames)

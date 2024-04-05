@@ -122,6 +122,9 @@ class ColorReplayCamera(ReplayCamera):
         # data size later (i.e. calling setPreviewSize also alter max data size).
         self._nodes = {}
 
+    def get_capture_manager(self) -> CaptureManager:
+        return self._capture_manager
+
     def _create_cam_input(self, pipeline: dai.Pipeline, stream_name: str):
         node = pipeline.createXLinkOut()
         node.setStreamName(stream_name)
