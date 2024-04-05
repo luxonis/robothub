@@ -4,7 +4,6 @@ import pathlib
 from abc import ABC, abstractmethod
 from typing import Optional, Tuple, overload
 
-import av
 import cv2
 import numpy as np
 
@@ -88,46 +87,46 @@ class ImageDirectoryCapture(Capture):
         return len(self.image_files)
 
 
-class PyAvVideoCapture(Capture):
-    def __init__(self, path: pathlib.Path):
-        self.container = av.open(str(path))
-        self.video = self.container.streams.video[0]
-
-    def _next_frame(self):
-        for frame in self.container.decode(video=0):
-            yield True, frame.to_rgb().to_ndarray()
-
-    @overload
-    def read(self, index: None = None) -> Tuple[bool, Optional[np.ndarray]]:
-        pass
-
-    @overload
-    def read(self, index: int) -> Tuple[bool, Optional[np.ndarray]]:
-        pass
-
-    def read(self, index: int | None = None) -> Tuple[bool, Optional[np.ndarray]]:
-        if index is not None:
-            raise NotImplementedError("Reading at index is not supported for PyAvVideoCapture")
-
-        try:
-            has_next_frame, frame = next(self._next_frame())
-            # NOTE(miha): Convert RGB to BGR
-            return has_next_frame, frame[:, :, ::-1]
-        except av.error.EOFError:  # type: ignore
-            return False, None
-
-    def reset(self, seek: Optional[int] = None):
-        # CARE(miha): Seek doesn't work, we always go to the start of the video.
-        self.container.seek(0)
-
-    def is_opened(self) -> bool:
-        return self.container is not None
-
-    def close(self):
-        self.container.close()
-
-    def length(self) -> int:
-        return 0
+# class PyAvVideoCapture(Capture):
+#     def __init__(self, path: pathlib.Path):
+#         self.container = av.open(str(path))
+#         self.video = self.container.streams.video[0]
+#
+#     def _next_frame(self):
+#         for frame in self.container.decode(video=0):
+#             yield True, frame.to_rgb().to_ndarray()
+#
+#     @overload
+#     def read(self, index: None = None) -> Tuple[bool, Optional[np.ndarray]]:
+#         pass
+#
+#     @overload
+#     def read(self, index: int) -> Tuple[bool, Optional[np.ndarray]]:
+#         pass
+#
+#     def read(self, index: int | None = None) -> Tuple[bool, Optional[np.ndarray]]:
+#         if index is not None:
+#             raise NotImplementedError("Reading at index is not supported for PyAvVideoCapture")
+#
+#         try:
+#             has_next_frame, frame = next(self._next_frame())
+#             # NOTE(miha): Convert RGB to BGR
+#             return has_next_frame, frame[:, :, ::-1]
+#         except av.error.EOFError:  # type: ignore
+#             return False, None
+#
+#     def reset(self, seek: Optional[int] = None):
+#         # CARE(miha): Seek doesn't work, we always go to the start of the video.
+#         self.container.seek(0)
+#
+#     def is_opened(self) -> bool:
+#         return self.container is not None
+#
+#     def close(self):
+#         self.container.close()
+#
+#     def length(self) -> int:
+#         return 0
 
 
 class VideoCapture(Capture):
