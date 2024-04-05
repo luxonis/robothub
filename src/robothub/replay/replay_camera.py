@@ -1,24 +1,17 @@
 import logging
-import os
-import pathlib
 import threading
 import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from datetime import timedelta
-from enum import Enum, auto
 from typing import List, Optional, Tuple
 
 import cv2
 import depthai as dai
-import numpy as np
 
 import robothub as rh
 from robothub.replay.capture_manager import CaptureManager
-from robothub.replay.utils import BGR2YUV_NV12, to_planar
-
-# from captures import ImageDirectoryCapture, VideoCapture
-
+from robothub.replay.utils import BGR2YUV_NV12, create_img_frame, to_planar
 
 __all__ = ["ReplayCamera", "ColorReplayCamera", "MonoReplayCamera"]
 
@@ -55,6 +48,15 @@ class ReplayCamera(ABC):
 
     @abstractmethod
     def start_polling(self, device: dai.Device):
+        pass
+
+    @abstractmethod
+    def stop_polling(self):
+        pass
+
+    @property
+    @abstractmethod
+    def replay_is_running(self) -> bool:
         pass
 
 
@@ -163,25 +165,6 @@ class ColorReplayCamera(ReplayCamera):
 
         sequence_number = 0
         send_video_frames_start = time.time()
-
-        def create_img_frame(
-            data: np.ndarray,
-            width: int,
-            height: int,
-            type: dai.RawImgFrame.Type,
-            sequence_number: int,
-            timestamp: timedelta,
-        ):
-            img_frame = dai.ImgFrame()
-            img_frame.setType(type)
-            img_frame.setData(data.flatten())
-            img_frame.setTimestamp(timestamp)
-            img_frame.setSequenceNum(sequence_number)
-            img_frame.setWidth(width)
-            img_frame.setHeight(height)
-            if self._camera_socket is not None:
-                img_frame.setInstanceNum(int(self._camera_socket))
-            return img_frame
 
         while rh.app_is_running and self.replay_is_running:
             start = time.monotonic()
@@ -309,7 +292,7 @@ class ColorReplayCamera(ReplayCamera):
             self._thread.join()
 
     @property
-    def replay_is_running(self):
+    def replay_is_running(self) -> bool:
         return not self._stop_event.is_set()
 
     # NOTE(miha): Below are methods for ColorCamera class:
@@ -635,6 +618,9 @@ class MonoReplayCamera(ReplayCamera):
         self._interleaved = False
         self._camera_socket: dai.CameraBoardSocket | None = None
 
+        self._stop_event = threading.Event()
+        self._thread: Optional[threading.Thread] = None
+
         if isinstance(src, str):
             src = [src]
 
@@ -670,26 +656,7 @@ class MonoReplayCamera(ReplayCamera):
         sequence_number = 0
         send_video_frames_start = time.time()
 
-        def create_img_frame(
-            data: np.ndarray,
-            width: int,
-            height: int,
-            type: dai.RawImgFrame.Type,
-            sequence_number: int,
-            timestamp: timedelta,
-        ):
-            img_frame = dai.ImgFrame()
-            img_frame.setType(type)
-            img_frame.setData(data.flatten())
-            img_frame.setTimestamp(timestamp)
-            img_frame.setSequenceNum(sequence_number)
-            img_frame.setWidth(width)
-            img_frame.setHeight(height)
-            if self._camera_socket is not None:
-                img_frame.setInstanceNum(int(self._camera_socket))
-            return img_frame
-
-        while rh.app_is_running:
+        while rh.app_is_running and self.replay_is_running:
             start = time.monotonic()
 
             # NOTE(miha): Returned frame is in BGR format
@@ -740,6 +707,15 @@ class MonoReplayCamera(ReplayCamera):
     def start_polling(self, device: dai.Device):
         thread = threading.Thread(target=self._send_video_frames, args=(device,))
         thread.start()
+
+    def stop_polling(self):
+        if self._thread and self._thread.is_alive():
+            self._stop_event.set()
+            self._thread.join()
+
+    @property
+    def replay_is_running(self) -> bool:
+        return not self._stop_event.is_set()
 
     def getBoardSocket(self) -> dai.CameraBoardSocket:
         raise NotImplementedError("This function is not yet implemented")

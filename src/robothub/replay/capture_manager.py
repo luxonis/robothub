@@ -147,14 +147,16 @@ class CaptureManager:
         elif self._read_frame_type == ReadFrameType.NEXT:
             self._frame_index += 1
             next_frame_exists, frame = self._capture.read(self._frame_index)
+            self._read_frame_type = ReadFrameType.NORMAL
         elif self._read_frame_type == ReadFrameType.PREV:
             self._frame_index -= 1
             next_frame_exists, frame = self._capture.read(self._frame_index)
+            self._read_frame_type = ReadFrameType.NORMAL
         elif self._read_frame_type == ReadFrameType.JUMP:
             self._frame_index = self._jump_index
             next_frame_exists, frame = self._capture.read(self._frame_index)
+            self._read_frame_type = ReadFrameType.NORMAL
 
-        self._read_frame_type = ReadFrameType.NORMAL
         return next_frame_exists, frame
 
     def get_next_frame(self) -> Optional[np.ndarray]:

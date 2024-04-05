@@ -1,4 +1,7 @@
+from datetime import timedelta
+
 import cv2
+import depthai as dai
 import numpy as np
 
 
@@ -29,3 +32,24 @@ def BGR2YUV_NV12(src):
 
 def to_planar(arr: np.ndarray, shape: tuple) -> np.ndarray:
     return cv2.resize(arr, shape).transpose(2, 0, 1).flatten()
+
+
+def create_img_frame(
+    data: np.ndarray,
+    width: int,
+    height: int,
+    type: dai.RawImgFrame.Type,
+    sequence_number: int,
+    timestamp: timedelta,
+    camera_socket: dai.CameraBoardSocket | None = None,
+):
+    img_frame = dai.ImgFrame()
+    img_frame.setType(type)
+    img_frame.setData(data.flatten())
+    img_frame.setTimestamp(timestamp)
+    img_frame.setSequenceNum(sequence_number)
+    img_frame.setWidth(width)
+    img_frame.setHeight(height)
+    if camera_socket is not None:
+        img_frame.setInstanceNum(int(camera_socket))
+    return img_frame
