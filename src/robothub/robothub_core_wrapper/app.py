@@ -198,6 +198,9 @@ class RobotHubApplication(ABC):
             os._exit(self._exit_code)
         sys.exit(self._exit_code)
 
+    def _run(self) -> None:
+        self.run()
+
     def _run_inner(self) -> None:
         # Try to call on_start, if it fails, exit with code 47
         try:
