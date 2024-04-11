@@ -13,7 +13,7 @@ try:
 except ImportError:
     import robothub.robothub_core_wrapper as robothub_core
 from depthai_sdk import OakCamera
-from robothub.replay_camera import ReplayCamera
+from robothub.replay import ReplayCamera
 from robothub.utils import get_device_details, get_device_performance_metrics
 
 __all__ = ["AGENT", "app_is_running", "BaseDepthAIApplication", "BaseSDKApplication", "LOCAL_DEV", "TEAM_ID", "APP_INSTANCE_ID", "APP_VERSION",

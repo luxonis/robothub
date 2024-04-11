@@ -1,29 +1,19 @@
 import logging
-import os
-import pathlib
 import threading
 import time
+from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from datetime import timedelta
-from enum import Enum, auto
 from typing import List, Optional, Tuple
 
 import cv2
 import depthai as dai
-import numpy as np
 
 import robothub as rh
+from robothub.replay.capture_manager import CaptureManager
+from robothub.replay.utils import BGR2YUV_NV12, create_img_frame, to_planar
 
-# TODO(miha):
-#   - pause toggle (when paused we don't read video)
-#   - should we use img_manip node to resize preview or cv2?
-#   - get actual sizes for raw, isp
-#   - test loop=False
-
-
-class PathType(Enum):
-    VIDEO = auto()
-    IMAGE_DIRECTORY = auto()
+__all__ = ["ReplayCamera", "ColorReplayCamera", "MonoReplayCamera"]
 
 
 @dataclass
@@ -49,72 +39,41 @@ class StreamName:
         self.PREVIEW = f"rh_replay_preview_{self.suffix}"
 
 
-class ImageDirectoryCapture:
-    """
-    Used for sending images from directory to the replay node instead of a video.
-    """
+class ReplayCamera(ABC):
+    replay_camera_instances: list["ReplayCamera"] = []
 
-    def __init__(self, path: pathlib.Path):
-        image_files = [
-            os.path.join(str(path), f) for f in os.listdir(str(path)) if f.endswith((".png", ".jpg", ".jpeg"))
-        ]
-        image_files.sort()
-        self.image_files = image_files
-        self.current_frame = 0
+    @abstractmethod
+    def _send_video_frames(self, device: dai.Device):
+        pass
 
-    def read(self) -> Tuple[bool, Optional[np.ndarray]]:
-        if self.current_frame < len(self.image_files):
-            frame = cv2.imread(self.image_files[self.current_frame])
-            self.current_frame += 1
-            return True, frame
-        else:
-            return False, None
+    @abstractmethod
+    def start_polling(self, device: dai.Device):
+        pass
 
-    def reset(self):
-        self.current_frame = 0
+    @abstractmethod
+    def stop_polling(self):
+        pass
 
-    def isOpened(self):
-        return True
-
-    def release(self):
+    @property
+    @abstractmethod
+    def replay_is_running(self) -> bool:
         pass
 
 
-# from https://github.com/opencv/opencv/issues/21727#issuecomment-1068908078
-def BGR2YUV_NV12(src):
-    src_h, src_w = src.shape[:2]
-    # Convert BGR to YUV_I420
-    dst = cv2.cvtColor(src, cv2.COLOR_BGR2YUV_I420)
-    n_y = src_h * src_w
-    n_uv = n_y // 2
-    n_u = n_y // 4
-
-    # Extract the Y plane
-    y_plane = dst[:src_h].reshape((src_h, src_w))
-
-    # Extract the U and V planes, then interleave them for NV12 format
-    u_plane = dst[src_h : src_h + src_h // 4].reshape((-1, src_w // 2))
-    v_plane = dst[src_h + src_h // 4 :].reshape((-1, src_w // 2))
-
-    uv_plane = np.zeros((src_h // 2, src_w), dtype=np.uint8)
-    uv_plane[:, 0::2] = u_plane.reshape((-1, src_w // 2))
-    uv_plane[:, 1::2] = v_plane.reshape((-1, src_w // 2))
-
-    # Combine Y and interleaved UV planes into one NV12 image
-    nv12_img = np.vstack((y_plane, uv_plane)).astype(np.uint8)
-    return nv12_img
-
-
-def to_planar(arr: np.ndarray, shape: tuple) -> np.ndarray:
-    return cv2.resize(arr, shape).transpose(2, 0, 1).flatten()
-
-
-class ReplayCamera:
-    replay_camera_instances: list['ReplayCamera'] = []
-
-    def __init__(self, pipeline: dai.Pipeline, fps: float, src: str, run_in_loop: bool = True):
+class ColorReplayCamera(ReplayCamera):
+    def __init__(
+        self,
+        pipeline: dai.Pipeline,
+        fps: float,
+        src: str | List[str],
+        run_in_loop: bool = True,
+        start: Optional[int] = None,
+        end: Optional[int] = None,
+    ):
+        super().__init__()
         self.replay_camera_instances.append(self)
         self._stream_name: StreamName = StreamName(suffix=str(len(self.replay_camera_instances)))
+
         # NOTE(miha): Replay node inputs/outputs
         self._input_control: Optional[dai.Node.Input] = None
         self._input_config: Optional[dai.Node.Input] = None
@@ -123,7 +82,6 @@ class ReplayCamera:
         self._video: Optional[dai.Node.Output] = None
         self._still: Optional[dai.Node.Output] = None
         self._preview: Optional[dai.Node.Output] = None
-        self._out: Optional[dai.Node.Output] = None
         # self.frameEvent: Optional[dai.Node.Output] = None
         # self.InitialControl: Optional[dai.CameraControl] = None
 
@@ -134,60 +92,42 @@ class ReplayCamera:
         self._video_queue: Optional[dai.DataInputQueue] = None
         self._still_queue: Optional[dai.DataInputQueue] = None
         self._preview_queue: Optional[dai.DataInputQueue] = None
-        self._out_queue: Optional[dai.DataOutputQueue] = None
 
         self._fps: float = fps
+        self._start = start
+        self._end = end
+        self._run_in_loop = run_in_loop
+        self._pipeline: dai.Pipeline = pipeline
+
         self._video_width: int = 1920
         self._video_height: int = 1080
         self._preview_width: int = 1280
         self._preview_height: int = 720
+        self._isp_width: int = 1920
+        self._isp_height: int = 1080
+        self._raw_width: int = 1280
+        self._raw_height: int = 720
+        self._still_width: int = 1280
+        self._still_height: int = 720
         self._color_order: dai.ColorCameraProperties.ColorOrder = dai.ColorCameraProperties.ColorOrder.BGR
         self._interleaved = False
-        self._run_in_loop = run_in_loop
-        self._pipeline: dai.Pipeline = pipeline
         self._camera_socket: dai.CameraBoardSocket | None = None
 
+        self._send_capture_still: bool = False
         self._stop_event = threading.Event()
         self._thread: Optional[threading.Thread] = None
 
-        self._init_cap(src)
-        if self._cap is None:
-            logging.error("Couldn't init the cap")
-            return
+        if isinstance(src, str):
+            src = [src]
+
+        self._capture_manager = CaptureManager(src, self._run_in_loop, self._start, self._end)
 
         # NOTE(miha): Used for saving references to nodes if we want to set max
         # data size later (i.e. calling setPreviewSize also alter max data size).
         self._nodes = {}
 
-    def _parse_src(self, src: str) -> Optional[pathlib.Path]:
-        path = pathlib.Path(src).resolve()
-        if path.is_file():
-            self._path_type = PathType.VIDEO
-            return path
-        elif path.is_dir():
-            self._path_type = PathType.IMAGE_DIRECTORY
-            return path
-        else:
-            logging.error(f"provided file: {src} is not a file or not a dir")
-
-    def _init_cap(self, src: str):
-        self._path_type: PathType
-        self._path = self._parse_src(src)
-        if self._path is None:
-            logging.error(f"Error in parsing src: {src}")
-            return
-
-        if self._path_type == PathType.VIDEO:
-            self._cap = cv2.VideoCapture(str(self._path))
-        else:
-            self._cap = ImageDirectoryCapture(self._path)  # type: ignore
-
-    def _reset_cap(self):
-        self._cap.release()
-        if self._path_type == PathType.VIDEO:
-            self._cap = cv2.VideoCapture(str(self._path))
-        else:
-            self._cap.reset()  # type:ignore
+    def get_capture_manager(self) -> CaptureManager:
+        return self._capture_manager
 
     def _create_cam_input(self, pipeline: dai.Pipeline, stream_name: str):
         node = pipeline.createXLinkOut()
@@ -202,6 +142,9 @@ class ReplayCamera:
             node.setMaxDataSize(max_data_size)
         self._nodes[stream_name] = node
         return node.out
+
+    def _use_nv12_frame(self) -> bool:
+        return self._video_queue is not None or self._still_queue is not None or self._isp_queue is not None
 
     def _send_video_frames(self, device: dai.Device):
         if self._input_control is not None:
@@ -219,50 +162,15 @@ class ReplayCamera:
             self._still_queue = device.getInputQueue(name=self._stream_name.STILL)
         if self._preview is not None:
             self._preview_queue = device.getInputQueue(name=self._stream_name.PREVIEW)
-        if self._out is not None:
-            self._out_queue = device.getInputQueue(name=self._stream_name.GRAY)
 
         sequence_number = 0
         send_video_frames_start = time.time()
-
-        def create_img_frame(
-            data: np.ndarray,
-            width: int,
-            height: int,
-            type: dai.RawImgFrame.Type,
-            sequence_number: int,
-            timestamp: timedelta,
-        ):
-            img_frame = dai.ImgFrame()
-            img_frame.setType(type)
-            img_frame.setData(data.flatten())
-            img_frame.setTimestamp(timestamp)
-            img_frame.setSequenceNum(sequence_number)
-            img_frame.setWidth(width)
-            img_frame.setHeight(height)
-            if self._camera_socket is not None:
-                img_frame.setInstanceNum(int(self._camera_socket))
-            return img_frame
-
-        def get_next_frame():
-            if not self._cap.isOpened():
-                return None
-
-            frame = None
-            for _ in range(2):
-                next_frame_exists, frame = self._cap.read()
-                if not next_frame_exists and self._run_in_loop:
-                    self._reset_cap()
-                    continue
-                break
-
-            return frame
 
         while rh.app_is_running and self.replay_is_running:
             start = time.monotonic()
 
             # NOTE(miha): Returned frame is in BGR format
-            frame = get_next_frame()
+            frame = self._capture_manager.get_next_frame()
             if frame is None:
                 break
 
@@ -272,15 +180,67 @@ class ReplayCamera:
             if self._input_control_queue is not None:
                 if self._input_control_queue.has():
                     ctrl: dai.CameraControl = self._input_control_queue.get()  # type: ignore
-
-                    # TODO(miha): Send image to still queue
                     if ctrl.getCaptureStill():
-                        pass
+                        self._send_capture_still = True
             if self._input_config_queue is not None:
                 pass
 
             if self._raw_queue is not None:
-                self._raw_queue.send(dai.ImgFrame())
+                raw_img_frame = create_img_frame(
+                    data=to_planar(frame, (self._raw_width, self._raw_height)),
+                    width=self._raw_width,
+                    height=self._raw_height,
+                    type=dai.ImgFrame.Type.BGR888p,
+                    sequence_number=sequence_number,
+                    timestamp=timestamp,
+                )
+                self._raw_queue.send(raw_img_frame)
+
+            if self._use_nv12_frame:
+                nv12_frame = BGR2YUV_NV12(frame)
+                if self._isp_queue is not None:
+                    isp_img_frame = create_img_frame(
+                        data=nv12_frame,
+                        width=self._isp_width,
+                        height=self._isp_height,
+                        type=dai.ImgFrame.Type.NV12,
+                        sequence_number=sequence_number,
+                        timestamp=timestamp,
+                    )
+                    self._isp_queue.send(isp_img_frame)
+                if self._video_queue is not None:
+                    video_img_frame = create_img_frame(
+                        data=nv12_frame,
+                        width=self._video_width,
+                        height=self._video_height,
+                        type=dai.ImgFrame.Type.NV12,
+                        sequence_number=sequence_number,
+                        timestamp=timestamp,
+                    )
+                    self._video_queue.send(video_img_frame)
+                if self._still_queue is not None and self._send_capture_still:
+                    self._send_capture_still = False
+                    video_img_frame = create_img_frame(
+                        data=nv12_frame,
+                        width=self._video_width,
+                        height=self._video_height,
+                        type=dai.ImgFrame.Type.NV12,
+                        sequence_number=sequence_number,
+                        timestamp=timestamp,
+                    )
+                    self._still_queue.send(dai.ImgFrame())
+
+            if self._preview_queue is not None:
+                preview_img_frame = create_img_frame(
+                    data=to_planar(frame, (self._preview_width, self._preview_height)),
+                    width=self._preview_width,
+                    height=self._preview_height,
+                    type=dai.ImgFrame.Type.BGR888p,
+                    sequence_number=sequence_number,
+                    timestamp=timestamp,
+                )
+                self._preview_queue.send(preview_img_frame)
+
             if self._isp_queue is not None:
                 self._isp_queue.send(dai.ImgFrame())
             if self._video_queue is not None:
@@ -296,7 +256,7 @@ class ReplayCamera:
                 self._video_queue.send(video_img_frame)
             if self._still_queue is not None:
                 self._still_queue.send(dai.ImgFrame())
-            if self._preview_queue is not None or self._out_queue is not None:
+            if self._preview_queue is not None:
                 preview_frame = cv2.resize(frame, (self._preview_width, self._preview_height))
                 preview_img_frame = create_img_frame(
                     data=to_planar(preview_frame, (self._preview_width, self._preview_height)),
@@ -308,21 +268,19 @@ class ReplayCamera:
                 )
                 if self._preview_queue is not None:
                     self._preview_queue.send(preview_img_frame)
-                if self._out_queue is not None:
-                    self._out_queue.send(preview_img_frame)
 
             sequence_number += 1
 
             process_time = time.monotonic() - start
-            if process_time > 1. / self._fps:
+            if process_time > 1.0 / self._fps:
                 logging.error(
                     f"Proccessing time ({process_time:.3f}ms) didn't hit the set camera FPS deadline ({1. / self._fps:.3f}ms)"
                 )
-            time_to_sleep = max((1. / self._fps) - process_time, 0)
+            time_to_sleep = max((1.0 / self._fps) - process_time, 0)
             logging.debug(f"process_time: {process_time}, time_to_sleep: {time_to_sleep}")
             time.sleep(time_to_sleep)
 
-        self._cap.release()
+        self._capture_manager.close()
 
     def start_polling(self, device: dai.Device):
         self._thread = threading.Thread(target=self._send_video_frames, args=(device,))
@@ -334,12 +292,12 @@ class ReplayCamera:
             self._thread.join()
 
     @property
-    def replay_is_running(self):
+    def replay_is_running(self) -> bool:
         return not self._stop_event.is_set()
 
     # NOTE(miha): Below are methods for ColorCamera class:
 
-    def getBoardSocket(self) -> dai.CameraBoardSocket:
+    def getBoardSocket(self) -> dai.CameraBoardSocket | None:
         return self._camera_socket
 
     def getCamId(self) -> int:
@@ -611,14 +569,256 @@ class ReplayCamera:
             self._video = self._create_cam_output(self._pipeline, self._stream_name.VIDEO)
         return self._video
 
+    # @property
+    # def out(self) -> dai.Node.Output:
+    #     if self._out is None:
+    #         node_out = self._create_cam_output(self._pipeline, self._stream_name.GRAY)
+    #         manip = self._pipeline.createImageManip()
+    #         manip.setFrameType(dai.RawImgFrame.Type.RAW8)
+    #         manip.setResize(1280, 800)
+    #         manip.setKeepAspectRatio(False)
+    #         node_out.link(manip.inputImage)
+    #         self._out = manip.out
+    #     return self._out
+
+
+class MonoReplayCamera(ReplayCamera):
+    def __init__(
+        self,
+        pipeline: dai.Pipeline,
+        fps: float,
+        src: str | List[str],
+        run_in_loop: bool = True,
+        start: Optional[int] = None,
+        end: Optional[int] = None,
+    ):
+        super().__init__()
+        self.replay_camera_instances.append(self)
+        self._stream_name: StreamName = StreamName(suffix=str(len(self.replay_camera_instances)))
+
+        self._input_control: Optional[dai.Node.Input] = None
+        self._raw: Optional[dai.Node.Output] = None
+        self._out: Optional[dai.Node.Output] = None
+
+        self._input_control_queue: Optional[dai.DataOutputQueue] = None
+        self._raw_queue: Optional[dai.DataInputQueue] = None
+        self._out_queue: Optional[dai.DataInputQueue] = None
+
+        self._fps: float = fps
+        self._start = start
+        self._end = start
+        self._run_in_loop = run_in_loop
+        self._pipeline: dai.Pipeline = pipeline
+
+        self._raw_width: int = 1920
+        self._raw_height: int = 1080
+        self._out_width: int = 1280
+        self._out_height: int = 720
+        self._color_order: dai.ColorCameraProperties.ColorOrder = dai.ColorCameraProperties.ColorOrder.BGR
+        self._interleaved = False
+        self._camera_socket: dai.CameraBoardSocket | None = None
+
+        self._stop_event = threading.Event()
+        self._thread: Optional[threading.Thread] = None
+
+        if isinstance(src, str):
+            src = [src]
+
+        self._capture_manager = CaptureManager(src, self._run_in_loop, self._start, self._end)
+
+        # NOTE(miha): Used for saving references to nodes if we want to set max
+        # data size later (i.e. calling setPreviewSize also alter max data size).
+        self._nodes = {}
+
+    def _create_cam_input(self, pipeline: dai.Pipeline, stream_name: str):
+        node = pipeline.createXLinkOut()
+        node.setStreamName(stream_name)
+        self._nodes[stream_name] = node
+        return node.input
+
+    def _create_cam_output(self, pipeline: dai.Pipeline, stream_name: str, max_data_size: int | None = None):
+        node = pipeline.create(dai.node.XLinkIn)
+        node.setStreamName(stream_name)
+        if max_data_size is not None:
+            node.setMaxDataSize(max_data_size)
+        self._nodes[stream_name] = node
+        return node.out
+
+    def _send_video_frames(self, device: dai.Device):
+        if self._input_control is not None:
+            self._input_control_queue = device.getOutputQueue(name=self._stream_name.INPUT_CONTROL)
+
+        if self._raw is not None:
+            self._raw_queue = device.getInputQueue(name=self._stream_name.RAW)
+        if self._out is not None:
+            self._out_queue = device.getInputQueue(name=self._stream_name.GRAY)
+
+        sequence_number = 0
+        send_video_frames_start = time.time()
+
+        while rh.app_is_running and self.replay_is_running:
+            start = time.monotonic()
+
+            # NOTE(miha): Returned frame is in BGR format
+            frame = self._capture_manager.get_next_frame()
+            if frame is None:
+                break
+
+            timestamp: timedelta = timedelta(seconds=time.time() - send_video_frames_start)
+
+            # NOTE(miha): Mock input control commands
+
+            if self._raw_queue is not None:
+                raw_img_frame = create_img_frame(
+                    data=to_planar(frame, (self._raw_width, self._raw_height)),
+                    width=self._raw_width,
+                    height=self._raw_height,
+                    type=dai.ImgFrame.Type.BGR888p,
+                    sequence_number=sequence_number,
+                    timestamp=timestamp,
+                )
+                self._raw_queue.send(raw_img_frame)
+
+            if self._out_queue is not None:
+                preview_frame = cv2.resize(frame, (self._out_width, self._out_height))
+                preview_img_frame = create_img_frame(
+                    data=to_planar(preview_frame, (self._out_width, self._out_height)),
+                    width=self._out_width,
+                    height=self._out_height,
+                    type=dai.ImgFrame.Type.BGR888p,
+                    sequence_number=sequence_number,
+                    timestamp=timestamp,
+                )
+                self._out_queue.send(preview_img_frame)
+
+            sequence_number += 1
+
+            process_time = time.monotonic() - start
+            if process_time > 1.0 / self._fps:
+                logging.error(
+                    f"Proccessing time ({process_time:.3f}ms) didn't hit the set camera FPS deadline ({1. / self._fps:.3f}ms)"
+                )
+            time_to_sleep = max((1.0 / self._fps) - process_time, 0)
+            logging.debug(f"process_time: {process_time}, time_to_sleep: {time_to_sleep}")
+            time.sleep(time_to_sleep)
+
+        self._capture_manager.close()
+
+    def start_polling(self, device: dai.Device):
+        thread = threading.Thread(target=self._send_video_frames, args=(device,))
+        thread.start()
+
+    def stop_polling(self):
+        if self._thread and self._thread.is_alive():
+            self._stop_event.set()
+            self._thread.join()
+
+    @property
+    def replay_is_running(self) -> bool:
+        return not self._stop_event.is_set()
+
+    def getBoardSocket(self) -> dai.CameraBoardSocket:
+        raise NotImplementedError("This function is not yet implemented")
+
+    def getCamId(self) -> int:
+        raise NotImplementedError("This function is not yet implemented")
+
+    def getCamera(self) -> str:
+        raise NotImplementedError("This function is not yet implemented")
+
+    def getFps(self) -> float:
+        raise NotImplementedError("This function is not yet implemented")
+
+    def getFrameEventFilter(self) -> List[dai.FrameEvent]:
+        raise NotImplementedError("This function is not yet implemented")
+
+    def getImageOrientation(self) -> dai.CameraImageOrientation:
+        raise NotImplementedError("This function is not yet implemented")
+
+    def getNumFramesPool(self) -> int:
+        raise NotImplementedError("This function is not yet implemented")
+
+    def getRawNumFramesPool(self) -> int:
+        raise NotImplementedError("This function is not yet implemented")
+
+    def getResolution(self) -> dai.MonoCameraProperties.SensorResolution:
+        raise NotImplementedError("This function is not yet implemented")
+
+    def getResolutionHeight(self) -> int:
+        raise NotImplementedError("This function is not yet implemented")
+
+    def getResolutionSize(self) -> Tuple[int, int]:
+        raise NotImplementedError("This function is not yet implemented")
+
+    def getResolutionWidth(self) -> int:
+        raise NotImplementedError("This function is not yet implemented")
+
+    def setBoardSocket(self, boardSocket: dai.CameraBoardSocket) -> None:
+        raise NotImplementedError("This function is not yet implemented")
+
+    def setCamId(self, arg0: int) -> None:
+        raise NotImplementedError("This function is not yet implemented")
+
+    def setCamera(self, name: str) -> None:
+        raise NotImplementedError("This function is not yet implemented")
+
+    def setFps(self, fps: float) -> None:
+        raise NotImplementedError("This function is not yet implemented")
+
+    def setFrameEventFilter(self, events: List[dai.FrameEvent]) -> None:
+        raise NotImplementedError("This function is not yet implemented")
+
+    def setImageOrientation(self, imageOrientation: dai.CameraImageOrientation) -> None:
+        raise NotImplementedError("This function is not yet implemented")
+
+    def setIsp3aFps(self, arg0: int) -> None:
+        raise NotImplementedError("This function is not yet implemented")
+
+    def setNumFramesPool(self, arg0: int) -> None:
+        raise NotImplementedError("This function is not yet implemented")
+
+    def setRawNumFramesPool(self, arg0: int) -> None:
+        raise NotImplementedError("This function is not yet implemented")
+
+    def setRawOutputPacked(self, packed: bool) -> None:
+        raise NotImplementedError("This function is not yet implemented")
+
+    def setResolution(self, resolution: dai.MonoCameraProperties.SensorResolution) -> None:
+        raise NotImplementedError("This function is not yet implemented")
+
+    @property
+    def frameEvent(self) -> dai.Node.Output:
+        raise NotImplementedError("This function is not yet implemented")
+
+    @property
+    def initialControl(self) -> dai.CameraControl:
+        raise NotImplementedError("This function is not yet implemented")
+
+    @property
+    def inputControl(self) -> dai.Node.Input:
+        if self._input_control is None:
+            self._input_control = self._create_cam_input(self._pipeline, self._stream_name.INPUT_CONTROL)
+        return self._input_control
+
+    # @property
+    # def out(self) -> dai.Node.Output:
+    #     if self._out is None:
+    #         node_out = self._create_cam_output(self._pipeline, self._stream_name.GRAY)
+    #         manip = self._pipeline.createImageManip()
+    #         manip.setFrameType(dai.RawImgFrame.Type.RAW8)
+    #         manip.setResize(1280, 800)
+    #         manip.setKeepAspectRatio(False)
+    #         node_out.link(manip.inputImage)
+    #         self._out = manip.out
+    #     return self._out
     @property
     def out(self) -> dai.Node.Output:
         if self._out is None:
-            node_out = self._create_cam_output(self._pipeline, self._stream_name.GRAY)
-            manip = self._pipeline.createImageManip()
-            manip.setFrameType(dai.RawImgFrame.Type.RAW8)
-            manip.setResize(1280, 800)
-            manip.setKeepAspectRatio(False)
-            node_out.link(manip.inputImage)
-            self._out = manip.out
+            self._out = self._create_cam_output(self._pipeline, self._stream_name.GRAY)
         return self._out
+
+    @property
+    def raw(self) -> dai.Node.Output:
+        if self._raw is None:
+            self._raw = self._create_cam_output(self._pipeline, self._stream_name.RAW)
+        return self._raw
