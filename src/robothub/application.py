@@ -39,6 +39,8 @@ STREAMS = robothub_core.STREAMS
 TEAM_ID = robothub_core.TEAM_ID
 
 app_is_running = robothub_core.app_is_running
+DeviceState = robothub_core.DeviceState
+RobotHubDevice = robothub_core.RobotHubDevice
 wait = robothub_core.wait
 DEVICE_MXID = "unknown"
 

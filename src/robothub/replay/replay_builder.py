@@ -1,12 +1,10 @@
 import glob
 import logging
 from enum import Enum, auto
-from typing import List, Optional, Self, overload, override
+from typing import List, Optional
 
 import depthai as dai
-
-from robothub.replay.replay_camera import (ColorReplayCamera, MonoReplayCamera,
-                                           ReplayCamera)
+from robothub.replay.replay_camera import ColorReplayCamera, MonoReplayCamera
 
 __all__ = ["ReplayBuilder"]
 
@@ -29,37 +27,37 @@ class ReplayBuilder:
         self._end: Optional[int] = None
         self._run_in_loop = True
 
-    def frames_range(self, start: Optional[int] = None, end: Optional[int] = None) -> Self:
+    def frames_range(self, start: Optional[int] = None, end: Optional[int] = None):
         if start is not None:
             self._start = start
         if end is not None:
             self._end = end
         return self
 
-    def files(self, src: str) -> Self:
+    def files(self, src: str):
         files = glob.glob(src)
         self._media_src.extend(files)
         return self
 
-    def recursive_files(self, src: str) -> Self:
+    def recursive_files(self, src: str):
         files = glob.glob(src, recursive=True)
         self._media_src.extend(files)
         return self
 
-    def hidden_files(self, src: str) -> Self:
+    def hidden_files(self, src: str):
         files = glob.glob(src, include_hidden=True)
         self._media_src.extend(files)
         return self
 
-    def youtube_video(self, tmp_dir=None) -> Self:
+    def youtube_video(self, tmp_dir=None):
         # TODO(miha): Download yt video, save it in tmp dir, add it to self._media_src
         raise NotImplementedError("Youtube videos not implemented yet")
 
-    def sort_files(self) -> Self:
+    def sort_files(self):
         self._media_src.sort()
         return self
 
-    def log_info(self) -> Self:
+    def log_info(self):
         logging.info(f"Using following source files: {self._media_src}")
         logging.info(
             f"Replay camera configuration: fps: {self._fps}, run_in_loop: {self._run_in_loop}, start: {self._start}, end: {self._end}"

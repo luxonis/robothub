@@ -2,25 +2,16 @@ import logging
 import os
 import pathlib
 from abc import ABC, abstractmethod
-from typing import Optional, Tuple, overload
+from typing import Optional, Tuple
 
 import cv2
 import numpy as np
 
 
 class Capture(ABC):
-    @overload
-    @abstractmethod
-    def read(self, index: None = None) -> Tuple[bool, Optional[np.ndarray]]:
-        pass
-
-    @overload
-    @abstractmethod
-    def read(self, index: int) -> Tuple[bool, Optional[np.ndarray]]:
-        pass
 
     @abstractmethod
-    def read(self, index: int | None = None) -> Tuple[bool, Optional[np.ndarray]]:
+    def read(self, index: Optional[int] = None) -> Tuple[bool, Optional[np.ndarray]]:
         pass
 
     @abstractmethod
@@ -52,14 +43,6 @@ class ImageDirectoryCapture(Capture):
         image_files.sort()
         self.image_files = image_files
         self.current_frame = 0
-
-    @overload
-    def read(self, index: None = None) -> Tuple[bool, Optional[np.ndarray]]:
-        pass
-
-    @overload
-    def read(self, index: int) -> Tuple[bool, Optional[np.ndarray]]:
-        pass
 
     def read(self, index: int | None = None) -> Tuple[bool, Optional[np.ndarray]]:
         image_index = index if index is not None else self.current_frame
@@ -132,14 +115,6 @@ class ImageDirectoryCapture(Capture):
 class VideoCapture(Capture):
     def __init__(self, path: pathlib.Path):
         self.capture = cv2.VideoCapture(str(path))
-
-    @overload
-    def read(self, index: None = None) -> Tuple[bool, Optional[np.ndarray]]:
-        pass
-
-    @overload
-    def read(self, index: int) -> Tuple[bool, Optional[np.ndarray]]:
-        pass
 
     def read(self, index: int | None = None) -> Tuple[bool, Optional[np.ndarray]]:
         if index is not None:
