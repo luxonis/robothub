@@ -62,13 +62,13 @@ class ReplayCamera(ABC):
 
 class ColorReplayCamera(ReplayCamera):
     def __init__(
-        self,
-        pipeline: dai.Pipeline,
-        fps: float,
-        src: str | List[str],
-        run_in_loop: bool = True,
-        start: Optional[int] = None,
-        end: Optional[int] = None,
+            self,
+            pipeline: dai.Pipeline,
+            fps: float,
+            src: str | List[str],
+            run_in_loop: bool = True,
+            start: Optional[int] = None,
+            end: Optional[int] = None,
     ):
         super().__init__()
         self.replay_camera_instances.append(self)
@@ -103,6 +103,8 @@ class ColorReplayCamera(ReplayCamera):
         self._video_height: int = 1080
         self._preview_width: int = 1280
         self._preview_height: int = 720
+        self._preview_crop_needed: Optional[bool] = None
+        self._preview_x_coords: Optional[tuple[int, int]] = None
         self._isp_width: int = 1920
         self._isp_height: int = 1080
         self._raw_width: int = 1280
@@ -166,13 +168,30 @@ class ColorReplayCamera(ReplayCamera):
         sequence_number = 0
         send_video_frames_start = time.time()
 
-        while rh.app_is_running and self.replay_is_running:
+        while rh.app_is_running() and self.replay_is_running:
             start = time.monotonic()
 
             # NOTE(miha): Returned frame is in BGR format
             frame = self._capture_manager.get_next_frame()
             if frame is None:
                 break
+
+            frame_h, frame_w = frame.shape[:2]
+            if self._isp_width > frame_w or self._isp_height > frame_h:
+                logging.error(f"ISP frame size ({self._isp_width}x{self._isp_height}) is bigger than source frame size ({frame_w}x{frame_h})."
+                              f" Setting ISP size to frame size.")
+                self._isp_width = frame_w
+                self._isp_height = frame_h
+            if self._raw_width > frame_w or self._raw_height > frame_h:
+                logging.error(f"RAW frame size ({self._raw_width}x{self._raw_height}) is bigger than source frame size ({frame_w}x{frame_h})."
+                              f" Setting RAW size to frame size.")
+                self._raw_width = frame_w
+                self._raw_height = frame_h
+            if self._video_width > frame_w or self._video_height > frame_h:
+                logging.error(f"VIDEO frame size ({self._video_width}x{self._video_height}) is bigger than source frame size ({frame_w}x{frame_h})."
+                              f" Setting VIDEO size to frame size.")
+                self._video_width = frame_w
+                self._video_height = frame_h
 
             timestamp: timedelta = timedelta(seconds=time.time() - send_video_frames_start)
 
@@ -196,7 +215,7 @@ class ColorReplayCamera(ReplayCamera):
                 )
                 self._raw_queue.send(raw_img_frame)
             if self._use_nv12_frame:
-                isp_frame  = cv2.resize(frame, (self._isp_width, self._isp_height))
+                isp_frame = cv2.resize(frame, (self._isp_width, self._isp_height))
                 isp_nv12_frame = BGR2YUV_NV12(isp_frame)
                 video_nv12_frame = None
                 if self._isp_queue is not None:
@@ -244,7 +263,16 @@ class ColorReplayCamera(ReplayCamera):
                     self._still_queue.send(video_img_frame)
 
             if self._preview_queue is not None:
-                preview_frame = cv2.resize(frame, (self._preview_width, self._preview_height))
+                preview_frame = frame
+                # crop when preview aspect ratio is different to video aspect ratio
+                if self._preview_crop_needed is None:
+                    self._find_if_preview_crop_needed()
+                if self._preview_crop_needed:
+                    if self._preview_x_coords is None:
+                        self._find_preview_crop_coords()
+                    preview_frame = frame[:, self._preview_x_coords[0]:self._preview_x_coords[1], :]
+
+                preview_frame = cv2.resize(preview_frame, (self._preview_width, self._preview_height))
                 preview_img_frame = create_img_frame(
                     data=to_planar(preview_frame, (self._preview_width, self._preview_height)),
                     width=self._preview_width,
@@ -255,7 +283,6 @@ class ColorReplayCamera(ReplayCamera):
                 )
                 if self._preview_queue is not None:
                     self._preview_queue.send(preview_img_frame)
-                print(f"Sent preview frame {sequence_number} in {time.monotonic() - start}")
 
             sequence_number += 1
 
@@ -282,6 +309,14 @@ class ColorReplayCamera(ReplayCamera):
     @property
     def replay_is_running(self) -> bool:
         return not self._stop_event.is_set()
+
+    def _find_if_preview_crop_needed(self):
+        self._preview_crop_needed = abs(self._video_width / self._video_height - self._preview_width / self._preview_height) > 0.1
+
+    def _find_preview_crop_coords(self):
+        new_width = self._video_height * self._preview_width // self._preview_height
+        x_middle = self._video_width // 2 + self._video_width % 2
+        self._preview_x_coords = (x_middle - new_width // 2, x_middle + new_width // 2 + new_width % 2)
 
     # NOTE(miha): Below are methods for ColorCamera class:
 
@@ -448,6 +483,8 @@ class ColorReplayCamera(ReplayCamera):
         raise NotImplementedError("This function is not yet implemented")
 
     def setPreviewSize(self, width: int, height: int) -> None:
+        if width > self._video_width or height > self._video_height:
+            raise ValueError(f"Preview size ({width}x{height}) is larger than video size ({self._video_width}x{self._video_height})")
         self.preview  # Ensures that 'preview' is inited (lazy loaded).
         self._preview_width = width
         self._preview_height = height
@@ -552,13 +589,13 @@ class ColorReplayCamera(ReplayCamera):
 
 class MonoReplayCamera(ReplayCamera):
     def __init__(
-        self,
-        pipeline: dai.Pipeline,
-        fps: float,
-        src: str | List[str],
-        run_in_loop: bool = True,
-        start: Optional[int] = None,
-        end: Optional[int] = None,
+            self,
+            pipeline: dai.Pipeline,
+            fps: float,
+            src: str | List[str],
+            run_in_loop: bool = True,
+            start: Optional[int] = None,
+            end: Optional[int] = None,
     ):
         super().__init__()
         self.replay_camera_instances.append(self)
@@ -624,7 +661,7 @@ class MonoReplayCamera(ReplayCamera):
         sequence_number = 0
         send_video_frames_start = time.time()
 
-        while rh.app_is_running and self.replay_is_running:
+        while rh.app_is_running() and self.replay_is_running:
             start = time.monotonic()
 
             # NOTE(miha): Returned frame is in BGR format
