@@ -195,13 +195,10 @@ class ColorReplayCamera(ReplayCamera):
                     timestamp=timestamp,
                 )
                 self._raw_queue.send(raw_img_frame)
-            print(f"Sent raw frame {sequence_number} in {time.monotonic() - start}")
             if self._use_nv12_frame:
                 isp_frame  = cv2.resize(frame, (self._isp_width, self._isp_height))
                 isp_nv12_frame = BGR2YUV_NV12(isp_frame)
-                video_frame = None
                 video_nv12_frame = None
-                print(f"Created nv12 frame {sequence_number} in {time.monotonic() - start}")
                 if self._isp_queue is not None:
                     isp_img_frame = create_img_frame(
                         data=isp_nv12_frame,
@@ -227,7 +224,6 @@ class ColorReplayCamera(ReplayCamera):
                         timestamp=timestamp,
                     )
                     self._video_queue.send(video_img_frame)
-                    print(f"Sent video queue frame {sequence_number} in {time.monotonic() - start}")
                 if self._still_queue is not None and self._send_capture_still:
                     if self._still_width == self._isp_width and self._still_height == self._isp_height:
                         still_nv12_frame = isp_nv12_frame
@@ -264,7 +260,6 @@ class ColorReplayCamera(ReplayCamera):
             sequence_number += 1
 
             process_time = time.monotonic() - start
-            print(f"Processed frame {sequence_number} in {process_time:.3f}")
             if process_time > 1.0 / self._fps:
                 logging.error(
                     f"Proccessing time ({process_time:.3f}ms) didn't hit the set camera FPS deadline ({1. / self._fps:.3f}ms)"
