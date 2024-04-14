@@ -231,32 +231,6 @@ class ColorReplayCamera(ReplayCamera):
                     self._still_queue.send(dai.ImgFrame())
 
             if self._preview_queue is not None:
-                preview_img_frame = create_img_frame(
-                    data=to_planar(frame, (self._preview_width, self._preview_height)),
-                    width=self._preview_width,
-                    height=self._preview_height,
-                    type=dai.ImgFrame.Type.BGR888p,
-                    sequence_number=sequence_number,
-                    timestamp=timestamp,
-                )
-                self._preview_queue.send(preview_img_frame)
-
-            if self._isp_queue is not None:
-                self._isp_queue.send(dai.ImgFrame())
-            if self._video_queue is not None:
-                nv12_frame = BGR2YUV_NV12(frame)
-                video_img_frame = create_img_frame(
-                    data=nv12_frame,
-                    width=self._video_width,
-                    height=self._video_height,
-                    type=dai.ImgFrame.Type.NV12,
-                    sequence_number=sequence_number,
-                    timestamp=timestamp,
-                )
-                self._video_queue.send(video_img_frame)
-            if self._still_queue is not None:
-                self._still_queue.send(dai.ImgFrame())
-            if self._preview_queue is not None:
                 preview_frame = cv2.resize(frame, (self._preview_width, self._preview_height))
                 preview_img_frame = create_img_frame(
                     data=to_planar(preview_frame, (self._preview_width, self._preview_height)),
@@ -814,7 +788,13 @@ class MonoReplayCamera(ReplayCamera):
     @property
     def out(self) -> dai.Node.Output:
         if self._out is None:
-            self._out = self._create_cam_output(self._pipeline, self._stream_name.GRAY)
+            node_out = self._create_cam_output(self._pipeline, self._stream_name.GRAY)
+            manip = self._pipeline.createImageManip()
+            manip.setFrameType(dai.RawImgFrame.Type.RAW8)
+            manip.setResize(self._out_width, self._out_height)
+            manip.setKeepAspectRatio(False)
+            node_out.link(manip.inputImage)
+            self._out = manip.out
         return self._out
 
     @property
