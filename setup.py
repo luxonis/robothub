@@ -4,9 +4,13 @@ from setuptools import setup
 
 long_description = io.open('README.md', encoding='utf-8').read()
 
+# Read the requirements from requirements.txt
+# with open('requirements.txt') as f:
+#     requirements = f.read().splitlines()
+
 setup(
     name='robothub',
-    version='2.5.8',
+    version='2.5.9',
     description='RobotHub integration library',
     long_description=long_description,
     long_description_content_type='text/markdown',
@@ -18,6 +22,7 @@ setup(
     packages=['robothub'],
     package_dir={'': 'src'},  # https://stackoverflow.com/a/67238346/5494277
     include_package_data=True,
+    # install_requires=requirements,
     project_urls={
         'Homepage': 'https://github.com/luxonis/robothub/',
         'Documentation': 'https://hub-docs.luxonis.com/',

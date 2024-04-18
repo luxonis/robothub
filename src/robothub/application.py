@@ -161,7 +161,7 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
 
         self.__device_state = robothub_core.DeviceState.CONNECTING
         product_name = self._device_product_name
-        logger.info(f"Establishing connection with Device {product_name} and uploading the pipeline...")
+        logger.info(f"Establishing connection with Device {product_name}...")
         while self.running and time.monotonic() < give_up_time:
             logger.debug(
                 f"Device {product_name}: remaining time to connect - {give_up_time - time.monotonic()} seconds."
@@ -224,16 +224,17 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
 class BaseDepthAIApplication(BaseApplication):
     def _manage_device_inner(self) -> None:
         self._device_stop_event.clear()
-        logger.info(f"Device {self._device_product_name}: creating Pipeline...")
-        self.pipeline = self.setup_pipeline()
-        assert self.pipeline is not None, f"setup_pipeline() must return a valid depthai.Pipeline object but returned {self.pipeline}."
-        logger.info(f"Device {self._device_product_name}: Pipeline created...")
         self._connect()
         if self._device is None:
             # Wait 30 seconds before trying to connect again
             self.wait(30)
             return
+        logger.info(f"Device {self._device_product_name}: creating Pipeline...")
+        self.pipeline = self.setup_pipeline()
+        assert self.pipeline is not None, f"setup_pipeline() must return a valid depthai.Pipeline object but returned {self.pipeline}."
+        logger.info(f"Device {self._device_product_name}: Pipeline created...")
 
+        self._device.startPipeline(self.pipeline)
         self._start_replay()
 
         if LOCAL_DEV is True:
@@ -266,8 +267,7 @@ class BaseDepthAIApplication(BaseApplication):
             replay.start_polling(self._device)
 
     def _acquire_device(self) -> depthai.Device:
-        return depthai.Device(self.pipeline, depthai.DeviceInfo(
-            self._device_ip or self._device_mxid))
+        return depthai.Device(depthai.DeviceInfo(self._device_ip or self._device_mxid))
 
     def __get_dai_device(self) -> depthai.Device:
         return self._device
