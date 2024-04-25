@@ -137,21 +137,26 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
         """
         Report device info and stats every 30 seconds.
         """
-        product_name = self._device_product_name
         while app_is_running() and self.device_is_running:
-            try:
-                device_info = get_device_details(self.__get_dai_device(), self.__device_state)
-                robothub_core.AGENT.publish_device_info(device_info)
-            except Exception as e:
-                logger.debug(f"Device {product_name}: could not report info with error: {e}.")
-
-            try:
-                device_stats = get_device_performance_metrics(self.__get_dai_device())
-                robothub_core.AGENT.publish_device_stats(device_stats)
-            except Exception as e:
-                logger.debug(f"Device {product_name}: could not report stats with error: {e}.")
-
+            self.__report_device_info()
+            self.__report_device_stats()
             self._device_stop_event.wait(30)
+
+    def __report_device_info(self) -> None:
+        try:
+            device_info = get_device_details(self._get_dai_device(), self.__device_state)
+            logger.info(f"Publishing device info: {device_info}")
+            robothub_core.AGENT.publish_device_info(device_info)
+            logger.info("Device info published")
+        except Exception as e:
+            logger.error(f"Device {self._device_product_name}: could not report info with error: {e}.")
+
+    def __report_device_stats(self) -> None:
+        try:
+            device_stats = get_device_performance_metrics(self._get_dai_device())
+            robothub_core.AGENT.publish_device_stats(device_stats)
+        except Exception as e:
+            logger.error(f"Device {self._device_product_name}: could not report stats with error: {e}.")
 
     def _connect(self) -> None:
         """
@@ -209,8 +214,9 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
 
         self._device_stop_event.set()
 
-    def __get_dai_device(self) -> depthai.Device:
-        return self._device.device
+    @abstractmethod
+    def _get_dai_device(self) -> depthai.Device:
+        pass
 
     @abstractmethod
     def _manage_device_inner(self):
@@ -269,7 +275,7 @@ class BaseDepthAIApplication(BaseApplication):
     def _acquire_device(self) -> depthai.Device:
         return depthai.Device(depthai.DeviceInfo(self._device_ip or self._device_mxid))
 
-    def __get_dai_device(self) -> depthai.Device:
+    def _get_dai_device(self) -> depthai.Device:
         return self._device
 
     @abstractmethod
