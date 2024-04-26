@@ -87,8 +87,9 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
             self.__rh_device.oak.get("name", None)
             or self.__rh_device.oak.get("productName", None)
             or self._device_mxid)
-        
+
         self.__device_state = robothub_core.DeviceState.DISCONNECTED
+        self.__report_device_info()
 
         # run __manage_device in the main thread when developing locally - enables the usa of cv2.imshow()
         if LOCAL_DEV is True:
@@ -145,9 +146,7 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
     def __report_device_info(self) -> None:
         try:
             device_info = get_device_details(self._get_dai_device(), self.__device_state)
-            logger.info(f"Publishing device info: {device_info}")
             robothub_core.AGENT.publish_device_info(device_info)
-            logger.info("Device info published")
         except Exception as e:
             logger.error(f"Device {self._device_product_name}: could not report info with error: {e}.")
 
@@ -165,6 +164,7 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
         give_up_time = time.monotonic() + 30
 
         self.__device_state = robothub_core.DeviceState.CONNECTING
+        self.__report_device_info()
         product_name = self._device_product_name
         logger.info(f"Establishing connection with Device {product_name}...")
         while self.running and time.monotonic() < give_up_time:
@@ -180,11 +180,13 @@ class BaseApplication(robothub_core.RobotHubApplication, ABC):
                 self.wait(5)
             else:
                 self.__device_state = robothub_core.DeviceState.CONNECTED
+                self.__report_device_info()
                 logger.info(f"Device {product_name}: successfully connected.")
                 return
 
         logger.error(f"Device {product_name}: could not manage to connect within 30s timeout.")
         self.__device_state = robothub_core.DeviceState.DISCONNECTED
+        self.__report_device_info()
         return
 
     def _close_device(self):
