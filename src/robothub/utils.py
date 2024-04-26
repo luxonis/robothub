@@ -64,23 +64,28 @@ def get_device_details(device: depthai.Device, state: robothub_core.DeviceState)
     Returns a dictionary with information about the device.
     """
     info = {
-        'mxid': device.getMxId(),
+        'mxid': 'unknown',
+        'state': state.value,
         'protocol': 'unknown',
         'platform': 'unknown',
         'product_name': 'unknown',
         'board_name': 'unknown',
         'board_rev': 'unknown',
-        'bootloader_version': 'unknown',
-        'usb_speed': 'unknown',
-        'state': state.value
+        'bootloader_version': 'unknown'
     }
 
-    device_info = try_or_default(device.getDeviceInfo)
+    if device is None:
+        return info
+
+    mxid = try_or_default(device.getMxId)
+    bootloader_version = device.getBootloaderVersion()  # can be None
     calibration = try_or_default(device.readFactoryCalibration) or try_or_default(device.readCalibration2)
     eeprom_data = try_or_default(calibration.getEepromData)
+    device_info = try_or_default(device.getDeviceInfo)
 
-    info['usb_speed'] = device.getUsbSpeed().name.lower()
-    bootloader_version = device.getBootloaderVersion()  # can be None
+    if mxid:
+        info['mxid'] = mxid
+
     if bootloader_version:
         info['bootloader_version'] = bootloader_version.toStringSemver()
 
