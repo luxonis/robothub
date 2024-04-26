@@ -212,6 +212,7 @@ class ColorReplayCamera(ReplayCamera):
                     type=dai.ImgFrame.Type.BGR888p,
                     sequence_number=sequence_number,
                     timestamp=timestamp,
+                    camera_socket=self._camera_socket,
                 )
                 self._raw_queue.send(raw_img_frame)
             if self._use_nv12_frame:
@@ -226,6 +227,7 @@ class ColorReplayCamera(ReplayCamera):
                         type=dai.ImgFrame.Type.NV12,
                         sequence_number=sequence_number,
                         timestamp=timestamp,
+                        camera_socket=self._camera_socket,
                     )
                     self._isp_queue.send(isp_img_frame)
                 if self._video_queue is not None:
@@ -241,6 +243,7 @@ class ColorReplayCamera(ReplayCamera):
                         type=dai.ImgFrame.Type.NV12,
                         sequence_number=sequence_number,
                         timestamp=timestamp,
+                        camera_socket=self._camera_socket,
                     )
                     self._video_queue.send(video_img_frame)
                 if self._still_queue is not None and self._send_capture_still:
@@ -259,6 +262,7 @@ class ColorReplayCamera(ReplayCamera):
                         type=dai.ImgFrame.Type.NV12,
                         sequence_number=sequence_number,
                         timestamp=timestamp,
+                        camera_socket=self._camera_socket,
                     )
                     self._still_queue.send(video_img_frame)
 
@@ -280,6 +284,7 @@ class ColorReplayCamera(ReplayCamera):
                     type=dai.ImgFrame.Type.BGR888p,
                     sequence_number=sequence_number,
                     timestamp=timestamp,
+                    camera_socket=self._camera_socket,
                 )
                 if self._preview_queue is not None:
                     self._preview_queue.send(preview_img_frame)
@@ -681,6 +686,7 @@ class MonoReplayCamera(ReplayCamera):
                     type=dai.ImgFrame.Type.BGR888p,
                     sequence_number=sequence_number,
                     timestamp=timestamp,
+                    camera_socket=self._camera_socket,
                 )
                 self._raw_queue.send(raw_img_frame)
 
@@ -693,6 +699,7 @@ class MonoReplayCamera(ReplayCamera):
                     type=dai.ImgFrame.Type.BGR888p,
                     sequence_number=sequence_number,
                     timestamp=timestamp,
+                    camera_socket=self._camera_socket,
                 )
                 self._out_queue.send(preview_img_frame)
 
@@ -722,8 +729,8 @@ class MonoReplayCamera(ReplayCamera):
     def replay_is_running(self) -> bool:
         return not self._stop_event.is_set()
 
-    def getBoardSocket(self) -> dai.CameraBoardSocket:
-        raise NotImplementedError("This function is not yet implemented")
+    def getBoardSocket(self) -> dai.CameraBoardSocket | None:
+        return self._camera_socket
 
     def getCamId(self) -> int:
         raise NotImplementedError("This function is not yet implemented")
@@ -759,7 +766,7 @@ class MonoReplayCamera(ReplayCamera):
         raise NotImplementedError("This function is not yet implemented")
 
     def setBoardSocket(self, boardSocket: dai.CameraBoardSocket) -> None:
-        raise NotImplementedError("This function is not yet implemented")
+        self._camera_socket = boardSocket
 
     def setCamId(self, arg0: int) -> None:
         raise NotImplementedError("This function is not yet implemented")
