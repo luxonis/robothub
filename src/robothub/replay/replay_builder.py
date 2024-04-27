@@ -16,7 +16,7 @@ class CameraType(Enum):
 
 
 class ReplayBuilder:
-    def __init__(self, pipeline: dai.Pipeline, fps: float = 5):
+    def __init__(self, pipeline: dai.Pipeline, fps: float = 5, run_in_loop: bool = True):
         self._pipeline: dai.Pipeline = pipeline
 
         self._fps: float = fps
@@ -25,7 +25,7 @@ class ReplayBuilder:
         self._camera_type: Optional[CameraType] = None
         self._start: Optional[int] = None
         self._end: Optional[int] = None
-        self._run_in_loop = True
+        self._run_in_loop = run_in_loop
 
     def frames_range(self, start: Optional[int] = None, end: Optional[int] = None):
         if start is not None:
