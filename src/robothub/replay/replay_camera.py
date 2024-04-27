@@ -215,7 +215,7 @@ class ColorReplayCamera(ReplayCamera):
                     camera_socket=self._camera_socket,
                 )
                 self._raw_queue.send(raw_img_frame)
-            if self._use_nv12_frame:
+            if self._use_nv12_frame():
                 isp_frame = cv2.resize(frame, (self._isp_width, self._isp_height))
                 isp_nv12_frame = BGR2YUV_NV12(isp_frame)
                 video_nv12_frame = None
