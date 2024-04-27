@@ -301,6 +301,7 @@ class ColorReplayCamera(ReplayCamera):
             time.sleep(time_to_sleep)
 
         self._capture_manager.close()
+        self._stop_event.set()
 
     def start_polling(self, device: dai.Device):
         self._thread = threading.Thread(target=self._send_video_frames, args=(device,))
@@ -715,6 +716,7 @@ class MonoReplayCamera(ReplayCamera):
             time.sleep(time_to_sleep)
 
         self._capture_manager.close()
+        self._stop_event.set()
 
     def start_polling(self, device: dai.Device):
         thread = threading.Thread(target=self._send_video_frames, args=(device,))
